@@ -1,0 +1,2461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Liga de Amigos · Competencia Deportiva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+<style>
+/* ─── TOKENS ─────────────────────────────────────────── */
+:root {
+  --ground:   #1A2E1F;
+  --surface:  #243329;
+  --surface2: #2D3F32;
+  --text:     #F0EBD8;
+  --accent:   #E8C547;
+  --muted:    #6B8F71;
+  --dim:      #3D5443;
+  --danger:   #E06B5A;
+
+  --ff-display: 'Barlow Condensed', sans-serif;
+  --ff-body:    'Inter', sans-serif;
+  --ff-mono:    'JetBrains Mono', monospace;
+
+  --radius: 6px;
+  --radius-lg: 12px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─── RESET ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--ff-body);
+  background: var(--ground);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+button { cursor: pointer; font-family: inherit; }
+input, select { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* ─── NAV ────────────────────────────────────────────── */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(26, 46, 31, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--dim);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  height: 56px;
+}
+.nav-brand {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.nav-links {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-links::-webkit-scrollbar { display: none; }
+.nav-link {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+}
+.nav-link:hover { color: var(--text); background: var(--dim); }
+.nav-link.active { color: var(--accent); background: rgba(232, 197, 71, 0.1); }
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.btn-source {
+  background: var(--accent);
+  color: var(--ground);
+  border: none;
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s;
+}
+.btn-source:hover { opacity: 0.85; }
+.sync-badge {
+  font-size: 11px;
+  font-family: var(--ff-mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.sync-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 4px;
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ─── FILTER BAR ─────────────────────────────────────── */
+.filter-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--dim);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.filter-select {
+  background: var(--surface2);
+  border: 1px solid var(--dim);
+  color: var(--text);
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  appearance: none;
+  cursor: pointer;
+}
+.filter-chips {
+  display: flex;
+  gap: 4px;
+}
+.chip {
+  background: var(--surface2);
+  border: 1px solid var(--dim);
+  color: var(--muted);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.chip:hover, .chip.active {
+  background: rgba(232, 197, 71, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.filter-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--dim);
+  flex-shrink: 0;
+}
+
+/* ─── SECTIONS ───────────────────────────────────────── */
+.section {
+  padding: 40px 24px;
+  border-bottom: 1px solid var(--dim);
+}
+.section:last-child { border-bottom: none; }
+.section-head {
+  margin-bottom: 28px;
+}
+.section-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.section-title {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 36px;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.section-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ─── HERO / KPI STRIP ───────────────────────────────── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.kpi-card:hover::before { opacity: 1; }
+.kpi-value {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.kpi-value.accent { color: var(--accent); }
+.kpi-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.kpi-trend {
+  font-size: 11px;
+  font-family: var(--ff-mono);
+  margin-top: 6px;
+  color: var(--muted);
+}
+.kpi-trend.up { color: #6BCB77; }
+.kpi-trend.down { color: var(--danger); }
+
+/* ─── PODIO ──────────────────────────────────────────── */
+.podium-wrap {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0;
+  padding: 20px 0 0;
+}
+.podium-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 120px;
+}
+.podium-slot.first { order: 2; }
+.podium-slot.second { order: 1; }
+.podium-slot.third { order: 3; }
+.podium-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 22px;
+  text-transform: uppercase;
+  color: var(--ground);
+  flex-shrink: 0;
+}
+.podium-slot.first .podium-avatar  { background: var(--accent); width: 62px; height: 62px; font-size: 26px; }
+.podium-slot.second .podium-avatar { background: #C0C0C0; }
+.podium-slot.third .podium-avatar  { background: #CD7F32; }
+.podium-name {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+.podium-pts {
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+}
+.podium-gap {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  font-family: var(--ff-mono);
+}
+.podium-block {
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.podium-pos {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 40px;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.4;
+}
+.podium-slot.first .podium-block  { height: 100px; background: rgba(232,197,71,0.08); border-color: rgba(232,197,71,0.3); }
+.podium-slot.second .podium-block { height: 72px; }
+.podium-slot.third .podium-block  { height: 52px; }
+
+/* ─── RANKING TABLE ──────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.ranking-table th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--dim);
+  white-space: nowrap;
+}
+.ranking-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(61,84,67,0.5);
+  font-size: 14px;
+  vertical-align: middle;
+}
+.ranking-table tr:last-child td { border-bottom: none; }
+.ranking-table tr { transition: background 0.12s; }
+.ranking-table tr:hover td { background: var(--surface2); }
+.rank-pos {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 24px;
+  color: var(--muted);
+  opacity: 0.5;
+  width: 40px;
+  text-align: center;
+}
+.rank-medal {
+  font-size: 20px;
+  width: 36px;
+  text-align: center;
+}
+.rank-name {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 17px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rank-name button {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.rank-name button:hover { color: var(--accent); }
+.rank-pts {
+  font-family: var(--ff-mono);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--accent);
+}
+.rank-min {
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  color: var(--text);
+}
+.rank-sports {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.sport-tag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--dim);
+  color: var(--muted);
+}
+.rank-date {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.leader-row td {
+  background: rgba(232, 197, 71, 0.05) !important;
+}
+.leader-row:hover td {
+  background: rgba(232, 197, 71, 0.1) !important;
+}
+.progress-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progress-bar {
+  height: 4px;
+  background: var(--dim);
+  border-radius: 2px;
+  overflow: hidden;
+  width: 80px;
+  flex-shrink: 0;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.6s var(--ease-out);
+}
+
+/* ─── CHART CONTAINERS ───────────────────────────────── */
+.chart-box {
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  position: relative;
+}
+.chart-title {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.chart-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 700px) {
+  .two-col { grid-template-columns: 1fr; }
+}
+.three-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .three-col { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .three-col { grid-template-columns: 1fr; }
+}
+canvas {
+  display: block;
+  width: 100% !important;
+}
+
+/* ─── LEGEND ─────────────────────────────────────────── */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+.legend-item:hover { border-color: var(--dim); }
+.legend-item.hidden { opacity: 0.4; }
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── PROFILE PANEL ──────────────────────────────────── */
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(10, 20, 13, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.profile-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+.profile-panel {
+  width: min(480px, 100vw);
+  height: 100vh;
+  background: var(--surface);
+  border-left: 1px solid var(--dim);
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.3s var(--ease-out);
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.profile-overlay.open .profile-panel {
+  transform: translateX(0);
+}
+.profile-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  transition: color 0.15s;
+}
+.profile-close:hover { color: var(--text); }
+.profile-name {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 42px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+.profile-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.profile-stat {
+  background: var(--surface2);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.profile-stat-value {
+  font-family: var(--ff-mono);
+  font-weight: 600;
+  font-size: 22px;
+  color: var(--accent);
+}
+.profile-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 3px;
+}
+
+/* ─── RECORDS & AWARDS ───────────────────────────────── */
+.records-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.record-card {
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s;
+}
+.record-card:hover { border-color: var(--accent); }
+.record-icon { font-size: 24px; }
+.record-value {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 26px;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+}
+.record-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+.record-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ─── AWARDS ─────────────────────────────────────────── */
+.awards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.award-card {
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.award-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.award-trophy { font-size: 32px; margin-bottom: 8px; }
+.award-title {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.award-winner {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.award-detail {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+  font-family: var(--ff-mono);
+}
+
+/* ─── INSIGHTS ───────────────────────────────────────── */
+.insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.insight-item {
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.insight-item strong { color: var(--accent); }
+
+/* ─── HEATMAP ────────────────────────────────────────── */
+.heatmap-wrap {
+  overflow-x: auto;
+}
+.heatmap-grid {
+  display: flex;
+  gap: 3px;
+  padding-bottom: 8px;
+}
+.heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.heatmap-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--dim);
+  cursor: pointer;
+  transition: transform 0.1s;
+  position: relative;
+}
+.heatmap-cell:hover {
+  transform: scale(1.3);
+  z-index: 1;
+}
+.heatmap-cell[data-level="1"] { background: rgba(232,197,71,0.25); }
+.heatmap-cell[data-level="2"] { background: rgba(232,197,71,0.5); }
+.heatmap-cell[data-level="3"] { background: rgba(232,197,71,0.75); }
+.heatmap-cell[data-level="4"] { background: var(--accent); }
+.heatmap-months {
+  display: flex;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--ff-mono);
+  margin-bottom: 4px;
+}
+
+/* ─── COMPARATOR ─────────────────────────────────────── */
+.comparator-picks {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.comparator-pick {
+  flex: 1;
+  min-width: 160px;
+}
+.comparator-pick select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--dim);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 18px;
+  text-transform: uppercase;
+  appearance: none;
+  cursor: pointer;
+}
+.vs-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 24px;
+  color: var(--muted);
+  padding: 0 4px;
+}
+.comparator-stats {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+.cmp-stat {
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius);
+  padding: 12px;
+  text-align: center;
+}
+.cmp-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+.cmp-val {
+  font-family: var(--ff-mono);
+  font-weight: 600;
+  font-size: 18px;
+  margin-top: 2px;
+}
+.cmp-val.winner { color: var(--accent); }
+.cmp-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--dim);
+  font-family: var(--ff-mono);
+}
+
+/* ─── BAR RACE ───────────────────────────────────────── */
+.race-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.btn-race {
+  background: var(--accent);
+  color: var(--ground);
+  border: none;
+  padding: 8px 20px;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 14px;
+  font-family: var(--ff-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s;
+}
+.btn-race:hover { opacity: 0.85; }
+.race-date-display {
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+.race-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 240px;
+}
+.race-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  transition: all 0.4s var(--ease-out);
+}
+.race-bar-name {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 15px;
+  text-transform: uppercase;
+  width: 100px;
+  text-align: right;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.race-bar-track {
+  flex: 1;
+  height: 36px;
+  background: var(--dim);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.race-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+  transition: width 0.4s var(--ease-out);
+  min-width: 4px;
+}
+.race-bar-pts {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ground);
+}
+
+/* ─── TOOLTIP ────────────────────────────────────────── */
+.tooltip {
+  position: fixed;
+  background: var(--surface2);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: var(--ff-mono);
+  color: var(--text);
+  pointer-events: none;
+  z-index: 300;
+  opacity: 0;
+  transition: opacity 0.1s;
+  white-space: nowrap;
+  max-width: 220px;
+}
+.tooltip.visible { opacity: 1; }
+
+/* ─── DATA SOURCE MODAL ──────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(10, 20, 13, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  width: min(480px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.modal-title {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 24px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.modal-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+.modal-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.modal-input-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.modal-input {
+  background: var(--surface2);
+  border: 1px solid var(--dim);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: var(--ff-mono);
+  width: 100%;
+}
+.modal-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.btn-secondary {
+  background: var(--dim);
+  border: none;
+  color: var(--muted);
+  padding: 9px 18px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-secondary:hover { background: var(--surface2); color: var(--text); }
+.btn-primary {
+  background: var(--accent);
+  border: none;
+  color: var(--ground);
+  padding: 9px 18px;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.85; }
+
+/* ─── EMPTY STATE ────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-title {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 22px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.empty-text { font-size: 14px; }
+
+/* ─── LOADER ─────────────────────────────────────────── */
+.loader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  font-family: var(--ff-mono);
+  padding: 20px;
+  justify-content: center;
+}
+.loader-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--dim);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── MISC ───────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <span class="nav-brand">⚡ Liga</span>
+  <div class="nav-links">
+    <button class="nav-link active" onclick="scrollToSection('kpi')">General</button>
+    <button class="nav-link" onclick="scrollToSection('podium')">Podio</button>
+    <button class="nav-link" onclick="scrollToSection('evolution')">Evolución</button>
+    <button class="nav-link" onclick="scrollToSection('race')">Carrera</button>
+    <button class="nav-link" onclick="scrollToSection('sports')">Deportes</button>
+    <button class="nav-link" onclick="scrollToSection('heatmap')">Calendario</button>
+    <button class="nav-link" onclick="scrollToSection('records')">Récords</button>
+    <button class="nav-link" onclick="scrollToSection('comparator')">Comparar</button>
+    <button class="nav-link" onclick="scrollToSection('insights')">Insights</button>
+  </div>
+  <div class="nav-actions">
+    <span class="sync-badge"><span class="sync-dot"></span><span id="syncTime">Sin datos</span></span>
+    <button class="btn-source" onclick="openSourceModal()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Cargar datos
+    </button>
+  </div>
+</nav>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-group">
+    <span class="filter-label">Persona</span>
+    <select class="filter-select" id="filterPerson" onchange="applyFilters()">
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group">
+    <span class="filter-label">Deporte</span>
+    <select class="filter-select" id="filterSport" onchange="applyFilters()">
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-chips">
+    <button class="chip active" onclick="setDateFilter('all', this)">Todo</button>
+    <button class="chip" onclick="setDateFilter('7', this)">7 días</button>
+    <button class="chip" onclick="setDateFilter('30', this)">30 días</button>
+    <button class="chip" onclick="setDateFilter('year', this)">Este año</button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<main>
+
+<!-- 1. KPI STRIP -->
+<section class="section" id="kpi">
+  <div class="section-head">
+    <div class="section-eyebrow">Vista general</div>
+    <div class="section-title">Competencia activa</div>
+  </div>
+  <div class="kpi-strip" id="kpiStrip">
+    <div class="kpi-card"><div class="kpi-value" id="kpiParticipants">—</div><div class="kpi-label">Participantes</div></div>
+    <div class="kpi-card"><div class="kpi-value accent" id="kpiTotalPts">—</div><div class="kpi-label">Puntos totales</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="kpiActivities">—</div><div class="kpi-label">Actividades</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="kpiHours">—</div><div class="kpi-label">Horas registradas</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="kpiTopSport">—</div><div class="kpi-label">Deporte popular</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="kpiWeekLeader">—</div><div class="kpi-label">Líder esta semana</div></div>
+  </div>
+
+  <!-- RANKING TABLE -->
+  <div class="table-wrap">
+    <table class="ranking-table" id="rankingTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th></th>
+          <th>Nombre</th>
+          <th>Puntos</th>
+          <th>Progreso</th>
+          <th>Minutos</th>
+          <th>Deportes</th>
+          <th>Última actividad</th>
+        </tr>
+      </thead>
+      <tbody id="rankingBody">
+        <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🏁</div><div class="empty-title">La competencia espera</div><div class="empty-text">Carga un CSV o conecta Google Sheets para comenzar.</div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 2. PODIO -->
+<section class="section" id="podium">
+  <div class="section-head">
+    <div class="section-eyebrow">Los mejores</div>
+    <div class="section-title">Podio</div>
+    <div class="section-sub">Los tres primeros lugares de la competencia</div>
+  </div>
+  <div class="podium-wrap" id="podiumWrap">
+    <div class="empty-state" style="width:100%"><div class="empty-icon">🏆</div><div class="empty-title">Sin datos aún</div></div>
+  </div>
+</section>
+
+<!-- 3. EVOLUCIÓN HISTÓRICA -->
+<section class="section" id="evolution">
+  <div class="section-head">
+    <div class="section-eyebrow">Historial</div>
+    <div class="section-title">Evolución de puntos</div>
+    <div class="section-sub">Puntos acumulados en el tiempo. Haz clic en los nombres para activar/desactivar.</div>
+  </div>
+  <div class="chart-box">
+    <canvas id="evolutionChart" height="320"></canvas>
+    <div class="legend" id="evolutionLegend"></div>
+  </div>
+</section>
+
+<!-- 4. BAR CHART RACE -->
+<section class="section" id="race">
+  <div class="section-head">
+    <div class="section-eyebrow">Animación</div>
+    <div class="section-title">Carrera por el liderato</div>
+    <div class="section-sub">Cómo cambió el ranking día a día</div>
+  </div>
+  <div class="chart-box">
+    <div class="race-controls">
+      <button class="btn-race" id="raceBtn" onclick="toggleRace()">▶ Reproducir</button>
+      <button class="btn-race" onclick="resetRace()" style="background:var(--dim);color:var(--text);">↺ Reiniciar</button>
+      <span class="race-date-display" id="raceDateDisplay">—</span>
+    </div>
+    <div class="race-bar-wrap" id="raceBarWrap"></div>
+  </div>
+</section>
+
+<!-- 5. DISTRIBUCIÓN DEPORTES -->
+<section class="section" id="sports">
+  <div class="section-head">
+    <div class="section-eyebrow">Disciplinas</div>
+    <div class="section-title">Distribución por deporte</div>
+  </div>
+  <div class="two-col">
+    <div class="chart-box">
+      <div class="chart-title">Minutos por deporte</div>
+      <div class="chart-sub">Total de minutos registrados en cada disciplina</div>
+      <canvas id="sportsMinChart" height="220"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Puntos por deporte</div>
+      <div class="chart-sub">Aporte total de cada deporte a la competencia</div>
+      <canvas id="sportsPtsChart" height="220"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- 7. HEATMAP -->
+<section class="section" id="heatmap">
+  <div class="section-head">
+    <div class="section-eyebrow">Actividad</div>
+    <div class="section-title">Calendario deportivo</div>
+    <div class="section-sub">Intensidad diaria de puntos — estilo GitHub</div>
+  </div>
+  <div class="filter-group" style="margin-bottom:16px">
+    <span class="filter-label">Ver</span>
+    <select class="filter-select" id="heatmapFilter" onchange="renderHeatmap()">
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="chart-box">
+    <div class="heatmap-wrap" id="heatmapWrap">
+      <div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin actividad registrada</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:var(--muted);">
+      Menos
+      <span style="display:flex;gap:3px;">
+        <span style="width:12px;height:12px;border-radius:2px;background:var(--dim);"></span>
+        <span style="width:12px;height:12px;border-radius:2px;background:rgba(232,197,71,0.25);"></span>
+        <span style="width:12px;height:12px;border-radius:2px;background:rgba(232,197,71,0.5);"></span>
+        <span style="width:12px;height:12px;border-radius:2px;background:rgba(232,197,71,0.75);"></span>
+        <span style="width:12px;height:12px;border-radius:2px;background:var(--accent);"></span>
+      </span>
+      Más
+    </div>
+  </div>
+</section>
+
+<!-- 6. RECORDS -->
+<section class="section" id="records">
+  <div class="section-head">
+    <div class="section-eyebrow">Marcas</div>
+    <div class="section-title">Récords de la competencia</div>
+  </div>
+  <div class="records-grid" id="recordsGrid">
+    <div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🎯</div><div class="empty-title">Sin récords aún</div></div>
+  </div>
+
+  <div class="section-head" style="margin-top:40px">
+    <div class="section-eyebrow">Reconocimientos</div>
+    <div class="section-title">Premios especiales</div>
+  </div>
+  <div class="awards-grid" id="awardsGrid">
+    <div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏅</div><div class="empty-title">Sin premios aún</div></div>
+  </div>
+</section>
+
+<!-- 8. COMPARADOR -->
+<section class="section" id="comparator">
+  <div class="section-head">
+    <div class="section-eyebrow">Duelo</div>
+    <div class="section-title">Comparar participantes</div>
+    <div class="section-sub">Selecciona dos competidores para ver su enfrentamiento directo</div>
+  </div>
+  <div class="comparator-picks">
+    <div class="comparator-pick">
+      <select id="cmpA" onchange="renderComparator()">
+        <option value="">— Jugador A —</option>
+      </select>
+    </div>
+    <div class="vs-badge">VS</div>
+    <div class="comparator-pick">
+      <select id="cmpB" onchange="renderComparator()">
+        <option value="">— Jugador B —</option>
+      </select>
+    </div>
+  </div>
+  <div id="comparatorContent">
+    <div class="empty-state"><div class="empty-icon">⚔️</div><div class="empty-title">Elige dos competidores</div><div class="empty-text">La batalla comenzará cuando selecciones ambos.</div></div>
+  </div>
+</section>
+
+<!-- 9. INSIGHTS -->
+<section class="section" id="insights">
+  <div class="section-head">
+    <div class="section-eyebrow">Análisis automático</div>
+    <div class="section-title">Lo que dicen los números</div>
+  </div>
+  <div class="insights-list" id="insightsList">
+    <div class="empty-state"><div class="empty-icon">💡</div><div class="empty-title">Sin datos para analizar</div></div>
+  </div>
+</section>
+
+</main>
+
+<!-- PROFILE PANEL -->
+<div class="profile-overlay" id="profileOverlay" onclick="closeProfile(event)">
+  <div class="profile-panel" id="profilePanel">
+    <button class="profile-close" onclick="closeProfile(null)">✕</button>
+    <div id="profileContent"></div>
+  </div>
+</div>
+
+<!-- DATA SOURCE MODAL -->
+<div class="modal-overlay" id="sourceModal">
+  <div class="modal-box">
+    <div class="modal-title">Fuente de datos</div>
+    <div class="modal-desc">Conecta un archivo CSV o una Google Sheet para cargar los registros de la competencia. Los datos se actualizarán automáticamente cada 5 minutos.</div>
+
+    <div class="modal-input-group">
+      <div class="modal-input-label">URL de Google Sheets (publicada como CSV)</div>
+      <input class="modal-input" type="url" id="sheetsUrl" placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv" />
+    </div>
+
+    <div style="text-align:center;font-size:12px;color:var(--muted);">o</div>
+
+    <div class="modal-input-group">
+      <div class="modal-input-label">Archivo CSV local</div>
+      <input class="modal-input" type="file" id="csvFile" accept=".csv" style="padding:6px 10px;" />
+    </div>
+
+    <div class="modal-input-group">
+      <div class="modal-input-label">Actualización automática</div>
+      <select class="modal-input" id="refreshInterval">
+        <option value="0">Desactivada</option>
+        <option value="60000">Cada minuto</option>
+        <option value="300000" selected>Cada 5 minutos</option>
+        <option value="900000">Cada 15 minutos</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeSourceModal()">Cancelar</button>
+      <button class="btn-primary" onclick="loadData()">Cargar datos</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ─── STATE ──────────────────────────────────────────────
+let rawData = [];
+let filteredData = [];
+let dateFilter = 'all';
+let charts = {};
+let raceInterval = null;
+let raceFrame = 0;
+let raceDates = [];
+let refreshTimer = null;
+let hiddenLines = new Set();
+
+// ─── COLOR PALETTE FOR PARTICIPANTS ─────────────────────
+const PERSON_COLORS = [
+  '#E8C547','#6BCB77','#4DA1DB','#E06B5A','#B07EE0',
+  '#E0975A','#5AE0C4','#E05AB4','#99C44F','#5AA8E0'
+];
+
+// ─── SAMPLE DATA (demo) ─────────────────────────────────
+const SAMPLE_CSV = `Fecha Registro,Nombre,Deporte,Minutos,Ponderador,Puntos
+11/03/25 7:13,Nicolás,Running,45,2,90
+11/03/25 8:30,Felipe,Ciclismo,60,1.5,90
+12/03/25 6:50,Nicolás,Natación,40,2.5,100
+12/03/25 18:00,Camila,Gimnasio,50,1.2,60
+13/03/25 7:00,Felipe,Running,35,2,70
+13/03/25 9:15,Sebastián,Yoga,45,1,45
+14/03/25 7:30,Nicolás,Ciclismo,90,1.5,135
+14/03/25 8:00,Camila,Running,30,2,60
+14/03/25 19:00,Diego,Gimnasio,60,1.2,72
+15/03/25 7:00,Felipe,Natación,50,2.5,125
+15/03/25 10:00,Sebastián,Ciclismo,75,1.5,112.5
+15/03/25 17:30,Camila,Natación,40,2.5,100
+17/03/25 6:45,Nicolás,Running,50,2,100
+17/03/25 8:00,Diego,Running,40,2,80
+18/03/25 7:00,Felipe,Gimnasio,55,1.2,66
+18/03/25 18:00,Sebastián,Running,30,2,60
+19/03/25 6:30,Nicolás,Natación,45,2.5,112.5
+19/03/25 9:00,Camila,Ciclismo,80,1.5,120
+20/03/25 7:15,Felipe,Running,60,2,120
+20/03/25 8:30,Diego,Natación,35,2.5,87.5
+21/03/25 6:00,Nicolás,Gimnasio,60,1.2,72
+21/03/25 7:30,Sebastián,Running,45,2,90
+22/03/25 8:00,Camila,Gimnasio,70,1.2,84
+22/03/25 9:00,Diego,Ciclismo,60,1.5,90
+24/03/25 6:45,Nicolás,Running,55,2,110
+24/03/25 7:00,Felipe,Ciclismo,70,1.5,105
+25/03/25 8:00,Sebastián,Natación,50,2.5,125
+25/03/25 18:00,Camila,Running,35,2,70
+26/03/25 6:30,Diego,Gimnasio,80,1.2,96
+26/03/25 7:15,Nicolás,Ciclismo,60,1.5,90
+27/03/25 8:00,Felipe,Running,50,2,100
+27/03/25 9:00,Camila,Yoga,60,1,60
+28/03/25 6:00,Sebastián,Ciclismo,90,1.5,135
+28/03/25 7:30,Diego,Running,45,2,90
+29/03/25 7:00,Nicolás,Natación,50,2.5,125
+31/03/25 8:00,Felipe,Gimnasio,60,1.2,72
+01/04/25 6:30,Camila,Running,40,2,80
+02/04/25 7:00,Sebastián,Gimnasio,55,1.2,66
+03/04/25 6:45,Nicolás,Running,60,2,120
+04/04/25 8:00,Diego,Ciclismo,75,1.5,112.5
+05/04/25 7:00,Felipe,Natación,45,2.5,112.5
+05/04/25 8:30,Camila,Ciclismo,65,1.5,97.5
+07/04/25 6:00,Nicolás,Gimnasio,70,1.2,84
+07/04/25 7:30,Sebastián,Running,50,2,100
+08/04/25 8:00,Diego,Natación,40,2.5,100
+09/04/25 7:00,Felipe,Running,55,2,110
+10/04/25 6:30,Camila,Natación,45,2.5,112.5
+11/04/25 7:00,Nicolás,Running,65,2,130
+12/04/25 8:00,Sebastián,Ciclismo,80,1.5,120
+14/04/25 7:00,Diego,Running,50,2,100
+15/04/25 6:45,Felipe,Ciclismo,85,1.5,127.5`;
+
+// ─── CSV PARSING ─────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+
+  return lines.slice(1).map(line => {
+    const cols = parseCSVLine(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (cols[i] || '').trim().replace(/^"|"$/g,''); });
+
+    // Parse date: DD/MM/YY H:MM
+    const dateStr = obj['Fecha Registro'] || '';
+    const m = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s+(\d{1,2}):(\d{2})/);
+    if (m) {
+      const year = 2000 + parseInt(m[3]);
+      obj.date = new Date(year, parseInt(m[2])-1, parseInt(m[1]), parseInt(m[4]), parseInt(m[5]));
+      obj.dateKey = `${year}-${String(parseInt(m[2])).padStart(2,'0')}-${String(parseInt(m[1])).padStart(2,'0')}`;
+    } else {
+      obj.date = null;
+      obj.dateKey = '';
+    }
+
+    obj.Minutos = parseFloat(obj.Minutos) || 0;
+    obj.Ponderador = parseFloat(obj.Ponderador) || 0;
+    obj.Puntos = parseFloat(obj.Puntos) || 0;
+
+    return obj;
+  }).filter(r => r.Nombre && r.date);
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQuotes = !inQuotes; }
+    else if (c === ',' && !inQuotes) { result.push(current); current = ''; }
+    else { current += c; }
+  }
+  result.push(current);
+  return result;
+}
+
+// ─── DATA PROCESSING ────────────────────────────────────
+function getPersonColor(name) {
+  const people = [...new Set(rawData.map(r => r.Nombre))].sort();
+  const idx = people.indexOf(name);
+  return PERSON_COLORS[idx % PERSON_COLORS.length];
+}
+
+function aggregateByPerson(data) {
+  const map = {};
+  data.forEach(r => {
+    if (!map[r.Nombre]) {
+      map[r.Nombre] = { name: r.Nombre, pts: 0, min: 0, activities: 0, sports: new Set(), lastDate: null };
+    }
+    map[r.Nombre].pts += r.Puntos;
+    map[r.Nombre].min += r.Minutos;
+    map[r.Nombre].activities++;
+    map[r.Nombre].sports.add(r.Deporte);
+    if (!map[r.Nombre].lastDate || r.date > map[r.Nombre].lastDate) {
+      map[r.Nombre].lastDate = r.date;
+    }
+  });
+  return Object.values(map).sort((a, b) => b.pts - a.pts).map((p, i) => ({...p, rank: i+1, sports: [...p.sports]}));
+}
+
+function aggregateBySport(data) {
+  const map = {};
+  data.forEach(r => {
+    if (!map[r.Deporte]) map[r.Deporte] = { sport: r.Deporte, min: 0, pts: 0, count: 0 };
+    map[r.Deporte].min += r.Minutos;
+    map[r.Deporte].pts += r.Puntos;
+    map[r.Deporte].count++;
+  });
+  return Object.values(map).sort((a, b) => b.pts - a.pts);
+}
+
+// ─── FILTERS ─────────────────────────────────────────────
+function applyFilters() {
+  const person = document.getElementById('filterPerson').value;
+  const sport = document.getElementById('filterSport').value;
+  const now = new Date();
+
+  filteredData = rawData.filter(r => {
+    if (person && r.Nombre !== person) return false;
+    if (sport && r.Deporte !== sport) return false;
+    if (dateFilter === '7') {
+      const diff = (now - r.date) / (1000*60*60*24);
+      if (diff > 7) return false;
+    } else if (dateFilter === '30') {
+      const diff = (now - r.date) / (1000*60*60*24);
+      if (diff > 30) return false;
+    } else if (dateFilter === 'year') {
+      if (r.date.getFullYear() !== now.getFullYear()) return false;
+    }
+    return true;
+  });
+
+  renderAll();
+}
+
+function setDateFilter(val, el) {
+  dateFilter = val;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+function populateFilters() {
+  const people = [...new Set(rawData.map(r => r.Nombre))].sort();
+  const sports = [...new Set(rawData.map(r => r.Deporte))].sort();
+
+  const personSel = document.getElementById('filterPerson');
+  const sportSel = document.getElementById('filterSport');
+  const heatSel = document.getElementById('heatmapFilter');
+  const cmpA = document.getElementById('cmpA');
+  const cmpB = document.getElementById('cmpB');
+
+  [personSel, sportSel, heatSel, cmpA, cmpB].forEach(sel => {
+    const first = sel.options[0];
+    sel.innerHTML = '';
+    sel.appendChild(first);
+  });
+
+  people.forEach(p => {
+    [personSel, heatSel, cmpA, cmpB].forEach(sel => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      sel.appendChild(opt);
+    });
+  });
+  sports.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    sportSel.appendChild(opt);
+  });
+}
+
+// ─── RENDER ALL ──────────────────────────────────────────
+function renderAll() {
+  renderKPIs();
+  renderRanking();
+  renderPodium();
+  renderEvolution();
+  renderSportsCharts();
+  renderHeatmap();
+  renderRecords();
+  renderAwards();
+  renderInsights();
+  renderRaceInit();
+  renderComparator();
+}
+
+// ─── KPIs ────────────────────────────────────────────────
+function renderKPIs() {
+  const d = filteredData;
+  const people = [...new Set(d.map(r => r.Nombre))];
+  const now = new Date();
+  const weekAgo = new Date(now - 7*24*60*60*1000);
+  const weekData = d.filter(r => r.date >= weekAgo);
+
+  document.getElementById('kpiParticipants').textContent = people.length;
+  document.getElementById('kpiTotalPts').textContent = Math.round(d.reduce((s,r) => s+r.Puntos, 0)).toLocaleString('es');
+  document.getElementById('kpiActivities').textContent = d.length;
+  document.getElementById('kpiHours').textContent = Math.round(d.reduce((s,r) => s+r.Minutos, 0)/60) + 'h';
+
+  const sports = aggregateBySport(d);
+  document.getElementById('kpiTopSport').textContent = sports.length ? sports[0].sport : '—';
+
+  if (weekData.length) {
+    const weekLeader = aggregateByPerson(weekData)[0];
+    document.getElementById('kpiWeekLeader').textContent = weekLeader ? weekLeader.name.split(' ')[0] : '—';
+  } else {
+    document.getElementById('kpiWeekLeader').textContent = '—';
+  }
+}
+
+// ─── RANKING ─────────────────────────────────────────────
+function renderRanking() {
+  const people = aggregateByPerson(filteredData);
+  const body = document.getElementById('rankingBody');
+  const maxPts = people.length ? people[0].pts : 1;
+
+  if (!people.length) {
+    body.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🏁</div><div class="empty-title">Sin registros</div><div class="empty-text">Ajusta los filtros o carga datos para ver el ranking.</div></div></td></tr>`;
+    return;
+  }
+
+  const medals = ['🥇','🥈','🥉'];
+  body.innerHTML = people.map((p, i) => {
+    const isLeader = i === 0;
+    const pct = Math.round((p.pts / maxPts) * 100);
+    const dateStr = p.lastDate ? p.lastDate.toLocaleDateString('es', {day:'2-digit',month:'short'}) : '—';
+    const sportsHtml = p.sports.map(s => `<span class="sport-tag">${s}</span>`).join('');
+
+    return `<tr class="${isLeader ? 'leader-row' : ''}">
+      <td class="rank-pos">${i < 3 ? '' : i+1}</td>
+      <td class="rank-medal">${medals[i] || ''}</td>
+      <td><div class="rank-name"><button onclick="openProfile('${p.name}')">${p.name}</button></div></td>
+      <td class="rank-pts">${Math.round(p.pts).toLocaleString('es')}</td>
+      <td>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <span style="font-size:11px;color:var(--muted);font-family:var(--ff-mono)">${pct}%</span>
+        </div>
+      </td>
+      <td class="rank-min">${Math.round(p.min).toLocaleString('es')}</td>
+      <td><div class="rank-sports">${sportsHtml}</div></td>
+      <td class="rank-date">${dateStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── PODIUM ──────────────────────────────────────────────
+function renderPodium() {
+  const people = aggregateByPerson(filteredData);
+  const wrap = document.getElementById('podiumWrap');
+
+  if (people.length < 1) {
+    wrap.innerHTML = `<div class="empty-state" style="width:100%"><div class="empty-icon">🏆</div><div class="empty-title">Sin datos</div></div>`;
+    return;
+  }
+
+  const top3 = people.slice(0,3);
+  const leader = top3[0].pts;
+  const classes = ['first','second','third'];
+
+  wrap.innerHTML = top3.map((p, i) => {
+    const initial = p.name.charAt(0).toUpperCase();
+    const gap = i === 0 ? 'Líder' : `-${Math.round(leader - p.pts)} pts`;
+    return `<div class="podium-slot ${classes[i]}">
+      <div class="podium-avatar" style="background:${i===0?'var(--accent)':i===1?'#C0C0C0':'#CD7F32'}">${initial}</div>
+      <div class="podium-name">${p.name.split(' ')[0]}</div>
+      <div class="podium-pts">${Math.round(p.pts).toLocaleString('es')} pts</div>
+      <div class="podium-gap">${gap}</div>
+      <div class="podium-block"><span class="podium-pos">${i+1}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ─── EVOLUTION CHART (custom canvas) ────────────────────
+function renderEvolution() {
+  const data = filteredData;
+  if (!data.length) return;
+
+  const canvas = document.getElementById('evolutionChart');
+  const ctx = canvas.getContext('2d');
+  const people = [...new Set(data.map(r => r.Nombre))].sort();
+
+  // Build cumulative data per person per day
+  const allDates = [...new Set(data.map(r => r.dateKey))].sort();
+
+  const series = {};
+  people.forEach(p => { series[p] = {}; });
+
+  // Sort data by date
+  const sorted = [...data].sort((a,b) => a.date - b.date);
+  const cumulative = {};
+  people.forEach(p => { cumulative[p] = 0; });
+
+  sorted.forEach(r => {
+    cumulative[r.Nombre] += r.Puntos;
+    if (!series[r.Nombre][r.dateKey]) series[r.Nombre][r.dateKey] = 0;
+    series[r.Nombre][r.dateKey] = cumulative[r.Nombre];
+  });
+
+  // Fill forward
+  const personLines = people.map(p => {
+    let last = 0;
+    return allDates.map(d => {
+      if (series[p][d] !== undefined) last = series[p][d];
+      return { date: d, val: last };
+    });
+  });
+
+  // Render
+  const W = canvas.offsetWidth;
+  const H = 320;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.height = H + 'px';
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  const pad = { top: 20, right: 20, bottom: 40, left: 55 };
+  const w = W - pad.left - pad.right;
+  const h = H - pad.top - pad.bottom;
+
+  const maxVal = Math.max(...personLines.flat().map(p => p.val));
+  const n = allDates.length;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(61,84,67,0.5)';
+  ctx.lineWidth = 1;
+  [0,0.25,0.5,0.75,1].forEach(t => {
+    const y = pad.top + h * (1 - t);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + w, y);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(107,143,113,0.8)';
+    ctx.font = `11px JetBrains Mono, monospace`;
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxVal * t), pad.left - 8, y + 4);
+  });
+
+  // X labels
+  const labelStep = Math.max(1, Math.floor(n / 8));
+  ctx.fillStyle = 'rgba(107,143,113,0.8)';
+  ctx.font = `11px Inter, sans-serif`;
+  ctx.textAlign = 'center';
+  allDates.forEach((d, i) => {
+    if (i % labelStep === 0 || i === n-1) {
+      const x = pad.left + (i / Math.max(n-1, 1)) * w;
+      const parts = d.split('-');
+      const label = `${parts[2]}/${parts[1]}`;
+      ctx.fillText(label, x, H - 8);
+    }
+  });
+
+  // Lines
+  personLines.forEach((line, pi) => {
+    if (hiddenLines.has(people[pi])) return;
+    const color = getPersonColor(people[pi]);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+
+    line.forEach((pt, i) => {
+      const x = pad.left + (i / Math.max(n-1, 1)) * w;
+      const y = pad.top + h * (1 - pt.val / (maxVal || 1));
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Last point dot
+    const last = line[line.length-1];
+    const lx = pad.left + w;
+    const ly = pad.top + h * (1 - last.val / (maxVal || 1));
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(lx, ly, 4, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // Legend
+  const legend = document.getElementById('evolutionLegend');
+  legend.innerHTML = people.map(p => `
+    <div class="legend-item ${hiddenLines.has(p) ? 'hidden' : ''}" onclick="toggleLine('${p}')" title="Click para ocultar/mostrar">
+      <span class="legend-dot" style="background:${getPersonColor(p)}"></span>
+      ${p}
+    </div>
+  `).join('');
+}
+
+function toggleLine(name) {
+  if (hiddenLines.has(name)) hiddenLines.delete(name);
+  else hiddenLines.add(name);
+  renderEvolution();
+}
+
+// ─── SPORTS CHARTS ───────────────────────────────────────
+function renderSportsCharts() {
+  const sports = aggregateBySport(filteredData);
+  if (!sports.length) return;
+
+  drawBarChart('sportsMinChart', sports.map(s => s.sport), sports.map(s => s.min), 'Minutos');
+  drawBarChart('sportsPtsChart', sports.map(s => s.sport), sports.map(s => Math.round(s.pts)), 'Puntos');
+}
+
+function drawBarChart(canvasId, labels, values, metric) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth;
+  const H = 220;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.height = H + 'px';
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  const pad = { top: 10, right: 16, bottom: 60, left: 50 };
+  const w = W - pad.left - pad.right;
+  const h = H - pad.top - pad.bottom;
+  const max = Math.max(...values) || 1;
+  const n = labels.length;
+  const barW = Math.max(8, (w / n) * 0.6);
+  const gap = w / n;
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(61,84,67,0.4)';
+  ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(t => {
+    const y = pad.top + h * (1 - t);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + w, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(107,143,113,0.7)';
+    ctx.font = `10px JetBrains Mono, monospace`;
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(max * t), pad.left - 5, y + 4);
+  });
+
+  labels.forEach((label, i) => {
+    const x = pad.left + gap * i + gap/2 - barW/2;
+    const barH = (values[i] / max) * h;
+    const y = pad.top + h - barH;
+
+    // Bar
+    ctx.fillStyle = PERSON_COLORS[i % PERSON_COLORS.length];
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [3, 3, 0, 0]);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Value
+    ctx.fillStyle = '#F0EBD8';
+    ctx.font = `bold 11px JetBrains Mono, monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText(values[i].toLocaleString('es'), x + barW/2, y - 5);
+
+    // Label
+    ctx.fillStyle = 'rgba(107,143,113,0.9)';
+    ctx.font = `11px Inter, sans-serif`;
+    ctx.save();
+    ctx.translate(x + barW/2, H - pad.bottom + 8);
+    ctx.rotate(-Math.PI/5);
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+  });
+}
+
+// ─── HEATMAP ─────────────────────────────────────────────
+function renderHeatmap() {
+  const personFilter = document.getElementById('heatmapFilter').value;
+  const d = personFilter ? filteredData.filter(r => r.Nombre === personFilter) : filteredData;
+
+  if (!d.length) return;
+
+  // Build day -> points map
+  const dayMap = {};
+  d.forEach(r => {
+    if (!dayMap[r.dateKey]) dayMap[r.dateKey] = 0;
+    dayMap[r.dateKey] += r.Puntos;
+  });
+
+  const dates = Object.keys(dayMap).sort();
+  if (!dates.length) return;
+
+  const maxPts = Math.max(...Object.values(dayMap));
+
+  // Build weeks array starting from first date's Sunday
+  const firstDate = new Date(dates[0]);
+  const lastDate = new Date(dates[dates.length-1]);
+
+  // Align to Sunday
+  const start = new Date(firstDate);
+  start.setDate(start.getDate() - start.getDay());
+
+  const weeks = [];
+  let cur = new Date(start);
+  while (cur <= lastDate) {
+    const week = [];
+    for (let d = 0; d < 7; d++) {
+      const key = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
+      const pts = dayMap[key] || 0;
+      let level = 0;
+      if (pts > 0) {
+        if (pts <= maxPts * 0.25) level = 1;
+        else if (pts <= maxPts * 0.5) level = 2;
+        else if (pts <= maxPts * 0.75) level = 3;
+        else level = 4;
+      }
+      week.push({ date: key, pts, level, inRange: cur >= firstDate && cur <= lastDate });
+      cur.setDate(cur.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+
+  const wrap = document.getElementById('heatmapWrap');
+
+  const grid = document.createElement('div');
+  grid.className = 'heatmap-grid';
+
+  weeks.forEach(week => {
+    const weekEl = document.createElement('div');
+    weekEl.className = 'heatmap-week';
+    week.forEach(day => {
+      const cell = document.createElement('div');
+      cell.className = 'heatmap-cell';
+      if (day.inRange) cell.dataset.level = day.level;
+      cell.title = day.pts > 0 ? `${day.date}: ${Math.round(day.pts)} pts` : day.date;
+      weekEl.appendChild(cell);
+    });
+    grid.appendChild(weekEl);
+  });
+
+  wrap.innerHTML = '';
+  wrap.appendChild(grid);
+}
+
+// ─── RECORDS & AWARDS ────────────────────────────────────
+function renderRecords() {
+  const d = filteredData;
+  if (!d.length) return;
+
+  // Most pts in a day
+  const dayPts = {};
+  d.forEach(r => {
+    const key = r.Nombre + '|' + r.dateKey;
+    if (!dayPts[key]) dayPts[key] = { name: r.Nombre, date: r.dateKey, pts: 0 };
+    dayPts[key].pts += r.Puntos;
+  });
+  const bestDay = Object.values(dayPts).sort((a,b) => b.pts - a.pts)[0];
+
+  // Most minutes in a week
+  const weekMin = {};
+  d.forEach(r => {
+    if (!r.date) return;
+    const d2 = new Date(r.date);
+    d2.setDate(d2.getDate() - d2.getDay());
+    const wk = d2.toISOString().slice(0,10);
+    const key = r.Nombre + '|' + wk;
+    if (!weekMin[key]) weekMin[key] = { name: r.Nombre, week: wk, min: 0 };
+    weekMin[key].min += r.Minutos;
+  });
+  const bestWeek = Object.values(weekMin).sort((a,b) => b.min - a.min)[0];
+
+  // Most activities
+  const actCount = {};
+  d.forEach(r => {
+    if (!actCount[r.Nombre]) actCount[r.Nombre] = 0;
+    actCount[r.Nombre]++;
+  });
+  const mostAct = Object.entries(actCount).sort((a,b) => b[1]-a[1])[0];
+
+  // Streak
+  const personDays = {};
+  d.forEach(r => {
+    if (!personDays[r.Nombre]) personDays[r.Nombre] = new Set();
+    personDays[r.Nombre].add(r.dateKey);
+  });
+  let maxStreak = { name: '', streak: 0 };
+  Object.entries(personDays).forEach(([name, daysSet]) => {
+    const days = [...daysSet].sort();
+    let cur = 1, best = 1;
+    for (let i = 1; i < days.length; i++) {
+      const prev = new Date(days[i-1]);
+      const curr = new Date(days[i]);
+      const diff = (curr - prev) / (1000*60*60*24);
+      if (diff === 1) { cur++; best = Math.max(best, cur); }
+      else cur = 1;
+    }
+    if (best > maxStreak.streak) maxStreak = { name, streak: best };
+  });
+
+  const records = [
+    { icon: '⚡', label: 'Más puntos en un día', value: bestDay ? Math.round(bestDay.pts) + ' pts' : '—', name: bestDay?.name || '', sub: bestDay?.date || '' },
+    { icon: '🕐', label: 'Más minutos en una semana', value: bestWeek ? Math.round(bestWeek.min) + ' min' : '—', name: bestWeek?.name || '', sub: 'semana del ' + (bestWeek?.week || '') },
+    { icon: '📌', label: 'Más actividades', value: mostAct ? mostAct[1] + ' sesiones' : '—', name: mostAct?.[0] || '', sub: '' },
+    { icon: '🔥', label: 'Mayor racha consecutiva', value: maxStreak.streak + ' días', name: maxStreak.name, sub: '' },
+  ];
+
+  document.getElementById('recordsGrid').innerHTML = records.map(r => `
+    <div class="record-card">
+      <div class="record-icon">${r.icon}</div>
+      <div class="record-value">${r.value}</div>
+      <div class="record-name">${r.name}</div>
+      <div class="record-label">${r.label}</div>
+    </div>
+  `).join('');
+}
+
+function renderAwards() {
+  const d = filteredData;
+  if (!d.length) return;
+
+  const people = aggregateByPerson(d);
+
+  // Máquina Incansable - más minutos
+  const topMin = [...people].sort((a,b) => b.min - a.min)[0];
+
+  // Especialista - más % en un deporte
+  let topSpec = { name: '', sport: '', pct: 0 };
+  people.forEach(p => {
+    const pData = d.filter(r => r.Nombre === p.name);
+    const sportPts = {};
+    pData.forEach(r => { if (!sportPts[r.Deporte]) sportPts[r.Deporte] = 0; sportPts[r.Deporte] += r.Puntos; });
+    const total = Object.values(sportPts).reduce((s,v) => s+v, 0);
+    Object.entries(sportPts).forEach(([sp, pts]) => {
+      const pct = pts / total;
+      if (pct > topSpec.pct) topSpec = { name: p.name, sport: sp, pct };
+    });
+  });
+
+  // Multideportista - más deportes distintos
+  const topMulti = [...people].sort((a,b) => b.sports.length - a.sports.length)[0];
+
+  // Sprinter - mayor promedio por actividad
+  const topAvg = [...people].sort((a,b) => (b.pts/b.activities) - (a.pts/a.activities))[0];
+
+  // Rey del Fin de Semana
+  const weekendPts = {};
+  d.forEach(r => {
+    if (!r.date) return;
+    const day = r.date.getDay();
+    if (day === 0 || day === 6) {
+      if (!weekendPts[r.Nombre]) weekendPts[r.Nombre] = 0;
+      weekendPts[r.Nombre] += r.Puntos;
+    }
+  });
+  const topWeekend = Object.entries(weekendPts).sort((a,b) => b[1]-a[1])[0];
+
+  const awards = [
+    { trophy: '💪', title: 'Máquina Incansable', winner: topMin?.name, detail: topMin ? Math.round(topMin.min) + ' min totales' : '' },
+    { trophy: '🎯', title: 'Especialista', winner: topSpec.name, detail: topSpec.sport + ' · ' + Math.round(topSpec.pct*100) + '% de sus pts' },
+    { trophy: '🌈', title: 'Multideportista', winner: topMulti?.name, detail: topMulti ? topMulti.sports.length + ' deportes distintos' : '' },
+    { trophy: '⚡', title: 'Sprinter', winner: topAvg?.name, detail: topAvg ? Math.round(topAvg.pts/topAvg.activities) + ' pts promedio/sesión' : '' },
+    { trophy: '🏖️', title: 'Rey del Fin de Semana', winner: topWeekend?.[0], detail: topWeekend ? Math.round(topWeekend[1]) + ' pts en fines de semana' : '' },
+    { trophy: '👑', title: 'Líder Total', winner: people[0]?.name, detail: people[0] ? Math.round(people[0].pts) + ' pts acumulados' : '' },
+  ];
+
+  document.getElementById('awardsGrid').innerHTML = awards.map(a => `
+    <div class="award-card">
+      <div class="award-trophy">${a.trophy}</div>
+      <div class="award-title">${a.title}</div>
+      <div class="award-winner">${a.winner || '—'}</div>
+      <div class="award-detail">${a.detail}</div>
+    </div>
+  `).join('');
+}
+
+// ─── BAR CHART RACE ──────────────────────────────────────
+function renderRaceInit() {
+  const d = filteredData;
+  if (!d.length) return;
+
+  raceDates = [...new Set(d.map(r => r.dateKey))].sort();
+  raceFrame = 0;
+  renderRaceFrame(0);
+}
+
+function renderRaceFrame(frameIdx) {
+  const d = filteredData;
+  const dates = raceDates.slice(0, frameIdx + 1);
+  const subset = d.filter(r => dates.includes(r.dateKey));
+  const people = aggregateByPerson(subset);
+  const maxPts = people.length ? people[0].pts : 1;
+
+  document.getElementById('raceDateDisplay').textContent = raceDates[frameIdx] || '';
+
+  const wrap = document.getElementById('raceBarWrap');
+
+  // Sort by pts descending (already done by aggregateByPerson)
+  wrap.innerHTML = people.slice(0,8).map((p, i) => {
+    const pct = (p.pts / maxPts) * 100;
+    const color = getPersonColor(p.name);
+    return `<div class="race-bar-row">
+      <div class="race-bar-name" style="color:${color}">${p.name.split(' ')[0]}</div>
+      <div class="race-bar-track">
+        <div class="race-bar-fill" style="width:${pct}%;background:${color}">
+          <span class="race-bar-pts">${Math.round(p.pts)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleRace() {
+  const btn = document.getElementById('raceBtn');
+  if (raceInterval) {
+    clearInterval(raceInterval);
+    raceInterval = null;
+    btn.textContent = '▶ Reproducir';
+  } else {
+    if (raceFrame >= raceDates.length - 1) raceFrame = 0;
+    btn.textContent = '⏸ Pausar';
+    raceInterval = setInterval(() => {
+      raceFrame++;
+      if (raceFrame >= raceDates.length) {
+        clearInterval(raceInterval);
+        raceInterval = null;
+        btn.textContent = '▶ Reproducir';
+        return;
+      }
+      renderRaceFrame(raceFrame);
+    }, 400);
+  }
+}
+
+function resetRace() {
+  if (raceInterval) { clearInterval(raceInterval); raceInterval = null; }
+  document.getElementById('raceBtn').textContent = '▶ Reproducir';
+  raceFrame = 0;
+  renderRaceFrame(0);
+}
+
+// ─── COMPARATOR ──────────────────────────────────────────
+function renderComparator() {
+  const nameA = document.getElementById('cmpA').value;
+  const nameB = document.getElementById('cmpB').value;
+  const content = document.getElementById('comparatorContent');
+
+  if (!nameA || !nameB || nameA === nameB) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon">⚔️</div><div class="empty-title">Elige dos competidores distintos</div></div>`;
+    return;
+  }
+
+  const dA = filteredData.filter(r => r.Nombre === nameA);
+  const dB = filteredData.filter(r => r.Nombre === nameB);
+
+  const statsA = { pts: dA.reduce((s,r) => s+r.Puntos,0), min: dA.reduce((s,r) => s+r.Minutos,0), act: dA.length, sports: new Set(dA.map(r => r.Deporte)) };
+  const statsB = { pts: dB.reduce((s,r) => s+r.Puntos,0), min: dB.reduce((s,r) => s+r.Minutos,0), act: dB.length, sports: new Set(dB.map(r => r.Deporte)) };
+
+  const comparisons = [
+    { label: 'Puntos', vA: Math.round(statsA.pts), vB: Math.round(statsB.pts), fmt: v => v.toLocaleString('es') },
+    { label: 'Minutos', vA: Math.round(statsA.min), vB: Math.round(statsB.min), fmt: v => v.toLocaleString('es') },
+    { label: 'Actividades', vA: statsA.act, vB: statsB.act, fmt: v => v },
+    { label: 'Deportes', vA: statsA.sports.size, vB: statsB.sports.size, fmt: v => v },
+    { label: 'Promedio/sesión', vA: Math.round(statsA.pts/statsA.act)||0, vB: Math.round(statsB.pts/statsB.act)||0, fmt: v => v + ' pts' },
+  ];
+
+  const colorA = getPersonColor(nameA);
+  const colorB = getPersonColor(nameB);
+
+  const rows = comparisons.map(c => {
+    const aWins = c.vA > c.vB;
+    const bWins = c.vB > c.vA;
+    return `
+      <div class="cmp-stat" style="border-top:3px solid ${colorA}">
+        <div class="cmp-val ${aWins ? 'winner' : ''}">${c.fmt(c.vA)}</div>
+        <div class="cmp-label">${c.label}</div>
+      </div>
+      <div class="cmp-divider">${c.label}</div>
+      <div class="cmp-stat" style="border-top:3px solid ${colorB}">
+        <div class="cmp-val ${bWins ? 'winner' : ''}">${c.fmt(c.vB)}</div>
+        <div class="cmp-label">${c.label}</div>
+      </div>
+    `;
+  }).join('');
+
+  content.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px;margin-bottom:16px;">
+      <div style="font-family:var(--ff-display);font-weight:800;font-size:22px;text-transform:uppercase;color:${colorA}">${nameA.split(' ')[0]}</div>
+      <div style="font-family:var(--ff-display);font-weight:800;font-size:22px;color:var(--muted);text-align:center">VS</div>
+      <div style="font-family:var(--ff-display);font-weight:800;font-size:22px;text-transform:uppercase;color:${colorB};text-align:right">${nameB.split(' ')[0]}</div>
+    </div>
+    <div class="comparator-stats">${rows}</div>
+    <canvas id="cmpChart" height="200"></canvas>
+  `;
+
+  // Draw comparison radar / line chart
+  drawComparisonChart(nameA, nameB, dA, dB, colorA, colorB);
+}
+
+function drawComparisonChart(nameA, nameB, dA, dB, colorA, colorB) {
+  const canvas = document.getElementById('cmpChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth;
+  const H = 200;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.height = H + 'px';
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  // Build daily cumulative for both
+  const allDates = [...new Set([...dA, ...dB].map(r => r.dateKey))].sort();
+
+  let cumA = 0, cumB = 0;
+  const seriesA = [];
+  const seriesB = [];
+
+  allDates.forEach(d => {
+    dA.filter(r => r.dateKey === d).forEach(r => { cumA += r.Puntos; });
+    dB.filter(r => r.dateKey === d).forEach(r => { cumB += r.Puntos; });
+    seriesA.push(cumA);
+    seriesB.push(cumB);
+  });
+
+  const maxVal = Math.max(...seriesA, ...seriesB) || 1;
+  const n = allDates.length;
+  const pad = { top: 15, right: 15, bottom: 30, left: 45 };
+  const w = W - pad.left - pad.right;
+  const h = H - pad.top - pad.bottom;
+
+  ctx.strokeStyle = 'rgba(61,84,67,0.4)';
+  ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(t => {
+    const y = pad.top + h * (1-t);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left+w, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(107,143,113,0.7)';
+    ctx.font = `10px JetBrains Mono, monospace`;
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxVal*t), pad.left-5, y+4);
+  });
+
+  [[seriesA, colorA, nameA], [seriesB, colorB, nameB]].forEach(([series, color, name]) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    series.forEach((val, i) => {
+      const x = pad.left + (i / Math.max(n-1,1)) * w;
+      const y = pad.top + h * (1 - val / maxVal);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+}
+
+// ─── PROFILE PANEL ───────────────────────────────────────
+function openProfile(name) {
+  const data = filteredData.filter(r => r.Nombre === name);
+  if (!data.length) return;
+
+  const pts = data.reduce((s,r) => s+r.Puntos, 0);
+  const min = data.reduce((s,r) => s+r.Minutos, 0);
+  const acts = data.length;
+  const sports = [...new Set(data.map(r => r.Deporte))];
+  const color = getPersonColor(name);
+
+  const panel = document.getElementById('profileContent');
+  panel.innerHTML = `
+    <div class="profile-name" style="color:${color}">${name}</div>
+    <div class="profile-stats">
+      <div class="profile-stat">
+        <div class="profile-stat-value">${Math.round(pts).toLocaleString('es')}</div>
+        <div class="profile-stat-label">Puntos totales</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value">${Math.round(min).toLocaleString('es')}</div>
+        <div class="profile-stat-label">Minutos</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value">${acts}</div>
+        <div class="profile-stat-label">Actividades</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value">${Math.round(pts/acts)}</div>
+        <div class="profile-stat-label">Prom. por sesión</div>
+      </div>
+    </div>
+    <div>
+      <div class="chart-title" style="margin-bottom:8px">Deportes practicados</div>
+      <div class="rank-sports" style="gap:6px">
+        ${sports.map(s => `<span class="sport-tag" style="font-size:13px;padding:4px 10px">${s}</span>`).join('')}
+      </div>
+    </div>
+    <canvas id="profileChart" height="160"></canvas>
+  `;
+
+  document.getElementById('profileOverlay').classList.add('open');
+
+  // Profile evolution chart
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('profileChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth;
+    const H = 160;
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    canvas.style.height = H + 'px';
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+
+    const sorted = [...data].sort((a,b) => a.date - b.date);
+    const allDates = [...new Set(sorted.map(r => r.dateKey))].sort();
+    let cum = 0;
+    const series = [];
+    allDates.forEach(d => {
+      sorted.filter(r => r.dateKey === d).forEach(r => { cum += r.Puntos; });
+      series.push(cum);
+    });
+
+    const maxVal = Math.max(...series) || 1;
+    const n = allDates.length;
+    const pad = { top: 10, right: 10, bottom: 20, left: 40 };
+    const w = W - pad.left - pad.right;
+    const h = H - pad.top - pad.bottom;
+
+    // Area fill
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + h);
+    grad.addColorStop(0, color + '40');
+    grad.addColorStop(1, color + '00');
+
+    ctx.beginPath();
+    series.forEach((val, i) => {
+      const x = pad.left + (i / Math.max(n-1,1)) * w;
+      const y = pad.top + h * (1 - val / maxVal);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    const lastX = pad.left + w;
+    const lastY = pad.top + h;
+    ctx.lineTo(lastX, lastY);
+    ctx.lineTo(pad.left, lastY);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    series.forEach((val, i) => {
+      const x = pad.left + (i / Math.max(n-1,1)) * w;
+      const y = pad.top + h * (1 - val / maxVal);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+}
+
+function closeProfile(e) {
+  if (e && e.target !== document.getElementById('profileOverlay')) return;
+  document.getElementById('profileOverlay').classList.remove('open');
+}
+
+// ─── INSIGHTS ────────────────────────────────────────────
+function renderInsights() {
+  const d = filteredData;
+  if (!d.length) {
+    document.getElementById('insightsList').innerHTML = `<div class="empty-state"><div class="empty-icon">💡</div><div class="empty-title">Sin datos</div></div>`;
+    return;
+  }
+
+  const people = aggregateByPerson(d);
+  const sports = aggregateBySport(d);
+  const insights = [];
+
+  if (people.length >= 2) {
+    const gap = Math.round(people[0].pts - people[1].pts);
+    insights.push(`<strong>${people[0].name.split(' ')[0]}</strong> lidera con ${Math.round(people[0].pts).toLocaleString('es')} puntos, a ${gap} del segundo lugar.`);
+  }
+
+  if (sports.length) {
+    const topSport = sports[0];
+    const totalPts = d.reduce((s,r) => s+r.Puntos, 0);
+    const pct = Math.round((topSport.pts / totalPts) * 100);
+    insights.push(`El <strong>${topSport.sport}</strong> aporta el ${pct}% de los puntos totales de la competencia.`);
+  }
+
+  // Activity trend: compare last 7 vs previous 7
+  const now = new Date();
+  const last7 = d.filter(r => (now - r.date) < 7*24*60*60*1000);
+  const prev7 = d.filter(r => {
+    const diff = (now - r.date) / (1000*60*60*24);
+    return diff >= 7 && diff < 14;
+  });
+
+  if (last7.length > 0 && prev7.length > 0) {
+    const trend = last7.length > prev7.length;
+    const diff = Math.abs(last7.length - prev7.length);
+    insights.push(`La competencia lleva <strong>${trend ? '+' : '-'}${diff} actividades</strong> esta semana respecto a la anterior.`);
+  }
+
+  // Most active person last 7 days
+  if (last7.length) {
+    const weekPeople = aggregateByPerson(last7);
+    insights.push(`Esta semana, <strong>${weekPeople[0].name.split(' ')[0]}</strong> es quien más puntos lleva con ${Math.round(weekPeople[0].pts).toLocaleString('es')} pts.`);
+  }
+
+  // Total hours milestone
+  const totalHours = Math.round(d.reduce((s,r) => s+r.Minutos, 0) / 60);
+  insights.push(`El grupo lleva <strong>${totalHours.toLocaleString('es')} horas</strong> de entrenamiento registradas en total.`);
+
+  document.getElementById('insightsList').innerHTML = insights.map(t => `<div class="insight-item">${t}</div>`).join('');
+}
+
+// ─── DATA SOURCE MODAL ───────────────────────────────────
+function openSourceModal() {
+  document.getElementById('sourceModal').classList.add('open');
+}
+function closeSourceModal() {
+  document.getElementById('sourceModal').classList.remove('open');
+}
+
+async function loadData() {
+  const url = document.getElementById('sheetsUrl').value.trim();
+  const file = document.getElementById('csvFile').files[0];
+  const interval = parseInt(document.getElementById('refreshInterval').value);
+
+  if (url) {
+    await fetchFromURL(url);
+  } else if (file) {
+    const text = await file.text();
+    processData(text);
+  }
+
+  closeSourceModal();
+
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (interval && url) {
+    refreshTimer = setInterval(() => fetchFromURL(url), interval);
+  }
+}
+
+async function fetchFromURL(url) {
+  try {
+    const resp = await fetch(url);
+    const text = await resp.text();
+    processData(text);
+  } catch (e) {
+    console.warn('No se pudo cargar desde URL:', e.message);
+  }
+}
+
+function processData(csvText) {
+  rawData = parseCSV(csvText);
+  filteredData = [...rawData];
+  populateFilters();
+  renderAll();
+  document.getElementById('syncTime').textContent = 'actualizado ahora';
+}
+
+// ─── SCROLL NAVIGATION ───────────────────────────────────
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  const mapping = { kpi:0,podium:1,evolution:2,race:3,sports:4,heatmap:5,records:6,comparator:7,insights:8 };
+  const idx = mapping[id];
+  if (idx !== undefined) document.querySelectorAll('.nav-link')[idx]?.classList.add('active');
+}
+
+// ─── RESIZE HANDLER ──────────────────────────────────────
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    if (filteredData.length) renderAll();
+  }, 200);
+});
+
+// ─── INIT ─────────────────────────────────────────────────
+// Load sample data to demonstrate
+processData(SAMPLE_CSV);
+</script>
+</body>
+</html>
