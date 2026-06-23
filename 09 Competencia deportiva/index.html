@@ -626,6 +626,81 @@ img { max-width: 100%; }
   flex-wrap: wrap;
 }
 
+/* ─── CAL DAY DETAIL ─────────────────────────────────── */
+.cal-day-detail {
+  background: var(--surface2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-top: 12px;
+  display: none;
+}
+.cal-day-detail.open { display: block; }
+.cal-day-detail-title {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.cal-day-act {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(36,61,87,0.6);
+  font-size: 13px;
+}
+.cal-day-act:last-child { border-bottom: none; }
+.cal-day-act-icon { font-size: 18px; flex-shrink: 0; }
+.cal-day-act-info { flex: 1; min-width: 0; }
+.cal-day-act-sport { font-weight: 600; }
+.cal-day-act-who { font-size: 11px; color: var(--text-muted); }
+.cal-day-act-pts { font-family: var(--ff-mono); font-size: 12px; color: var(--accent); flex-shrink: 0; }
+
+/* ─── CAL MONTH LOG ──────────────────────────────────── */
+.cal-month-log {
+  margin-top: 20px;
+  border-top: 1px solid var(--dim);
+  padding-top: 16px;
+}
+.cal-month-log-title {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.cal-log-day-group { margin-bottom: 12px; }
+.cal-log-day-header {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  letter-spacing: 0.04em;
+}
+.cal-log-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius);
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.cal-log-icon { font-size: 16px; flex-shrink: 0; }
+.cal-log-info { flex: 1; min-width: 0; }
+.cal-log-sport { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-log-who { font-size: 11px; color: var(--text-muted); }
+.cal-log-meta { font-family: var(--ff-mono); font-size: 11px; color: var(--text-muted); flex-shrink: 0; text-align: right; line-height: 1.5; }
+
 /* ─── PODIUM ─────────────────────────────────────────── */
 .podium-wrap {
   display: flex;
@@ -883,19 +958,23 @@ canvas { display: block; width: 100% !important; }
 /* ─── BAR RACE ───────────────────────────────────────── */
 .race-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
 .btn-race {
-  background: var(--accent);
-  color: var(--ground);
-  padding: 8px 18px;
+  background: var(--surface2);
+  border: 1px solid var(--dim);
+  color: var(--text);
+  width: 36px; height: 36px;
   border-radius: var(--radius);
-  font-weight: 700;
-  font-size: 13px;
-  font-family: var(--ff-display);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  display: flex; align-items: center; gap: 5px;
-  transition: opacity 0.15s;
+  font-size: 17px;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+  padding: 0;
 }
-.btn-race:hover { opacity: 0.85; }
+.btn-race:first-child {
+  background: rgba(56,189,248,0.12);
+  border-color: rgba(56,189,248,0.35);
+  color: var(--accent);
+}
+.btn-race:hover { border-color: var(--accent); color: var(--accent); }
 .race-date-display { font-family: var(--ff-mono); font-size: 12px; color: var(--text-muted); }
 .race-bar-wrap { display: flex; flex-direction: column; gap: 7px; min-height: 200px; }
 .race-bar-row {
@@ -1208,8 +1287,8 @@ canvas { display: block; width: 100% !important; }
   </div>
   <div class="chart-box">
     <div class="race-controls">
-      <button class="btn-race" id="raceBtn" onclick="toggleRace()">▶ Reproducir</button>
-      <button class="btn-race" onclick="resetRace()" style="background:var(--dim);color:var(--text);">↺</button>
+      <button class="btn-race" id="raceBtn" onclick="toggleRace()"><span id="raceBtnIcon">▷</span></button>
+      <button class="btn-race" onclick="resetRace()" style="background:var(--dim);color:var(--text);" title="Reiniciar">⟳</button>
       <span class="race-date-display" id="raceDateDisplay">—</span>
     </div>
     <div class="race-bar-wrap" id="raceBarWrap"></div>
@@ -1242,7 +1321,9 @@ canvas { display: block; width: 100% !important; }
         <div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin actividad</div></div>
       </div>
     </div>
+    <div class="cal-day-detail" id="calDayDetail"></div>
     <div class="sport-cal-legend" id="sportCalLegend"></div>
+    <div class="cal-month-log" id="calMonthLog" style="display:none"></div>
   </div>
 </section>
 
@@ -1725,16 +1806,19 @@ function renderEvolution() {
     ctx.fillText(Math.round(maxVal*t).toLocaleString('es'), pad.left-6, y+4);
   });
 
-  // X labels
-  const step = Math.max(1, Math.floor(n/6));
+  // X labels — cap at 5 labels on narrow screens
+  const maxLabels = W < 340 ? 3 : W < 500 ? 4 : 6;
+  const step = Math.max(1, Math.floor(n / maxLabels));
   ctx.fillStyle = 'rgba(122,155,191,0.7)';
-  ctx.font      = `10px Inter, sans-serif`;
+  ctx.font      = `9px Inter, sans-serif`;
   ctx.textAlign = 'center';
   allDates.forEach((d,i) => {
     if (i % step === 0 || i === n-1) {
       const x = pad.left + (i/Math.max(n-1,1))*w;
       const parts = d.split('-');
-      ctx.fillText(`${parts[2]}/${parts[1]}`, x, H-6);
+      // on very narrow screens show only day; otherwise DD/MM
+      const label = W < 340 ? parts[2] : `${parts[2]}/${parts[1]}`;
+      ctx.fillText(label, x, H-6);
     }
   });
 
@@ -1843,39 +1927,42 @@ function drawBarChart(id, labels, values) {
 function renderSportCalendar() {
   const personFilter = currentPlayer || '';
 
-  // Usar el mes del filtro actual; si es acumulado, usar el mes actual
   const now   = new Date();
   const year  = viewMonth ? viewMonth.year  : now.getFullYear();
   const month = viewMonth ? viewMonth.month : now.getMonth();
 
-  // Filtrar registros del mes — siempre todos los participantes a menos que se filtre
   const d = rawData.filter(r => {
     if (personFilter && r.Nombre !== personFilter) return false;
     if (!r.date) return false;
     return r.date.getFullYear() === year && r.date.getMonth() === month;
   });
 
-  const calEl   = document.getElementById('sportCal');
+  const calEl    = document.getElementById('sportCal');
   const legendEl = document.getElementById('sportCalLegend');
+  const detailEl = document.getElementById('calDayDetail');
+  const logEl    = document.getElementById('calMonthLog');
+
+  // Reset day detail on re-render
+  if (detailEl) { detailEl.classList.remove('open'); detailEl.innerHTML = ''; }
 
   if (!d.length) {
     calEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin actividad este mes</div></div>`;
     legendEl.innerHTML = '';
+    if (logEl) logEl.style.display = 'none';
     return;
   }
 
-  // Agrupar por día → lista de { deporte, nombre, puntos }
+  // Agrupar por día → lista de { deporte, nombre, puntos, minutos }
   const dayActivities = {};
   d.forEach(r => {
     const day = r.date.getDate();
     if (!dayActivities[day]) dayActivities[day] = [];
-    dayActivities[day].push({ deporte: r.Deporte, nombre: r.Nombre, puntos: r.Puntos });
+    dayActivities[day].push({ deporte: r.Deporte, nombre: r.Nombre, puntos: r.Puntos, minutos: r.Minutos });
   });
 
-  // Primer día del mes (0=Dom…6=Sáb)
-  const firstDow   = new Date(year, month, 1).getDay();
+  const firstDow    = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayDate  = now.getFullYear()===year && now.getMonth()===month ? now.getDate() : -1;
+  const todayDate   = now.getFullYear()===year && now.getMonth()===month ? now.getDate() : -1;
 
   const DOWS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
@@ -1883,27 +1970,19 @@ function renderSportCalendar() {
   DOWS.forEach(d2 => { html += `<div class="sport-cal-dow">${d2}</div>`; });
   html += '</div><div class="sport-cal-grid">';
 
-  // Celdas vacías iniciales
   for (let i = 0; i < firstDow; i++) {
     html += '<div class="sport-cal-cell empty"></div>';
   }
 
-  // Días del mes
   for (let day = 1; day <= daysInMonth; day++) {
     const acts    = dayActivities[day] || [];
     const hasActs = acts.length > 0;
     const isToday = day === todayDate;
-    const totalPts = acts.reduce((s,a) => s+a.puntos, 0);
-
-    // Iconos únicos del día (máx 4 para que quepan)
     const icons = [...new Set(acts.map(a => sportIcon(a.deporte)))].slice(0, 4);
-    const tooltip = hasActs
-      ? acts.map(a => `${sportIcon(a.deporte)} ${a.deporte}${personFilter ? '' : ' · '+a.nombre}`).join('\n') + `\n→ ${Math.round(totalPts)} pts`
-      : day.toString();
+    const clickAttr = hasActs ? `onclick="showCalDayDetail(${day})"` : '';
 
-    html += `<div class="sport-cal-cell${hasActs?' has-activity':''}${isToday?' today':''}" title="${tooltip}">
+    html += `<div class="sport-cal-cell${hasActs?' has-activity':''}${isToday?' today':''}" ${clickAttr}>
       <span class="sport-cal-day">${day}</span>`;
-
     if (hasActs) {
       html += '<div class="sport-cal-icons">';
       icons.forEach(ic => { html += `<span class="sport-cal-icon">${ic}</span>`; });
@@ -1915,11 +1994,90 @@ function renderSportCalendar() {
   html += '</div>';
   calEl.innerHTML = html;
 
-  // Leyenda de deportes del mes
+  // Leyenda
   const sportsInMonth = [...new Set(d.map(r => r.Deporte))].sort();
   legendEl.innerHTML = sportsInMonth.map(s =>
     `<div class="sport-cal-legend-item"><span>${sportIcon(s)}</span><span>${s}</span></div>`
   ).join('');
+
+  // Log mensual: todas las actividades agrupadas por día
+  if (logEl) {
+    const sortedDays = Object.keys(dayActivities).map(Number).sort((a,b) => a-b);
+    const monthName  = MONTHS_ES[month];
+    let logHtml = `<div class="cal-month-log-title">Actividades de ${monthName}</div>`;
+
+    sortedDays.forEach(day => {
+      const acts = dayActivities[day];
+      const dow  = new Date(year, month, day).toLocaleDateString('es', { weekday: 'short' });
+      const dayLabel = `${dow.charAt(0).toUpperCase()+dow.slice(1)} ${day}`;
+      logHtml += `<div class="cal-log-day-group">
+        <div class="cal-log-day-header">${dayLabel}</div>`;
+      acts.forEach(a => {
+        const nameStr = personFilter ? '' : `<div class="cal-log-who">${a.nombre}</div>`;
+        logHtml += `<div class="cal-log-item">
+          <span class="cal-log-icon">${sportIcon(a.deporte)}</span>
+          <div class="cal-log-info">
+            <div class="cal-log-sport">${a.deporte}</div>
+            ${nameStr}
+          </div>
+          <div class="cal-log-meta">
+            <div>${Math.round(a.puntos)} pts</div>
+            <div>${Math.round(a.minutos)} min</div>
+          </div>
+        </div>`;
+      });
+      logHtml += '</div>';
+    });
+
+    logEl.innerHTML = logHtml;
+    logEl.style.display = 'block';
+  }
+}
+
+function showCalDayDetail(day) {
+  const detailEl    = document.getElementById('calDayDetail');
+  const personFilter = currentPlayer || '';
+  const now   = new Date();
+  const year  = viewMonth ? viewMonth.year  : now.getFullYear();
+  const month = viewMonth ? viewMonth.month : now.getMonth();
+
+  const acts = rawData.filter(r => {
+    if (personFilter && r.Nombre !== personFilter) return false;
+    if (!r.date) return false;
+    return r.date.getFullYear() === year && r.date.getMonth() === month && r.date.getDate() === day;
+  });
+
+  if (!acts.length || !detailEl) return;
+
+  // Toggle: si ya está abierto para este día, cerrarlo
+  if (detailEl.classList.contains('open') && detailEl.dataset.day === String(day)) {
+    detailEl.classList.remove('open');
+    detailEl.innerHTML = '';
+    detailEl.dataset.day = '';
+    return;
+  }
+
+  const dow      = new Date(year, month, day).toLocaleDateString('es', { weekday: 'long' });
+  const dayLabel = `${dow.charAt(0).toUpperCase()+dow.slice(1)} ${day} de ${MONTHS_ES[month]}`;
+  const totalPts = acts.reduce((s,r) => s+r.Puntos, 0);
+
+  let html = `<div class="cal-day-detail-title">${dayLabel} · ${Math.round(totalPts)} pts</div>`;
+  acts.forEach(r => {
+    const nameStr = personFilter ? '' : `<div class="cal-day-act-who">${r.Nombre}</div>`;
+    html += `<div class="cal-day-act">
+      <span class="cal-day-act-icon">${sportIcon(r.Deporte)}</span>
+      <div class="cal-day-act-info">
+        <div class="cal-day-act-sport">${r.Deporte}</div>
+        ${nameStr}
+      </div>
+      <div class="cal-day-act-pts">${Math.round(r.Puntos)} pts<br><span style="font-size:10px;color:var(--text-muted)">${Math.round(r.Minutos)} min</span></div>
+    </div>`;
+  });
+
+  detailEl.innerHTML = html;
+  detailEl.dataset.day = String(day);
+  detailEl.classList.add('open');
+  detailEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // ─── RECORDS ─────────────────────────────────────────────
@@ -2038,16 +2196,21 @@ function renderRaceFrame(fi) {
 }
 
 function toggleRace() {
-  const btn = document.getElementById('raceBtn');
+  const icon = document.getElementById('raceBtnIcon');
   if (raceInterval) {
     clearInterval(raceInterval); raceInterval = null;
-    btn.textContent = '▶ Reproducir';
+    if (icon) icon.textContent = '▷';
   } else {
     if (raceFrame >= raceDates.length-1) raceFrame = 0;
-    btn.textContent = '⏸ Pausar';
+    if (icon) icon.textContent = '⏸';
     raceInterval = setInterval(() => {
       raceFrame++;
-      if (raceFrame >= raceDates.length) { clearInterval(raceInterval); raceInterval=null; btn.textContent='▶ Reproducir'; return; }
+      if (raceFrame >= raceDates.length) {
+        clearInterval(raceInterval); raceInterval=null;
+        const ic = document.getElementById('raceBtnIcon');
+        if (ic) ic.textContent = '▷';
+        return;
+      }
       renderRaceFrame(raceFrame);
     }, 400);
   }
@@ -2055,7 +2218,8 @@ function toggleRace() {
 
 function resetRace() {
   if (raceInterval) { clearInterval(raceInterval); raceInterval=null; }
-  document.getElementById('raceBtn').textContent = '▶ Reproducir';
+  const icon = document.getElementById('raceBtnIcon');
+  if (icon) icon.textContent = '▷';
   raceFrame = 0; renderRaceFrame(0);
 }
 
