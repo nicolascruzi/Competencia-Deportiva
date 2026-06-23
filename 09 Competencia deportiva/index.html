@@ -369,6 +369,176 @@ img { max-width: 100%; }
 .leader-row td { background: rgba(56,189,248,0.04) !important; }
 .leader-row:hover td { background: rgba(56,189,248,0.09) !important; }
 
+/* ─── RANKING CARDS (móvil) ──────────────────────────── */
+.rank-cards { display: none; flex-direction: column; gap: 8px; }
+.rank-card {
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rank-card.leader { border-color: rgba(56,189,248,0.35); background: rgba(56,189,248,0.04); }
+.rank-card-pos {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--text-muted);
+  opacity: 0.4;
+  min-width: 28px;
+  text-align: center;
+}
+.rank-card-medal { font-size: 22px; min-width: 28px; text-align: center; }
+.rank-card-info { flex: 1; min-width: 0; }
+.rank-card-name {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.rank-card-name:hover { color: var(--accent); }
+.rank-card-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--ff-mono);
+  margin-top: 2px;
+}
+.rank-card-pts {
+  font-family: var(--ff-mono);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--accent);
+  text-align: right;
+  white-space: nowrap;
+}
+.rank-card-bar {
+  height: 3px;
+  background: var(--dim);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.rank-card-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.6s var(--ease-out);
+}
+@media (max-width: 520px) {
+  .table-wrap { display: none; }
+  .rank-cards { display: flex; }
+}
+
+/* ─── SPORT CALENDAR ─────────────────────────────────── */
+.sport-cal-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.sport-cal {
+  min-width: 280px;
+}
+.sport-cal-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.sport-cal-dow {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+.sport-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.sport-cal-cell {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  transition: border-color 0.15s;
+  min-width: 0;
+}
+.sport-cal-cell.empty {
+  background: transparent;
+  border-color: transparent;
+}
+.sport-cal-cell.today {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(56,189,248,0.3);
+}
+.sport-cal-cell.has-activity {
+  background: var(--surface);
+  cursor: pointer;
+}
+.sport-cal-cell.has-activity:hover { border-color: var(--accent); }
+.sport-cal-day {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  line-height: 1;
+}
+.sport-cal-cell.today .sport-cal-day { color: var(--accent); }
+.sport-cal-icons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 12px 2px 2px;
+  width: 100%;
+}
+.sport-cal-icon {
+  font-size: clamp(10px, 2.5vw, 16px);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.sport-cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.sport-cal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.sport-cal-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
 /* ─── PODIUM ─────────────────────────────────────────── */
 .podium-wrap {
   display: flex;
@@ -823,12 +993,12 @@ canvas { display: block; width: 100% !important; }
 <nav class="nav">
   <span class="nav-brand">⚡ Liga</span>
   <div class="nav-links">
-    <button class="nav-link active" onclick="scrollToSection('kpi')">General</button>
-    <button class="nav-link" onclick="scrollToSection('podium')">Podio</button>
+    <button class="nav-link active" onclick="scrollToSection('podium')">Podio</button>
+    <button class="nav-link" onclick="scrollToSection('kpi')">Ranking</button>
+    <button class="nav-link" onclick="scrollToSection('heatmap')">Calendario</button>
     <button class="nav-link" onclick="scrollToSection('evolution')">Evolución</button>
     <button class="nav-link" onclick="scrollToSection('race')">Carrera</button>
     <button class="nav-link" onclick="scrollToSection('sports')">Deportes</button>
-    <button class="nav-link" onclick="scrollToSection('heatmap')">Calendario</button>
     <button class="nav-link" onclick="scrollToSection('records')">Récords</button>
     <button class="nav-link" onclick="scrollToSection('comparator')">Comparar</button>
     <button class="nav-link" onclick="scrollToSection('insights')">Insights</button>
@@ -872,6 +1042,17 @@ canvas { display: block; width: 100% !important; }
 <!-- MAIN -->
 <main>
 
+<!-- PODIO (primero) -->
+<section class="section" id="podium">
+  <div class="section-head">
+    <div class="section-eyebrow">Top 3</div>
+    <div class="section-title" id="podiumTitle">—</div>
+  </div>
+  <div class="podium-wrap" id="podiumWrap">
+    <div class="empty-state" style="width:100%"><div class="empty-icon">🏆</div><div class="empty-title">Sin datos</div></div>
+  </div>
+</section>
+
 <!-- KPI + RANKING -->
 <section class="section" id="kpi">
   <div class="section-head">
@@ -886,6 +1067,7 @@ canvas { display: block; width: 100% !important; }
     <div class="kpi-card"><div class="kpi-value" id="kpiTopSport">—</div><div class="kpi-label">Deporte top</div></div>
     <div class="kpi-card"><div class="kpi-value" id="kpiLeader">—</div><div class="kpi-label">Líder del mes</div></div>
   </div>
+  <!-- Tabla desktop -->
   <div class="table-wrap">
     <table class="ranking-table">
       <thead>
@@ -905,17 +1087,8 @@ canvas { display: block; width: 100% !important; }
       </tbody>
     </table>
   </div>
-</section>
-
-<!-- PODIO -->
-<section class="section" id="podium">
-  <div class="section-head">
-    <div class="section-eyebrow">Top 3</div>
-    <div class="section-title">Podio</div>
-  </div>
-  <div class="podium-wrap" id="podiumWrap">
-    <div class="empty-state" style="width:100%"><div class="empty-icon">🏆</div><div class="empty-title">Sin datos</div></div>
-  </div>
+  <!-- Cards móvil -->
+  <div class="rank-cards" id="rankCards"></div>
 </section>
 
 <!-- EVOLUCIÓN -->
@@ -968,34 +1141,26 @@ canvas { display: block; width: 100% !important; }
   </div>
 </section>
 
-<!-- HEATMAP -->
+<!-- CALENDARIO DEPORTIVO -->
 <section class="section" id="heatmap">
   <div class="section-head">
     <div class="section-eyebrow">Actividad</div>
     <div class="section-title">Calendario</div>
-    <div class="section-sub">Intensidad diaria del período — filtrando al mes seleccionado.</div>
+    <div class="section-sub">Actividades del mes — cada ícono es un deporte registrado ese día.</div>
   </div>
-  <div class="filter-row" style="margin-bottom:14px">
+  <div class="sport-cal-filter">
     <span class="filter-label">Ver</span>
-    <select class="filter-select" id="heatmapFilter" onchange="renderHeatmap()">
+    <select class="filter-select" id="heatmapFilter" onchange="renderSportCalendar()">
       <option value="">Todos</option>
     </select>
   </div>
   <div class="chart-box">
-    <div class="heatmap-wrap" id="heatmapWrap">
-      <div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin actividad</div></div>
+    <div class="sport-cal-wrap">
+      <div class="sport-cal" id="sportCal">
+        <div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin actividad</div></div>
+      </div>
     </div>
-    <div style="display:flex;align-items:center;gap:5px;margin-top:10px;font-size:11px;color:var(--text-muted);">
-      Menos
-      <span style="display:flex;gap:3px;margin:0 4px;">
-        <span style="width:11px;height:11px;border-radius:2px;background:var(--dim);display:inline-block"></span>
-        <span style="width:11px;height:11px;border-radius:2px;background:rgba(56,189,248,0.2);display:inline-block"></span>
-        <span style="width:11px;height:11px;border-radius:2px;background:rgba(56,189,248,0.45);display:inline-block"></span>
-        <span style="width:11px;height:11px;border-radius:2px;background:rgba(56,189,248,0.7);display:inline-block"></span>
-        <span style="width:11px;height:11px;border-radius:2px;background:var(--accent);display:inline-block"></span>
-      </span>
-      Más
-    </div>
+    <div class="sport-cal-legend" id="sportCalLegend"></div>
   </div>
 </section>
 
@@ -1080,6 +1245,39 @@ canvas { display: block; width: 100% !important; }
 </div>
 
 <script>
+// ─── SPORT ICONS ────────────────────────────────────────
+const SPORT_ICONS = {
+  'Bicicleta MTB':    '🚵',
+  'Bicicleta Rodillo':'🚴',
+  'Bicicleta Ruta':   '🚴',
+  'Box':              '🥊',
+  'Buceo':            '🤿',
+  'Crossfit':         '🏋️',
+  'Cuerda':           '🪢',
+  'Ebike':            '⚡',
+  'Escalada':         '🧗',
+  'Funcional':        '💪',
+  'Fútbol':           '⚽',
+  'Gimnasio':         '🏋️',
+  'Golf':             '⛳',
+  'Kine':             '🩺',
+  'Natación':         '🏊',
+  'Padel':            '🏓',
+  'Rodeo':            '🤠',
+  'Ski acuático':     '🎿',
+  'Spinning':         '🚴',
+  'Surf':             '🏄',
+  'Tenis':            '🎾',
+  'Topeada':          '🐂',
+  'Trail Running':    '🏃',
+  'Trekking':         '🥾',
+  'Trote':            '🏃',
+  'default':          '🏅',
+};
+function sportIcon(name) {
+  return SPORT_ICONS[name] || SPORT_ICONS['default'];
+}
+
 // ─── STATE ───────────────────────────────────────────────
 let rawData      = [];
 let filteredData = [];
@@ -1268,7 +1466,7 @@ function renderAll() {
   renderPodium();
   renderEvolution();
   renderSportsCharts();
-  renderHeatmap();
+  renderSportCalendar();
   renderRecords();
   renderAwards();
   renderInsights();
@@ -1299,14 +1497,17 @@ function renderKPIs() {
 function renderRanking() {
   const people = aggregateByPerson(filteredData);
   const body   = document.getElementById('rankingBody');
+  const cards  = document.getElementById('rankCards');
   const maxPts = people.length ? people[0].pts : 1;
   const medals = ['🥇','🥈','🥉'];
 
   if (!people.length) {
     body.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🏁</div><div class="empty-title">Sin registros</div><div class="empty-text">Ajusta los filtros para ver resultados.</div></div></td></tr>`;
+    cards.innerHTML = `<div class="empty-state"><div class="empty-icon">🏁</div><div class="empty-title">Sin registros</div></div>`;
     return;
   }
 
+  // Tabla desktop
   body.innerHTML = people.map((p, i) => {
     const isLeader = i === 0;
     const pct      = Math.round((p.pts / maxPts) * 100);
@@ -1326,12 +1527,33 @@ function renderRanking() {
       <td class="rank-date">${dateStr}</td>
     </tr>`;
   }).join('');
+
+  // Cards móvil
+  cards.innerHTML = people.map((p, i) => {
+    const isLeader = i === 0;
+    const pct      = Math.round((p.pts / maxPts) * 100);
+    const color    = getPersonColor(p.name);
+    const sIcons   = [...new Set(p.sports)].map(s => sportIcon(s)).join(' ');
+    return `<div class="rank-card ${isLeader ? 'leader' : ''}">
+      <div class="rank-card-pos" style="${i<3?'opacity:0':''}">${i+1}</div>
+      <div class="rank-card-medal">${medals[i] || ''}</div>
+      <div class="rank-card-info">
+        <div class="rank-card-name" style="color:${color}" onclick="openProfile('${p.name}')">${p.name}</div>
+        <div class="rank-card-meta">${Math.round(p.min).toLocaleString('es')} min · ${p.activities} sesiones · ${sIcons}</div>
+        <div class="rank-card-bar"><div class="rank-card-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>
+      <div class="rank-card-pts">${Math.round(p.pts).toLocaleString('es')}<span style="font-size:10px;color:var(--text-muted);display:block;text-align:right">pts</span></div>
+    </div>`;
+  }).join('');
 }
 
 // ─── PODIUM ──────────────────────────────────────────────
 function renderPodium() {
   const people = aggregateByPerson(filteredData);
   const wrap   = document.getElementById('podiumWrap');
+  const label  = viewMonth ? MONTHS_ES[viewMonth.month] + ' ' + viewMonth.year : 'Acumulado total';
+  document.getElementById('podiumTitle').textContent = label;
+
   if (!people.length) { wrap.innerHTML = `<div class="empty-state" style="width:100%"><div class="empty-icon">🏆</div><div class="empty-title">Sin datos</div></div>`; return; }
 
   const top3   = people.slice(0,3);
@@ -1507,56 +1729,87 @@ function drawBarChart(id, labels, values) {
   });
 }
 
-// ─── HEATMAP ─────────────────────────────────────────────
-function renderHeatmap() {
+// ─── SPORT CALENDAR ──────────────────────────────────────
+function renderSportCalendar() {
   const personFilter = document.getElementById('heatmapFilter').value;
-  // Heatmap siempre muestra todo el rango (ignorar filtro de mes para dar contexto histórico)
-  const d = rawData.filter(r => !personFilter || r.Nombre === personFilter);
-  if (!d.length) return;
 
-  const dayMap = {};
-  d.forEach(r => { if (!dayMap[r.dateKey]) dayMap[r.dateKey]=0; dayMap[r.dateKey]+=r.Puntos; });
-  const dates = Object.keys(dayMap).sort();
-  if (!dates.length) return;
+  // Usar el mes del filtro actual; si es acumulado, usar el mes actual
+  const now   = new Date();
+  const year  = viewMonth ? viewMonth.year  : now.getFullYear();
+  const month = viewMonth ? viewMonth.month : now.getMonth();
 
-  const maxPts  = Math.max(...Object.values(dayMap));
-  const first   = new Date(dates[0]);
-  const last    = new Date(dates[dates.length-1]);
-  const start   = new Date(first);
-  start.setDate(start.getDate() - start.getDay());
+  // Filtrar registros del mes — siempre todos los participantes a menos que se filtre
+  const d = rawData.filter(r => {
+    if (personFilter && r.Nombre !== personFilter) return false;
+    if (!r.date) return false;
+    return r.date.getFullYear() === year && r.date.getMonth() === month;
+  });
 
-  const weeks = [];
-  const cur   = new Date(start);
-  while (cur <= last) {
-    const week = [];
-    for (let d2=0; d2<7; d2++) {
-      const key = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
-      const pts = dayMap[key] || 0;
-      let level = 0;
-      if (pts>0) { if (pts<=maxPts*0.25) level=1; else if (pts<=maxPts*0.5) level=2; else if (pts<=maxPts*0.75) level=3; else level=4; }
-      week.push({ key, pts, level, inRange: cur>=first && cur<=last });
-      cur.setDate(cur.getDate()+1);
-    }
-    weeks.push(week);
+  const calEl   = document.getElementById('sportCal');
+  const legendEl = document.getElementById('sportCalLegend');
+
+  if (!d.length) {
+    calEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin actividad este mes</div></div>`;
+    legendEl.innerHTML = '';
+    return;
   }
 
-  const wrap = document.getElementById('heatmapWrap');
-  const grid = document.createElement('div');
-  grid.className = 'heatmap-grid';
-  weeks.forEach(week => {
-    const wEl = document.createElement('div');
-    wEl.className = 'heatmap-week';
-    week.forEach(day => {
-      const cell = document.createElement('div');
-      cell.className = 'heatmap-cell';
-      if (day.inRange) cell.dataset.level = day.level;
-      cell.title = day.pts>0 ? `${day.key}: ${Math.round(day.pts)} pts` : day.key;
-      wEl.appendChild(cell);
-    });
-    grid.appendChild(wEl);
+  // Agrupar por día → lista de { deporte, nombre, puntos }
+  const dayActivities = {};
+  d.forEach(r => {
+    const day = r.date.getDate();
+    if (!dayActivities[day]) dayActivities[day] = [];
+    dayActivities[day].push({ deporte: r.Deporte, nombre: r.Nombre, puntos: r.Puntos });
   });
-  wrap.innerHTML = '';
-  wrap.appendChild(grid);
+
+  // Primer día del mes (0=Dom…6=Sáb)
+  const firstDow   = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayDate  = now.getFullYear()===year && now.getMonth()===month ? now.getDate() : -1;
+
+  const DOWS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  let html = '<div class="sport-cal-header">';
+  DOWS.forEach(d2 => { html += `<div class="sport-cal-dow">${d2}</div>`; });
+  html += '</div><div class="sport-cal-grid">';
+
+  // Celdas vacías iniciales
+  for (let i = 0; i < firstDow; i++) {
+    html += '<div class="sport-cal-cell empty"></div>';
+  }
+
+  // Días del mes
+  for (let day = 1; day <= daysInMonth; day++) {
+    const acts    = dayActivities[day] || [];
+    const hasActs = acts.length > 0;
+    const isToday = day === todayDate;
+    const totalPts = acts.reduce((s,a) => s+a.puntos, 0);
+
+    // Iconos únicos del día (máx 4 para que quepan)
+    const icons = [...new Set(acts.map(a => sportIcon(a.deporte)))].slice(0, 4);
+    const tooltip = hasActs
+      ? acts.map(a => `${sportIcon(a.deporte)} ${a.deporte}${personFilter ? '' : ' · '+a.nombre}`).join('\n') + `\n→ ${Math.round(totalPts)} pts`
+      : day.toString();
+
+    html += `<div class="sport-cal-cell${hasActs?' has-activity':''}${isToday?' today':''}" title="${tooltip}">
+      <span class="sport-cal-day">${day}</span>`;
+
+    if (hasActs) {
+      html += '<div class="sport-cal-icons">';
+      icons.forEach(ic => { html += `<span class="sport-cal-icon">${ic}</span>`; });
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  html += '</div>';
+  calEl.innerHTML = html;
+
+  // Leyenda de deportes del mes
+  const sportsInMonth = [...new Set(d.map(r => r.Deporte))].sort();
+  legendEl.innerHTML = sportsInMonth.map(s =>
+    `<div class="sport-cal-legend-item"><span>${sportIcon(s)}</span><span>${s}</span></div>`
+  ).join('');
 }
 
 // ─── RECORDS ─────────────────────────────────────────────
@@ -1884,7 +2137,7 @@ function renderInsights() {
 function scrollToSection(id) {
   document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
   document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
-  const map={kpi:0,podium:1,evolution:2,race:3,sports:4,heatmap:5,records:6,comparator:7,insights:8};
+  const map={podium:0,kpi:1,heatmap:2,evolution:3,race:4,sports:5,records:6,comparator:7,insights:8};
   if (map[id]!==undefined) document.querySelectorAll('.nav-link')[map[id]]?.classList.add('active');
 }
 
