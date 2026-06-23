@@ -55,7 +55,7 @@ img { max-width: 100%; }
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(13, 27, 42, 0.95);
+  background: rgba(13, 27, 42, 0.97);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--dim);
@@ -75,6 +75,7 @@ img { max-width: 100%; }
   white-space: nowrap;
   flex-shrink: 0;
 }
+/* Desktop: links inline */
 .nav-links {
   display: flex;
   gap: 2px;
@@ -95,6 +96,73 @@ img { max-width: 100%; }
 }
 .nav-link:hover  { color: var(--text); background: var(--dim); }
 .nav-link.active { color: var(--accent); background: rgba(56,189,248,0.1); }
+
+/* Hamburger button — visible solo en móvil */
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 36px; height: 36px;
+  padding: 6px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.nav-hamburger:hover { background: var(--dim); }
+.nav-hamburger span {
+  display: block;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: all 0.25s var(--ease-out);
+  transform-origin: center;
+}
+.nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Drawer vertical — móvil */
+.nav-drawer {
+  display: none;
+  position: fixed;
+  top: 52px; left: 0; right: 0;
+  z-index: 99;
+  background: rgba(13, 27, 42, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--dim);
+  flex-direction: column;
+  padding: 8px 0 12px;
+  transform: translateY(-110%);
+  transition: transform 0.28s var(--ease-out);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+.nav-drawer.open { transform: translateY(0); }
+.nav-drawer .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 20px;
+  border-radius: 0;
+  font-size: 15px;
+  font-weight: 600;
+  border-left: 3px solid transparent;
+}
+.nav-drawer .nav-link.active {
+  border-left-color: var(--accent);
+  background: rgba(56,189,248,0.07);
+  color: var(--accent);
+}
+.nav-drawer .nav-link .nav-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+.nav-drawer-divider { height: 1px; background: var(--dim); margin: 6px 20px; }
+
+@media (max-width: 680px) {
+  .nav-links { display: none; }
+  .nav-hamburger { display: flex; }
+  .nav-drawer { display: flex; }
+}
+
 .sync-badge {
   font-size: 11px;
   font-family: var(--ff-mono);
@@ -104,6 +172,7 @@ img { max-width: 100%; }
   display: flex;
   align-items: center;
   gap: 5px;
+  margin-left: auto;
 }
 .sync-dot {
   width: 6px; height: 6px;
@@ -992,6 +1061,7 @@ canvas { display: block; width: 100% !important; }
 <!-- NAV -->
 <nav class="nav">
   <span class="nav-brand">⚡ Liga</span>
+  <!-- Desktop links -->
   <div class="nav-links">
     <button class="nav-link active" onclick="scrollToSection('podium')">Podio</button>
     <button class="nav-link" onclick="scrollToSection('kpi')">Ranking</button>
@@ -1007,7 +1077,26 @@ canvas { display: block; width: 100% !important; }
     <span class="sync-dot"></span>
     <span id="syncTime">cargando…</span>
   </div>
+  <!-- Hamburger -->
+  <button class="nav-hamburger" id="navHamburger" onclick="toggleDrawer()" aria-label="Menú">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+
+<!-- Drawer móvil -->
+<div class="nav-drawer" id="navDrawer">
+  <button class="nav-link" onclick="scrollToSection('podium');closeDrawer()"><span class="nav-icon">🏆</span>Podio</button>
+  <button class="nav-link" onclick="scrollToSection('kpi');closeDrawer()"><span class="nav-icon">📊</span>Ranking</button>
+  <button class="nav-link" onclick="scrollToSection('heatmap');closeDrawer()"><span class="nav-icon">📅</span>Calendario</button>
+  <div class="nav-drawer-divider"></div>
+  <button class="nav-link" onclick="scrollToSection('evolution');closeDrawer()"><span class="nav-icon">📈</span>Evolución</button>
+  <button class="nav-link" onclick="scrollToSection('race');closeDrawer()"><span class="nav-icon">🏁</span>Carrera animada</button>
+  <button class="nav-link" onclick="scrollToSection('sports');closeDrawer()"><span class="nav-icon">🏅</span>Por deporte</button>
+  <div class="nav-drawer-divider"></div>
+  <button class="nav-link" onclick="scrollToSection('records');closeDrawer()"><span class="nav-icon">🔥</span>Récords</button>
+  <button class="nav-link" onclick="scrollToSection('comparator');closeDrawer()"><span class="nav-icon">⚔️</span>Comparar</button>
+  <button class="nav-link" onclick="scrollToSection('insights');closeDrawer()"><span class="nav-icon">💡</span>Insights</button>
+</div>
 
 <!-- FILTER BAR -->
 <div class="filter-bar">
@@ -1129,14 +1218,14 @@ canvas { display: block; width: 100% !important; }
   </div>
   <div class="two-col">
     <div class="chart-box">
-      <div class="chart-title">Minutos</div>
-      <div class="chart-sub">Total de minutos por disciplina</div>
-      <canvas id="sportsMinChart" height="200"></canvas>
+      <div class="chart-title">Minutos por deporte</div>
+      <div class="chart-sub" style="margin-bottom:14px">Total de minutos por disciplina</div>
+      <div id="sportsMinChart" style="display:flex;flex-direction:column;gap:9px"></div>
     </div>
     <div class="chart-box">
-      <div class="chart-title">Puntos</div>
-      <div class="chart-sub">Aporte total por disciplina</div>
-      <canvas id="sportsPtsChart" height="200"></canvas>
+      <div class="chart-title">Puntos por deporte</div>
+      <div class="chart-sub" style="margin-bottom:14px">Aporte total por disciplina</div>
+      <div id="sportsPtsChart" style="display:flex;flex-direction:column;gap:9px"></div>
     </div>
   </div>
 </section>
@@ -1679,52 +1768,49 @@ function renderSportsCharts() {
   drawBarChart('sportsPtsChart', sports.map(s=>s.sport), sports.map(s=>Math.round(s.pts)));
 }
 
+// ─── DRAWER ──────────────────────────────────────────────
+function toggleDrawer() {
+  const drawer = document.getElementById('navDrawer');
+  const btn    = document.getElementById('navHamburger');
+  const isOpen = drawer.classList.contains('open');
+  if (isOpen) { closeDrawer(); } else {
+    drawer.classList.add('open');
+    btn.classList.add('open');
+    document.addEventListener('click', _drawerOutside, { once: true, capture: true });
+  }
+}
+function closeDrawer() {
+  document.getElementById('navDrawer').classList.remove('open');
+  document.getElementById('navHamburger').classList.remove('open');
+}
+function _drawerOutside(e) {
+  const drawer = document.getElementById('navDrawer');
+  const btn    = document.getElementById('navHamburger');
+  if (!drawer.contains(e.target) && !btn.contains(e.target)) closeDrawer();
+  else if (drawer.classList.contains('open')) {
+    document.addEventListener('click', _drawerOutside, { once: true, capture: true });
+  }
+}
+
 function drawBarChart(id, labels, values) {
-  const canvas = document.getElementById(id);
-  const ctx    = canvas.getContext('2d');
-  const W      = canvas.parentElement.offsetWidth - 32 || 280;
-  const H      = 200;
-  canvas.width  = W * devicePixelRatio;
-  canvas.height = H * devicePixelRatio;
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
-  ctx.scale(devicePixelRatio, devicePixelRatio);
+  const container = document.getElementById(id);
+  if (!container) return;
+  const max = Math.max(...values) || 1;
 
-  const pad  = { top:10, right:12, bottom:56, left:46 };
-  const w    = W - pad.left - pad.right;
-  const h    = H - pad.top - pad.bottom;
-  const max  = Math.max(...values) || 1;
-  const n    = labels.length;
-  const gap  = w / n;
-  const barW = Math.min(gap*0.65, 40);
-
-  ctx.strokeStyle = 'rgba(36,61,87,0.6)'; ctx.lineWidth = 1;
-  [0,0.5,1].forEach(t => {
-    const y = pad.top + h*(1-t);
-    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+w,y); ctx.stroke();
-    ctx.fillStyle = 'rgba(122,155,191,0.65)';
-    ctx.font = `10px JetBrains Mono, monospace`; ctx.textAlign = 'right';
-    ctx.fillText(Math.round(max*t).toLocaleString('es'), pad.left-5, y+4);
-  });
-
-  labels.forEach((label, i) => {
-    const x   = pad.left + gap*i + gap/2 - barW/2;
-    const bh  = (values[i]/max)*h;
-    const y   = pad.top + h - bh;
-    ctx.fillStyle = PERSON_COLORS[i % PERSON_COLORS.length];
-    ctx.globalAlpha = 0.85;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(x, y, barW, bh, [3,3,0,0]);
-    else { ctx.moveTo(x+3,y); ctx.arcTo(x+barW,y,x+barW,y+bh,3); ctx.lineTo(x+barW,y+bh); ctx.lineTo(x,y+bh); ctx.arcTo(x,y,x+3,y,3); }
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#E8F0FE'; ctx.font = `bold 10px JetBrains Mono, monospace`; ctx.textAlign = 'center';
-    if (bh > 16) ctx.fillText(values[i].toLocaleString('es'), x+barW/2, y-4);
-    ctx.fillStyle = 'rgba(122,155,191,0.8)'; ctx.font = `10px Inter, sans-serif`;
-    ctx.save(); ctx.translate(x+barW/2, H-pad.bottom+8); ctx.rotate(-Math.PI/5);
-    ctx.fillText(label.length>12 ? label.slice(0,11)+'…' : label, 0, 0);
-    ctx.restore();
-  });
+  container.innerHTML = labels.map((label, i) => {
+    const pct   = Math.round((values[i] / max) * 100);
+    const color = PERSON_COLORS[i % PERSON_COLORS.length];
+    const icon  = SPORT_ICONS[label] || SPORT_ICONS['default'];
+    const val   = values[i].toLocaleString('es');
+    return `<div style="display:flex;align-items:center;gap:8px;min-height:28px">
+      <span style="font-size:16px;flex-shrink:0;width:22px;text-align:center">${icon}</span>
+      <div style="flex-shrink:0;width:clamp(80px,28vw,130px);font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">${label}</div>
+      <div style="flex:1;height:18px;background:var(--dim);border-radius:3px;overflow:hidden;position:relative">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;opacity:0.85;transition:width 0.5s var(--ease-out)"></div>
+      </div>
+      <span style="font-family:var(--ff-mono);font-size:11px;font-weight:600;color:var(--text-muted);flex-shrink:0;min-width:44px;text-align:right">${val}</span>
+    </div>`;
+  }).join('');
 }
 
 // ─── SPORT CALENDAR ──────────────────────────────────────
@@ -2135,8 +2221,12 @@ function renderInsights() {
 function scrollToSection(id) {
   document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
   document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
-  const map={podium:0,kpi:1,heatmap:2,evolution:3,race:4,sports:5,records:6,comparator:7,insights:8};
-  if (map[id]!==undefined) document.querySelectorAll('.nav-link')[map[id]]?.classList.add('active');
+  const sections = ['podium','kpi','heatmap','evolution','race','sports','records','comparator','insights'];
+  const idx = sections.indexOf(id);
+  if (idx !== -1) {
+    document.querySelectorAll('.nav-links .nav-link')[idx]?.classList.add('active');
+    document.querySelectorAll('.nav-drawer .nav-link')[idx]?.classList.add('active');
+  }
 }
 
 // ─── DATA LOAD ───────────────────────────────────────────
