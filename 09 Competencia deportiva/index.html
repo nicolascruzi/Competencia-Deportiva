@@ -183,19 +183,26 @@ img { max-width: 100%; }
 }
 @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
-/* ─── NAV FILTERS (integrados en el nav) ─────────────── */
-.nav-filters {
+/* ─── MONTH BAR (bajo el nav) ────────────────────────── */
+.month-bar {
+  background: rgba(13,27,42,0.97);
+  border-bottom: 1px solid var(--dim);
+  padding: 0 16px;
+  height: 36px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
+  justify-content: center;
+  gap: 6px;
+  position: sticky;
+  top: 52px;
+  z-index: 98;
 }
 .month-btn {
   background: none;
   border: none;
   color: var(--text-muted);
-  width: 22px; height: 28px;
-  font-size: 15px;
+  width: 24px; height: 28px;
+  font-size: 16px;
   display: flex; align-items: center; justify-content: center;
   transition: color 0.15s;
   flex-shrink: 0;
@@ -209,39 +216,78 @@ img { max-width: 100%; }
   color: var(--text);
   white-space: nowrap;
   text-align: center;
-  min-width: 76px;
-  letter-spacing: 0.02em;
+  min-width: 80px;
+  letter-spacing: 0.03em;
 }
-.month-display.is-accum {
-  color: var(--accent);
+.month-display.is-accum { color: var(--accent); }
+
+/* ─── PLAYER POPUP ───────────────────────────────────── */
+.player-overlay {
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(5,12,20,0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  transition: opacity 0.2s;
 }
-.nav-filter-sep {
-  width: 1px; height: 16px;
-  background: var(--dim);
-  flex-shrink: 0;
-  margin: 0 4px;
+.player-overlay.hidden { opacity: 0; pointer-events: none; }
+.player-box {
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 360px;
+  display: flex; flex-direction: column; gap: 16px;
 }
-.nav-person-select {
-  background: none;
-  border: none;
+.player-title {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 26px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+.player-sub {
+  font-size: 13px;
   color: var(--text-muted);
-  font-size: 12px;
-  font-family: var(--ff-body);
-  font-weight: 500;
+  margin-top: -8px;
+}
+.player-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.player-btn {
+  background: var(--surface2);
+  border: 1px solid var(--dim);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 12px 10px;
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  padding: 0 2px;
-  max-width: 90px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  transition: all 0.15s;
+  text-align: center;
 }
-.nav-person-select:focus { outline: none; color: var(--text); }
-@media (max-width: 400px) {
-  .month-display { min-width: 58px; font-size: 11px; }
-  .nav-person-select { max-width: 70px; font-size: 11px; }
+.player-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(56,189,248,0.08);
 }
+.player-skip {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s;
+}
+.player-skip:hover { color: var(--text); }
 
 /* ─── SECTIONS ───────────────────────────────────────── */
 .section {
@@ -1058,17 +1104,7 @@ canvas { display: block; width: 100% !important; }
     <button class="nav-link" onclick="scrollToSection('comparator')">Comparar</button>
     <button class="nav-link" onclick="scrollToSection('insights')">Insights</button>
   </div>
-  <!-- Filtros integrados -->
-  <div class="nav-filters">
-    <button class="month-btn" onclick="shiftMonth(-1)" title="Mes anterior">‹</button>
-    <div class="month-display" id="monthDisplay">—</div>
-    <button class="month-btn" onclick="shiftMonth(1)" title="Mes siguiente">›</button>
-    <div class="nav-filter-sep"></div>
-    <select class="nav-person-select" id="filterPerson" onchange="applyFilters()" title="Participante">
-      <option value="">Todos</option>
-    </select>
-  </div>
-  <div class="sync-badge" style="margin-left:8px">
+  <div class="sync-badge">
     <span class="sync-dot"></span>
     <span id="syncTime">…</span>
   </div>
@@ -1077,6 +1113,13 @@ canvas { display: block; width: 100% !important; }
     <span></span><span></span><span></span>
   </button>
 </nav>
+
+<!-- MONTH BAR -->
+<div class="month-bar">
+  <button class="month-btn" onclick="shiftMonth(-1)" title="Mes anterior">‹</button>
+  <div class="month-display" id="monthDisplay">—</div>
+  <button class="month-btn" onclick="shiftMonth(1)" title="Mes siguiente">›</button>
+</div>
 
 <!-- Drawer móvil -->
 <div class="nav-drawer" id="navDrawer">
@@ -1283,6 +1326,18 @@ canvas { display: block; width: 100% !important; }
   </div>
 </div>
 
+<!-- PLAYER POPUP -->
+<div class="player-overlay hidden" id="playerOverlay">
+  <div class="player-box">
+    <div class="player-title">¿Quién eres?</div>
+    <div class="player-sub">Tu calendario mostrará solo tus actividades.</div>
+    <div class="player-grid" id="playerGrid">
+      <!-- se rellena por JS -->
+    </div>
+    <div class="player-skip" onclick="choosePlayer(null)">Ver sin filtro</div>
+  </div>
+</div>
+
 <script>
 // ─── SPORT ICONS ────────────────────────────────────────
 const SPORT_ICONS = {
@@ -1326,6 +1381,7 @@ let raceFrame    = 0;
 let raceDates    = [];
 let hiddenLines  = new Set();
 let refreshTimer = null;
+let currentPlayer = null; // jugador elegido en el popup (solo afecta el calendario)
 
 const SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFfLoMO8AqEACqRodi1fYz1Vltm3UmffkVgdEq2nDgN24R-YJmH_hKuNdhvAK72VxJx-RFzYga8A41/pub?gid=791416876&single=true&output=csv';
 
@@ -1463,10 +1519,7 @@ function shiftMonth(dir) {
 
 // ─── FILTERS ─────────────────────────────────────────────
 function applyFilters() {
-  const person = document.getElementById('filterPerson').value;
-
   filteredData = rawData.filter(r => {
-    if (person && r.Nombre !== person) return false;
     if (viewMonth) {
       if (r.date.getFullYear() !== viewMonth.year)  return false;
       if (r.date.getMonth()    !== viewMonth.month) return false;
@@ -1480,7 +1533,7 @@ function applyFilters() {
 function populateFilters() {
   const people = [...new Set(rawData.map(r => r.Nombre))].sort();
 
-  ['filterPerson','cmpA','cmpB'].forEach(id => {
+  ['cmpA','cmpB'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const first = sel.options[0];
@@ -1488,6 +1541,25 @@ function populateFilters() {
     sel.appendChild(first);
     people.forEach(p => { const o = document.createElement('option'); o.value=p; o.textContent=p; sel.appendChild(o); });
   });
+
+  // Popup de jugador — solo si no se eligió aún en esta sesión
+  if (!sessionStorage.getItem('playerChosen')) {
+    const grid = document.getElementById('playerGrid');
+    grid.innerHTML = people.map(p =>
+      `<button class="player-btn" onclick="choosePlayer('${p}')">${p.split(' ')[0]}</button>`
+    ).join('');
+    document.getElementById('playerOverlay').classList.remove('hidden');
+  } else {
+    currentPlayer = sessionStorage.getItem('currentPlayer') || null;
+  }
+}
+
+function choosePlayer(name) {
+  currentPlayer = name;
+  sessionStorage.setItem('playerChosen', '1');
+  sessionStorage.setItem('currentPlayer', name || '');
+  document.getElementById('playerOverlay').classList.add('hidden');
+  renderSportCalendar();
 }
 
 // ─── RENDER ALL ──────────────────────────────────────────
@@ -1769,7 +1841,7 @@ function drawBarChart(id, labels, values) {
 
 // ─── SPORT CALENDAR ──────────────────────────────────────
 function renderSportCalendar() {
-  const personFilter = document.getElementById('filterPerson').value;
+  const personFilter = currentPlayer || '';
 
   // Usar el mes del filtro actual; si es acumulado, usar el mes actual
   const now   = new Date();
