@@ -1425,13 +1425,23 @@ function parseCSV(text) {
     const obj = {};
     headers.forEach((h, i) => { obj[h] = (cols[i] || '').trim().replace(/^"|"$/g,''); });
 
-    // Parse date: DD/MM/YY H:MM
+    // Normalizar columnas: soporta "Marca temporal" o "Fecha Registro", "Ponderador deporte" o "Ponderador"
+    if (obj['Marca temporal'] && !obj['Fecha Registro']) obj['Fecha Registro'] = obj['Marca temporal'];
+    if (obj['Ponderador deporte'] && !obj['Ponderador']) obj['Ponderador'] = obj['Ponderador deporte'];
+    if (!obj['Puntos'] && obj['Minutos'] && obj['Ponderador']) obj['Puntos'] = parseFloat(obj['Minutos']) * parseFloat(obj['Ponderador']);
+
+    // Parse date: M/DD/YYYY HH:MM:SS o DD/MM/YY H:MM
     const dateStr = obj['Fecha Registro'] || '';
-    const m = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s+(\d{1,2}):(\d{2})/);
+    const m = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/) ||
+              dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s+(\d{1,2}):(\d{2})/);
     if (m) {
-      const year = 2000 + parseInt(m[3]);
-      obj.date = new Date(year, parseInt(m[2])-1, parseInt(m[1]), parseInt(m[4]), parseInt(m[5]));
-      obj.dateKey = `${year}-${String(parseInt(m[2])).padStart(2,'0')}-${String(parseInt(m[1])).padStart(2,'0')}`;
+      const year = m[3].length === 4 ? parseInt(m[3]) : 2000 + parseInt(m[3]);
+      // Google Forms: M/DD/YYYY → mes=m[1], dia=m[2]; formato DD/MM/YY → dia=m[1], mes=m[2]
+      const isGoogleFormat = m[3].length === 4;
+      const dia = isGoogleFormat ? parseInt(m[2]) : parseInt(m[1]);
+      const mes = isGoogleFormat ? parseInt(m[1]) : parseInt(m[2]);
+      obj.date = new Date(year, mes-1, dia, parseInt(m[4]), parseInt(m[5]));
+      obj.dateKey = `${year}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
     } else {
       obj.date = null;
       obj.dateKey = '';
@@ -2454,8 +2464,23 @@ window.addEventListener('resize', () => {
 });
 
 // ─── INIT ─────────────────────────────────────────────────
-// Load sample data to demonstrate
-processData(SAMPLE_CSV);
+const SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFfLoMO8AqEACqRodi1fYz1Vltm3UmffkVgdEq2nDgN24R-YJmH_hKuNdhvAK72VxJx-RFzYga8A41/pub?gid=791416876&single=true&output=csv';
+
+async function autoLoad() {
+  document.getElementById('syncTime').textContent = 'cargando...';
+  try {
+    const resp = await fetch(SHEETS_URL);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+    processData(text);
+  } catch (e) {
+    document.getElementById('syncTime').textContent = 'error al cargar';
+    processData(SAMPLE_CSV);
+  }
+}
+
+autoLoad();
+setInterval(autoLoad, 5 * 60 * 1000);
 </script>
 </body>
 </html>
