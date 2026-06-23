@@ -183,92 +183,64 @@ img { max-width: 100%; }
 }
 @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
-/* ─── FILTER BAR ─────────────────────────────────────── */
-.filter-bar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--dim);
-  padding: 10px 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-.filter-row {
+/* ─── NAV FILTERS (integrados en el nav) ─────────────── */
+.nav-filters {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.filter-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-.filter-select {
-  background: var(--surface2);
-  border: 1px solid var(--dim);
-  color: var(--text);
-  padding: 6px 10px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-  min-width: 0;
-  max-width: 150px;
-}
-.month-nav {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 .month-btn {
-  background: var(--surface2);
-  border: 1px solid var(--dim);
-  color: var(--text);
-  width: 32px; height: 32px;
-  border-radius: var(--radius);
-  font-size: 16px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  width: 22px; height: 28px;
+  font-size: 15px;
   display: flex; align-items: center; justify-content: center;
-  transition: background 0.15s;
+  transition: color 0.15s;
   flex-shrink: 0;
+  padding: 0;
 }
-.month-btn:hover { background: var(--dim); }
+.month-btn:hover { color: var(--text); }
 .month-display {
-  font-family: var(--ff-display);
-  font-weight: 700;
-  font-size: 16px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-family: var(--ff-mono);
+  font-weight: 600;
+  font-size: 12px;
   color: var(--text);
   white-space: nowrap;
-  min-width: 120px;
   text-align: center;
+  min-width: 76px;
+  letter-spacing: 0.02em;
 }
-.filter-divider {
-  width: 1px; height: 20px;
+.month-display.is-accum {
+  color: var(--accent);
+}
+.nav-filter-sep {
+  width: 1px; height: 16px;
   background: var(--dim);
   flex-shrink: 0;
+  margin: 0 4px;
 }
-.chip {
-  background: var(--surface2);
-  border: 1px solid var(--dim);
+.nav-person-select {
+  background: none;
+  border: none;
   color: var(--text-muted);
-  padding: 5px 10px;
-  border-radius: 20px;
   font-size: 12px;
+  font-family: var(--ff-body);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0 2px;
+  max-width: 90px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.chip:hover, .chip.active {
-  background: rgba(56,189,248,0.12);
-  border-color: var(--accent);
-  color: var(--accent);
+.nav-person-select:focus { outline: none; color: var(--text); }
+@media (max-width: 400px) {
+  .month-display { min-width: 58px; font-size: 11px; }
+  .nav-person-select { max-width: 70px; font-size: 11px; }
 }
 
 /* ─── SECTIONS ───────────────────────────────────────── */
@@ -1086,9 +1058,19 @@ canvas { display: block; width: 100% !important; }
     <button class="nav-link" onclick="scrollToSection('comparator')">Comparar</button>
     <button class="nav-link" onclick="scrollToSection('insights')">Insights</button>
   </div>
-  <div class="sync-badge">
+  <!-- Filtros integrados -->
+  <div class="nav-filters">
+    <button class="month-btn" onclick="shiftMonth(-1)" title="Mes anterior">‹</button>
+    <div class="month-display" id="monthDisplay">—</div>
+    <button class="month-btn" onclick="shiftMonth(1)" title="Mes siguiente">›</button>
+    <div class="nav-filter-sep"></div>
+    <select class="nav-person-select" id="filterPerson" onchange="applyFilters()" title="Participante">
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="sync-badge" style="margin-left:8px">
     <span class="sync-dot"></span>
-    <span id="syncTime">cargando…</span>
+    <span id="syncTime">…</span>
   </div>
   <!-- Hamburger -->
   <button class="nav-hamburger" id="navHamburger" onclick="toggleDrawer()" aria-label="Menú">
@@ -1109,36 +1091,6 @@ canvas { display: block; width: 100% !important; }
   <button class="nav-link" onclick="scrollToSection('records');closeDrawer()"><span class="nav-icon">🔥</span>Récords</button>
   <button class="nav-link" onclick="scrollToSection('comparator');closeDrawer()"><span class="nav-icon">⚔️</span>Comparar</button>
   <button class="nav-link" onclick="scrollToSection('insights');closeDrawer()"><span class="nav-icon">💡</span>Insights</button>
-</div>
-
-<!-- FILTER BAR -->
-<div class="filter-bar">
-  <div class="filter-row">
-    <span class="filter-label">Mes</span>
-    <div class="month-nav">
-      <button class="month-btn" onclick="shiftMonth(-1)" title="Mes anterior">‹</button>
-      <div class="month-display" id="monthDisplay">—</div>
-      <button class="month-btn" onclick="shiftMonth(1)" title="Mes siguiente">›</button>
-    </div>
-  </div>
-  <div class="filter-divider"></div>
-  <div class="filter-row">
-    <span class="filter-label">Persona</span>
-    <select class="filter-select" id="filterPerson" onchange="applyFilters()">
-      <option value="">Todos</option>
-    </select>
-  </div>
-  <div class="filter-divider"></div>
-  <div class="filter-row">
-    <span class="filter-label">Deporte</span>
-    <select class="filter-select" id="filterSport" onchange="applyFilters()">
-      <option value="">Todos</option>
-    </select>
-  </div>
-  <div class="filter-divider"></div>
-  <div class="filter-row">
-    <button class="chip" onclick="setAccum(this)">Acumulado total</button>
-  </div>
 </div>
 
 <!-- MAIN -->
@@ -1240,12 +1192,6 @@ canvas { display: block; width: 100% !important; }
     <div class="section-eyebrow">Actividad</div>
     <div class="section-title">Calendario</div>
     <div class="section-sub">Actividades del mes — cada ícono es un deporte registrado ese día.</div>
-  </div>
-  <div class="sport-cal-filter">
-    <span class="filter-label">Ver</span>
-    <select class="filter-select" id="heatmapFilter" onchange="renderSportCalendar()">
-      <option value="">Todos</option>
-    </select>
   </div>
   <div class="chart-box">
     <div class="sport-cal-wrap">
@@ -1477,50 +1423,50 @@ function initMonth() {
 }
 
 function updateMonthDisplay() {
+  const el = document.getElementById('monthDisplay');
   if (!viewMonth) {
-    document.getElementById('monthDisplay').textContent = 'Todo';
+    el.textContent = 'Acumulado';
+    el.classList.add('is-accum');
     return;
   }
-  document.getElementById('monthDisplay').textContent =
-    MONTHS_ES[viewMonth.month] + ' ' + viewMonth.year;
+  el.classList.remove('is-accum');
+  const now = new Date();
+  const label = (viewMonth.year === now.getFullYear())
+    ? MONTHS_ES[viewMonth.month]
+    : MONTHS_ES[viewMonth.month] + ' ' + viewMonth.year;
+  el.textContent = label;
 }
 
 function shiftMonth(dir) {
-  if (!viewMonth) return;
-  let { year, month } = viewMonth;
-  month += dir;
-  if (month < 0)  { month = 11; year--; }
-  if (month > 11) { month = 0;  year++; }
   const now = new Date();
-  if (year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth())) return;
-  viewMonth = { year, month };
-  updateMonthDisplay();
-  applyFilters();
-}
+  const curYear = now.getFullYear(), curMonth = now.getMonth();
 
-function setAccum(btn) {
   if (viewMonth === null) {
-    // volver al mes actual
-    initMonth();
-    btn.textContent = 'Acumulado total';
-    btn.classList.remove('active');
+    // desde Acumulado: ‹ vuelve al mes actual, › no hace nada
+    if (dir < 0) { viewMonth = { year: curYear, month: curMonth }; }
+    else return;
   } else {
-    viewMonth = null;
-    updateMonthDisplay();
-    btn.textContent = 'Ver por mes';
-    btn.classList.add('active');
+    let { year, month } = viewMonth;
+    month += dir;
+    if (month < 0)  { month = 11; year--; }
+    if (month > 11) { month = 0;  year++; }
+    // › desde el mes actual → Acumulado
+    if (year > curYear || (year === curYear && month > curMonth)) {
+      viewMonth = null;
+    } else {
+      viewMonth = { year, month };
+    }
   }
+  updateMonthDisplay();
   applyFilters();
 }
 
 // ─── FILTERS ─────────────────────────────────────────────
 function applyFilters() {
   const person = document.getElementById('filterPerson').value;
-  const sport  = document.getElementById('filterSport').value;
 
   filteredData = rawData.filter(r => {
-    if (person && r.Nombre  !== person) return false;
-    if (sport  && r.Deporte !== sport)  return false;
+    if (person && r.Nombre !== person) return false;
     if (viewMonth) {
       if (r.date.getFullYear() !== viewMonth.year)  return false;
       if (r.date.getMonth()    !== viewMonth.month) return false;
@@ -1533,21 +1479,15 @@ function applyFilters() {
 
 function populateFilters() {
   const people = [...new Set(rawData.map(r => r.Nombre))].sort();
-  const sports = [...new Set(rawData.map(r => r.Deporte))].sort();
 
-  ['filterPerson','heatmapFilter','cmpA','cmpB'].forEach(id => {
+  ['filterPerson','cmpA','cmpB'].forEach(id => {
     const sel = document.getElementById(id);
+    if (!sel) return;
     const first = sel.options[0];
     sel.innerHTML = '';
     sel.appendChild(first);
     people.forEach(p => { const o = document.createElement('option'); o.value=p; o.textContent=p; sel.appendChild(o); });
   });
-
-  const sportSel = document.getElementById('filterSport');
-  const firstS   = sportSel.options[0];
-  sportSel.innerHTML = '';
-  sportSel.appendChild(firstS);
-  sports.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=s; sportSel.appendChild(o); });
 }
 
 // ─── RENDER ALL ──────────────────────────────────────────
@@ -1829,7 +1769,7 @@ function drawBarChart(id, labels, values) {
 
 // ─── SPORT CALENDAR ──────────────────────────────────────
 function renderSportCalendar() {
-  const personFilter = document.getElementById('heatmapFilter').value;
+  const personFilter = document.getElementById('filterPerson').value;
 
   // Usar el mes del filtro actual; si es acumulado, usar el mes actual
   const now   = new Date();
