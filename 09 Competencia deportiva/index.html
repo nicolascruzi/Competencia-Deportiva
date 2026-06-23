@@ -1313,18 +1313,14 @@ function parseCSV(text) {
     if (obj['Marca temporal']   && !obj['Fecha Registro']) obj['Fecha Registro'] = obj['Marca temporal'];
     if (obj['Ponderador deporte'] && !obj['Ponderador'])   obj['Ponderador'] = obj['Ponderador deporte'];
 
-    // Parse date: M/D/YYYY HH:MM:SS  o  DD/MM/YY H:MM
+    // Parse date: DD/MM/YYYY HH:MM:SS  o  DD/MM/YY H:MM — siempre día primero
     const dateStr = obj['Fecha Registro'] || '';
-    const m4 = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/);
-    const m2 = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})\s+(\d{1,2}):(\d{2})/);
-    const m = m4 || m2;
+    const m = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2}):(\d{2})/);
 
     if (m) {
-      const year  = m[3].length === 4 ? parseInt(m[3]) : 2000 + parseInt(m[3]);
-      // Google Forms usa M/D/YYYY (mes primero); nuestro formato original usa DD/MM
-      const isGoogle = m4 !== null;
-      const dia = isGoogle ? parseInt(m[2]) : parseInt(m[1]);
-      const mes = isGoogle ? parseInt(m[1]) : parseInt(m[2]);
+      const dia  = parseInt(m[1]);
+      const mes  = parseInt(m[2]);
+      const year = m[3].length === 4 ? parseInt(m[3]) : 2000 + parseInt(m[3]);
       obj.date    = new Date(year, mes-1, dia, parseInt(m[4]), parseInt(m[5]));
       obj.dateKey = `${year}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
     } else {
@@ -1402,6 +1398,8 @@ function shiftMonth(dir) {
   month += dir;
   if (month < 0)  { month = 11; year--; }
   if (month > 11) { month = 0;  year++; }
+  const now = new Date();
+  if (year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth())) return;
   viewMonth = { year, month };
   updateMonthDisplay();
   applyFilters();
@@ -2047,56 +2045,56 @@ function openProfile(name) {
   const pts   = data.reduce((s,r)=>s+r.Puntos,0);
   const min   = data.reduce((s,r)=>s+r.Minutos,0);
   const acts  = data.length;
-  const sports= [...new Set(data.map(r=>r.Deporte))];
   const color = getPersonColor(name);
+
+  // Desglose por deporte: agrupa sesiones, minutos y puntos por deporte
+  const sportMap = {};
+  data.forEach(r => {
+    if (!sportMap[r.Deporte]) sportMap[r.Deporte] = { min: 0, pts: 0, sesiones: 0 };
+    sportMap[r.Deporte].min      += r.Minutos;
+    sportMap[r.Deporte].pts      += r.Puntos;
+    sportMap[r.Deporte].sesiones += 1;
+  });
+  const sportRows = Object.entries(sportMap)
+    .sort((a,b) => b[1].pts - a[1].pts)
+    .map(([sport, v]) => {
+      const icon = SPORT_ICONS[sport] || SPORT_ICONS['default'];
+      const pct  = pts > 0 ? Math.round(v.pts / pts * 100) : 0;
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--dim);border-radius:var(--radius);">
+          <span style="font-size:22px;flex-shrink:0">${icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sport}</div>
+            <div style="height:4px;background:var(--dim);border-radius:2px;margin-top:5px">
+              <div style="height:4px;width:${pct}%;background:${color};border-radius:2px;transition:width 0.4s"></div>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;font-family:var(--ff-mono);font-size:12px;line-height:1.6">
+            <div style="color:var(--text);font-weight:700">${Math.round(v.pts)} <span style="color:var(--text-muted);font-weight:400">pts</span></div>
+            <div style="color:var(--text-muted)">${Math.round(v.min)} min · ${v.sesiones} ses.</div>
+          </div>
+        </div>`;
+    }).join('');
+
+  const periodLabel = viewMonth
+    ? MONTHS_ES[viewMonth.month] + ' ' + viewMonth.year
+    : 'Acumulado total';
 
   document.getElementById('profileContent').innerHTML = `
     <div class="profile-name" style="color:${color}">${name}</div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-top:-12px">${periodLabel}</div>
     <div class="profile-stats">
       <div class="profile-stat"><div class="profile-stat-value">${Math.round(pts).toLocaleString('es')}</div><div class="profile-stat-label">Puntos</div></div>
       <div class="profile-stat"><div class="profile-stat-value">${Math.round(min).toLocaleString('es')}</div><div class="profile-stat-label">Minutos</div></div>
       <div class="profile-stat"><div class="profile-stat-value">${acts}</div><div class="profile-stat-label">Actividades</div></div>
-      <div class="profile-stat"><div class="profile-stat-value">${Math.round(pts/acts)}</div><div class="profile-stat-label">Prom/sesión</div></div>
+      <div class="profile-stat"><div class="profile-stat-value">${acts > 0 ? Math.round(pts/acts) : 0}</div><div class="profile-stat-label">Prom/sesión</div></div>
     </div>
     <div>
-      <div class="chart-title" style="margin-bottom:8px">Deportes</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">${sports.map(s=>`<span class="sport-tag" style="font-size:12px;padding:4px 9px">${s}</span>`).join('')}</div>
-    </div>
-    <canvas id="profileChart" height="140"></canvas>`;
+      <div class="chart-title" style="margin-bottom:10px">Desglose por deporte</div>
+      <div style="display:flex;flex-direction:column;gap:8px">${sportRows}</div>
+    </div>`;
 
   document.getElementById('profileOverlay').classList.add('open');
-
-  requestAnimationFrame(() => {
-    const canvas = document.getElementById('profileChart');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.parentElement.offsetWidth-0||300;
-    const H = 140;
-    canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio;
-    canvas.style.width=W+'px'; canvas.style.height=H+'px';
-    ctx.scale(devicePixelRatio, devicePixelRatio);
-
-    const sorted = [...data].sort((a,b)=>a.date-b.date);
-    const allDates = [...new Set(sorted.map(r=>r.dateKey))].sort();
-    let cum=0;
-    const series=[];
-    allDates.forEach(d=>{ sorted.filter(r=>r.dateKey===d).forEach(r=>{cum+=r.Puntos;}); series.push(cum); });
-    const maxVal=Math.max(...series)||1; const n=allDates.length;
-    const pad={top:8,right:8,bottom:16,left:38};
-    const w=W-pad.left-pad.right, h=H-pad.top-pad.bottom;
-
-    const grad=ctx.createLinearGradient(0,pad.top,0,pad.top+h);
-    grad.addColorStop(0,color+'50'); grad.addColorStop(1,color+'00');
-    ctx.beginPath();
-    series.forEach((val,i)=>{ const x=pad.left+(i/Math.max(n-1,1))*w; const y=pad.top+h*(1-val/maxVal); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
-    ctx.lineTo(pad.left+w,pad.top+h); ctx.lineTo(pad.left,pad.top+h); ctx.closePath();
-    ctx.fillStyle=grad; ctx.fill();
-
-    ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round';
-    ctx.beginPath();
-    series.forEach((val,i)=>{ const x=pad.left+(i/Math.max(n-1,1))*w; const y=pad.top+h*(1-val/maxVal); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
-    ctx.stroke();
-  });
 }
 
 function closeProfile(e) {
