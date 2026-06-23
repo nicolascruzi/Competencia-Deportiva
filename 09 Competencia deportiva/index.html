@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>Liga · Competencia Deportiva</title>
+<title>Nanão Cup 🏆</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
@@ -1050,6 +1050,21 @@ canvas { display: block; width: 100% !important; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ─── SECTION VISIBILITY ─────────────────────────────── */
+.section { display: none; }
+.section.active { display: block; }
+
+/* tabla más compacta */
+.ranking-table th { padding: 6px 8px; font-size: 10px; }
+.ranking-table td { padding: 7px 8px; }
+.rank-pos { font-size: 16px; width: 22px; }
+.rank-medal { font-size: 15px; width: 22px; }
+.rank-name { font-size: 13px; }
+.rank-pts  { font-size: 13px; }
+.rank-min  { font-size: 11px; }
+.rank-date { font-size: 10px; }
+.sport-tag { font-size: 9px; padding: 1px 4px; }
+
 /* ─── MISC ───────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -1060,7 +1075,7 @@ canvas { display: block; width: 100% !important; }
 
 <!-- NAV -->
 <nav class="nav">
-  <span class="nav-brand">⚡ Liga</span>
+  <span class="nav-brand">Nanão Cup 🏆®</span>
   <!-- Desktop links -->
   <div class="nav-links">
     <button class="nav-link active" onclick="scrollToSection('podium')">Podio</button>
@@ -1131,7 +1146,7 @@ canvas { display: block; width: 100% !important; }
 <!-- MAIN -->
 <main>
 
-<!-- PODIO (primero) -->
+<!-- PODIO -->
 <section class="section" id="podium">
   <div class="section-head">
     <div class="section-eyebrow">Top 3</div>
@@ -1143,7 +1158,7 @@ canvas { display: block; width: 100% !important; }
 </section>
 
 <!-- KPI + RANKING -->
-<section class="section" id="kpi">
+<section class="section active" id="kpi">
   <div class="section-head">
     <div class="section-eyebrow">Resumen del mes</div>
     <div class="section-title" id="kpiTitle">—</div>
@@ -1216,17 +1231,10 @@ canvas { display: block; width: 100% !important; }
     <div class="section-eyebrow">Disciplinas</div>
     <div class="section-title">Por deporte</div>
   </div>
-  <div class="two-col">
-    <div class="chart-box">
-      <div class="chart-title">Minutos por deporte</div>
-      <div class="chart-sub" style="margin-bottom:14px">Total de minutos por disciplina</div>
-      <div id="sportsMinChart" style="display:flex;flex-direction:column;gap:9px"></div>
-    </div>
-    <div class="chart-box">
-      <div class="chart-title">Puntos por deporte</div>
-      <div class="chart-sub" style="margin-bottom:14px">Aporte total por disciplina</div>
-      <div id="sportsPtsChart" style="display:flex;flex-direction:column;gap:9px"></div>
-    </div>
+  <div class="chart-box">
+    <div class="chart-title">Minutos por deporte</div>
+    <div class="chart-sub" style="margin-bottom:14px">Total de minutos por disciplina</div>
+    <div id="sportsMinChart" style="display:flex;flex-direction:column;gap:9px"></div>
   </div>
 </section>
 
@@ -1671,7 +1679,7 @@ function renderEvolution() {
   const people  = [...new Set(data.map(r => r.Nombre))].sort();
   const allDates = [...new Set(data.map(r => r.dateKey))].sort();
 
-  // Build cumulative series
+  // Series: acumulado dentro del período visible (mes o total)
   const cumulMap = {};
   people.forEach(p => { cumulMap[p] = 0; });
   const series = {};
@@ -1765,7 +1773,22 @@ function renderSportsCharts() {
   const sports = aggregateBySport(filteredData);
   if (!sports.length) return;
   drawBarChart('sportsMinChart', sports.map(s=>s.sport), sports.map(s=>Math.round(s.min)));
-  drawBarChart('sportsPtsChart', sports.map(s=>s.sport), sports.map(s=>Math.round(s.pts)));
+}
+
+// ─── SECTION SWITCH ──────────────────────────────────────
+let activeSection = 'kpi';
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('active'); activeSection = id; }
+  document.querySelectorAll('.nav-links .nav-link, .nav-drawer .nav-link').forEach(l => l.classList.remove('active'));
+  const sections = ['podium','kpi','heatmap','evolution','race','sports','records','comparator','insights'];
+  const idx = sections.indexOf(id);
+  if (idx !== -1) {
+    document.querySelectorAll('.nav-links .nav-link')[idx]?.classList.add('active');
+    document.querySelectorAll('.nav-drawer .nav-link')[idx]?.classList.add('active');
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ─── DRAWER ──────────────────────────────────────────────
@@ -2217,17 +2240,8 @@ function renderInsights() {
   document.getElementById('insightsList').innerHTML = ins.map(t=>`<div class="insight-item">${t}</div>`).join('');
 }
 
-// ─── NAV SCROLL ──────────────────────────────────────────
-function scrollToSection(id) {
-  document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
-  document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
-  const sections = ['podium','kpi','heatmap','evolution','race','sports','records','comparator','insights'];
-  const idx = sections.indexOf(id);
-  if (idx !== -1) {
-    document.querySelectorAll('.nav-links .nav-link')[idx]?.classList.add('active');
-    document.querySelectorAll('.nav-drawer .nav-link')[idx]?.classList.add('active');
-  }
-}
+// ─── NAV SCROLL (alias para compatibilidad) ──────────────
+function scrollToSection(id) { showSection(id); }
 
 // ─── DATA LOAD ───────────────────────────────────────────
 function openSourceModal()  { document.getElementById('sourceModal').classList.add('open'); }
