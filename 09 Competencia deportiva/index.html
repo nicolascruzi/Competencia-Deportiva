@@ -1055,15 +1055,13 @@ canvas { display: block; width: 100% !important; }
 .section.active { display: block; }
 
 /* tabla más compacta */
-.ranking-table th { padding: 6px 8px; font-size: 10px; }
-.ranking-table td { padding: 7px 8px; }
-.rank-pos { font-size: 16px; width: 22px; }
-.rank-medal { font-size: 15px; width: 22px; }
-.rank-name { font-size: 13px; }
-.rank-pts  { font-size: 13px; }
+.ranking-table th { padding: 5px 6px; font-size: 10px; }
+.ranking-table td { padding: 5px 6px; }
+.rank-pos  { font-size: 13px; width: 18px; }
+.rank-name { font-size: 12px; }
+.rank-pts  { font-size: 12px; }
 .rank-min  { font-size: 11px; }
 .rank-date { font-size: 10px; }
-.sport-tag { font-size: 9px; padding: 1px 4px; }
 
 /* ─── MISC ───────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
@@ -1177,12 +1175,10 @@ canvas { display: block; width: 100% !important; }
       <thead>
         <tr>
           <th>#</th>
-          <th></th>
           <th>Nombre</th>
           <th>Puntos</th>
           <th>%</th>
           <th>Min</th>
-          <th>Deportes</th>
           <th>Última</th>
         </tr>
       </thead>
@@ -1597,7 +1593,7 @@ function renderRanking() {
   const medals = ['🥇','🥈','🥉'];
 
   if (!people.length) {
-    body.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🏁</div><div class="empty-title">Sin registros</div><div class="empty-text">Ajusta los filtros para ver resultados.</div></div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🏁</div><div class="empty-title">Sin registros</div><div class="empty-text">Ajusta los filtros para ver resultados.</div></div></td></tr>`;
     cards.innerHTML = `<div class="empty-state"><div class="empty-icon">🏁</div><div class="empty-title">Sin registros</div></div>`;
     return;
   }
@@ -1607,10 +1603,8 @@ function renderRanking() {
     const isLeader = i === 0;
     const pct      = Math.round((p.pts / maxPts) * 100);
     const dateStr  = p.lastDate ? p.lastDate.toLocaleDateString('es',{day:'2-digit',month:'short'}) : '—';
-    const sHtml    = p.sports.map(s => `<span class="sport-tag">${s}</span>`).join(' ');
     return `<tr class="${isLeader ? 'leader-row' : ''}">
-      <td class="rank-pos">${i < 3 ? '' : i+1}</td>
-      <td class="rank-medal">${medals[i] || ''}</td>
+      <td class="rank-pos">${i+1}</td>
       <td class="rank-name"><button onclick="openProfile('${p.name}')">${p.name}</button></td>
       <td class="rank-pts">${Math.round(p.pts).toLocaleString('es')}</td>
       <td><div class="progress-bar-wrap">
@@ -1618,7 +1612,6 @@ function renderRanking() {
         <span style="font-size:10px;color:var(--text-muted);font-family:var(--ff-mono)">${pct}%</span>
       </div></td>
       <td class="rank-min">${Math.round(p.min).toLocaleString('es')}</td>
-      <td style="max-width:140px;overflow:hidden">${sHtml}</td>
       <td class="rank-date">${dateStr}</td>
     </tr>`;
   }).join('');
@@ -1628,13 +1621,11 @@ function renderRanking() {
     const isLeader = i === 0;
     const pct      = Math.round((p.pts / maxPts) * 100);
     const color    = getPersonColor(p.name);
-    const sIcons   = [...new Set(p.sports)].map(s => sportIcon(s)).join(' ');
     return `<div class="rank-card ${isLeader ? 'leader' : ''}">
-      <div class="rank-card-pos" style="${i<3?'opacity:0':''}">${i+1}</div>
-      <div class="rank-card-medal">${medals[i] || ''}</div>
+      <div class="rank-card-pos">${i+1}</div>
       <div class="rank-card-info">
         <div class="rank-card-name" style="color:${color}" onclick="openProfile('${p.name}')">${p.name}</div>
-        <div class="rank-card-meta">${Math.round(p.min).toLocaleString('es')} min · ${p.activities} sesiones · ${sIcons}</div>
+        <div class="rank-card-meta">${Math.round(p.min).toLocaleString('es')} min · ${p.activities} ses.</div>
         <div class="rank-card-bar"><div class="rank-card-bar-fill" style="width:${pct}%;background:${color}"></div></div>
       </div>
       <div class="rank-card-pts">${Math.round(p.pts).toLocaleString('es')}<span style="font-size:10px;color:var(--text-muted);display:block;text-align:right">pts</span></div>
@@ -2266,10 +2257,9 @@ async function fetchFromURL(url) {
 }
 
 function processData(csvText) {
-  rawData      = parseCSV(csvText);
-  filteredData = [...rawData];
+  rawData = parseCSV(csvText);
   populateFilters();
-  renderAll();
+  applyFilters();
   const now = new Date();
   document.getElementById('syncTime').textContent =
     `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
