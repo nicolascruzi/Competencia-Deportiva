@@ -1876,6 +1876,13 @@ function showSection(id) {
     document.querySelectorAll('.nav-drawer .nav-link')[idx]?.classList.add('active');
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Redibujar gráficos canvas una vez que la sección es visible
+  if ((id === 'evolution' || id === 'comparator') && filteredData.length) {
+    requestAnimationFrame(() => {
+      if (id === 'evolution') renderEvolution();
+      if (id === 'comparator') renderComparator();
+    });
+  }
 }
 
 // ─── DRAWER ──────────────────────────────────────────────
