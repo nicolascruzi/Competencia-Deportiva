@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Environment variables (nunca subir al repo)
+backend/.env
+
+# Build output
+frontend/dist/
+
+# OS
+.DS_Store
+
+# Logs
+*.log

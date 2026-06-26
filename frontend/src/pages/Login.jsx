@@ -1,0 +1,165 @@
+import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { login, register } from '../api/auth';
+
+export default function Login() {
+  const { saveLogin } = useAuth();
+  const [tab, setTab]     = useState('login');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const [loginForm, setLoginForm]       = useState({ email: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ nombre: '', email: '', password: '' });
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      const data = await login(loginForm.email, loginForm.password);
+      saveLogin(data.token, data.user);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRegister(e) {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      const data = await register(registerForm.nombre, registerForm.email, registerForm.password);
+      saveLogin(data.token, data.user);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-5" style={{ background: '#0D1B2A' }}>
+      <div className="w-full max-w-sm rounded-2xl border p-9 flex flex-col gap-6"
+           style={{ background: '#132236', borderColor: '#243D57' }}>
+
+        {/* Logo */}
+        <div className="text-center font-bold text-3xl tracking-widest uppercase"
+             style={{ fontFamily: "'Barlow Condensed', sans-serif", color: '#38BDF8' }}>
+          Nanão Cup 🏆
+        </div>
+
+        {/* Tabs */}
+        <div className="grid grid-cols-2 rounded-lg p-1 gap-1" style={{ background: '#1A2E45' }}>
+          {['login', 'register'].map(t => (
+            <button key={t} onClick={() => { setTab(t); setError(''); }}
+              className="py-2 rounded-md text-sm font-semibold transition-all"
+              style={{
+                background: tab === t ? '#243D57' : 'transparent',
+                color: tab === t ? '#E8F0FE' : '#7A9BBF',
+              }}>
+              {t === 'login' ? 'Ingresar' : 'Registrarse'}
+            </button>
+          ))}
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="rounded-lg px-4 py-2 text-sm" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#F87171' }}>
+            {error}
+          </div>
+        )}
+
+        {/* Login form */}
+        {tab === 'login' && (
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+            <Field label="Email">
+              <input type="email" required placeholder="tu@email.com"
+                value={loginForm.email}
+                onChange={e => setLoginForm(f => ({ ...f, email: e.target.value }))} />
+            </Field>
+            <Field label="Contraseña">
+              <input type="password" required placeholder="••••••"
+                value={loginForm.password}
+                onChange={e => setLoginForm(f => ({ ...f, password: e.target.value }))} />
+            </Field>
+            <SubmitBtn loading={loading}>Entrar</SubmitBtn>
+          </form>
+        )}
+
+        {/* Register form */}
+        {tab === 'register' && (
+          <form onSubmit={handleRegister} className="flex flex-col gap-4">
+            <Field label="Nombre">
+              <input type="text" required placeholder="Tu nombre"
+                value={registerForm.nombre}
+                onChange={e => setRegisterForm(f => ({ ...f, nombre: e.target.value }))} />
+            </Field>
+            <Field label="Email">
+              <input type="email" required placeholder="tu@email.com"
+                value={registerForm.email}
+                onChange={e => setRegisterForm(f => ({ ...f, email: e.target.value }))} />
+            </Field>
+            <Field label="Contraseña">
+              <input type="password" required placeholder="Mínimo 6 caracteres" minLength={6}
+                value={registerForm.password}
+                onChange={e => setRegisterForm(f => ({ ...f, password: e.target.value }))} />
+            </Field>
+            <SubmitBtn loading={loading}>Crear cuenta</SubmitBtn>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#7A9BBF' }}>{label}</label>
+      <div style={{ all: 'unset', display: 'contents' }}>
+        {/* clone input with styles */}
+        {children && (
+          <StyledInput>{children}</StyledInput>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StyledInput({ children }) {
+  return (
+    <div style={{ display: 'contents' }}>
+      {/* Apply styles to the child input via CSS injection trick */}
+      <style>{`
+        .auth-input-wrap input {
+          width: 100%;
+          background: #1A2E45;
+          border: 1px solid #243D57;
+          color: #E8F0FE;
+          padding: 10px 12px;
+          border-radius: 8px;
+          font-size: 14px;
+          outline: none;
+          transition: border-color 0.15s;
+        }
+        .auth-input-wrap input:focus { border-color: #38BDF8; }
+        .auth-input-wrap input::placeholder { color: #7A9BBF; }
+      `}</style>
+      <div className="auth-input-wrap">{children}</div>
+    </div>
+  );
+}
+
+function SubmitBtn({ children, loading }) {
+  return (
+    <button type="submit" disabled={loading}
+      className="w-full py-3 rounded-lg font-bold text-base uppercase tracking-wider transition-opacity mt-1"
+      style={{
+        fontFamily: "'Barlow Condensed', sans-serif",
+        background: '#38BDF8', color: '#0D1B2A',
+        opacity: loading ? 0.7 : 1,
+      }}>
+      {loading ? 'Cargando…' : children}
+    </button>
+  );
+}
