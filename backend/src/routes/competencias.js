@@ -1,6 +1,6 @@
 const express = require('express');
 const pool    = require('../db/pool');
-const auth    = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -15,7 +15,7 @@ async function generarPin() {
 }
 
 // GET /competencias — mis competencias (donde soy participante)
-router.get('/', auth, async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at,
@@ -35,7 +35,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // POST /competencias — crear competencia
-router.post('/', auth, async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   const { nombre, ponderadores } = req.body;
   // ponderadores: [{ deporte_nombre, ponderador }]
   if (!nombre?.trim()) return res.status(400).json({ error: 'El nombre es obligatorio' });
@@ -81,7 +81,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // POST /competencias/join — unirse por PIN
-router.post('/join', auth, async (req, res) => {
+router.post('/join', authMiddleware, async (req, res) => {
   const { pin } = req.body;
   if (!pin) return res.status(400).json({ error: 'PIN requerido' });
 
@@ -105,7 +105,7 @@ router.post('/join', auth, async (req, res) => {
 });
 
 // GET /competencias/:id — detalle de una competencia
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
   try {
     // Verificar que el usuario es participante
@@ -139,7 +139,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // PUT /competencias/:id/deportes — actualizar ponderadores (solo creador)
-router.put('/:id/deportes', auth, async (req, res) => {
+router.put('/:id/deportes', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { ponderadores } = req.body;
 
@@ -163,7 +163,7 @@ router.put('/:id/deportes', auth, async (req, res) => {
 });
 
 // GET /competencias/:id/ranking — ranking de la competencia con ponderadores propios
-router.get('/:id/ranking', auth, async (req, res) => {
+router.get('/:id/ranking', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { mes } = req.query; // YYYY-MM opcional
 
@@ -211,7 +211,7 @@ router.get('/:id/ranking', auth, async (req, res) => {
 });
 
 // GET /competencias/:id/meses — meses con actividad en la competencia
-router.get('/:id/meses', auth, async (req, res) => {
+router.get('/:id/meses', authMiddleware, async (req, res) => {
   const { id } = req.params;
   try {
     const { rows } = await pool.query(
