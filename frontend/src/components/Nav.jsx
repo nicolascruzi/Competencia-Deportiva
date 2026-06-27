@@ -23,21 +23,22 @@ export default function Nav({ onNewActivity }) {
         </div>
       </header>
 
-      {/* Bottom tab bar — mobile nav */}
+      {/* Bottom tab bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t"
            style={{ background: 'rgba(13,27,42,0.97)', borderColor: '#243D57', backdropFilter: 'blur(12px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
 
+        {/* Competencias */}
         <NavLink to="/" end
           className={({ isActive }) =>
             'flex-1 flex flex-col items-center justify-center gap-1 py-3 text-xs font-semibold transition-colors ' +
             (isActive ? 'text-[#38BDF8]' : 'text-[#7A9BBF]')
           }>
-          {({ isActive }) => (
+          {() => (
             <>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 20V10M12 20V4M6 20v-6"/>
+                <path d="M6 9H4.5a2.5 2.5 0 000 5H6"/><path d="M18 9h1.5a2.5 2.5 0 010 5H18"/><path d="M8 9h8"/><path d="M8 15h8"/><path d="M8 5v14"/><path d="M16 5v14"/>
               </svg>
-              <span>Ranking</span>
+              <span>Competencias</span>
             </>
           )}
         </NavLink>
@@ -51,12 +52,13 @@ export default function Nav({ onNewActivity }) {
           </button>
         </div>
 
+        {/* Mis actividades */}
         <NavLink to="/actividades"
           className={({ isActive }) =>
             'flex-1 flex flex-col items-center justify-center gap-1 py-3 text-xs font-semibold transition-colors ' +
             (isActive ? 'text-[#38BDF8]' : 'text-[#7A9BBF]')
           }>
-          {({ isActive }) => (
+          {() => (
             <>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
@@ -67,7 +69,7 @@ export default function Nav({ onNewActivity }) {
         </NavLink>
       </nav>
 
-      {/* Spacer para que el contenido no quede bajo la tab bar */}
+      {/* Spacer */}
       <div style={{ height: 'calc(72px + env(safe-area-inset-bottom))', flexShrink: 0 }} className="pointer-events-none" />
     </>
   );

@@ -39,6 +39,36 @@ CREATE TABLE IF NOT EXISTS actividades (
 CREATE INDEX IF NOT EXISTS idx_actividades_user_id ON actividades(user_id);
 CREATE INDEX IF NOT EXISTS idx_actividades_fecha   ON actividades(fecha);
 
+-- ── COMPETENCIAS ─────────────────────────────────────────────────────────────
+
+-- Competencias
+CREATE TABLE IF NOT EXISTS competencias (
+  id          SERIAL PRIMARY KEY,
+  nombre      TEXT NOT NULL,
+  pin         CHAR(6) UNIQUE NOT NULL,
+  creador_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Participantes de cada competencia (creador incluido automáticamente)
+CREATE TABLE IF NOT EXISTS competencia_participantes (
+  competencia_id INTEGER NOT NULL REFERENCES competencias(id) ON DELETE CASCADE,
+  user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  joined_at      TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (competencia_id, user_id)
+);
+
+-- Ponderadores por deporte de cada competencia
+CREATE TABLE IF NOT EXISTS competencia_deportes (
+  competencia_id INTEGER NOT NULL REFERENCES competencias(id) ON DELETE CASCADE,
+  deporte_nombre TEXT NOT NULL,
+  ponderador     NUMERIC(4,2) NOT NULL DEFAULT 1.0,
+  PRIMARY KEY (competencia_id, deporte_nombre)
+);
+
+CREATE INDEX IF NOT EXISTS idx_comp_participantes_user ON competencia_participantes(user_id);
+CREATE INDEX IF NOT EXISTS idx_comp_deportes_comp      ON competencia_deportes(competencia_id);
+
 -- Deportes iniciales (los mismos del CSV actual)
 INSERT INTO deportes (nombre, icono, ponderador_default) VALUES
   ('Bicicleta MTB',    '🚵', 1.5),

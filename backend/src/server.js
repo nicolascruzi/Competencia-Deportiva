@@ -3,9 +3,10 @@ const express = require('express');
 const cors    = require('cors');
 const pool    = require('./db/pool');
 
-const authRoutes        = require('./routes/auth');
-const actividadesRoutes = require('./routes/actividades');
-const rankingRoutes     = require('./routes/ranking');
+const authRoutes         = require('./routes/auth');
+const actividadesRoutes  = require('./routes/actividades');
+const rankingRoutes      = require('./routes/ranking');
+const competenciasRoutes = require('./routes/competencias');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use('/auth',        authRoutes);
 app.use('/actividades', actividadesRoutes);
 app.use('/ranking',     rankingRoutes);
+app.use('/competencias', competenciasRoutes);
 
 // Health check
 app.get('/health', async (req, res) => {

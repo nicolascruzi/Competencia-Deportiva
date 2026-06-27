@@ -2,15 +2,17 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
-import Ranking from './pages/Ranking';
+import MisCompetencias from './pages/MisCompetencias';
+import CompetenciaDetalle from './pages/CompetenciaDetalle';
 import MisActividades from './pages/MisActividades';
 import Nav from './components/Nav';
 import ActivityModal from './components/ActivityModal';
 
 function AppShell() {
   const { user, loading } = useAuth();
-  const [actModalOpen, setActModalOpen] = useState(false);
-  const [refreshKey, setRefreshKey]     = useState(0);
+  const [actModalOpen, setActModalOpen]   = useState(false);
+  const [refreshKey, setRefreshKey]       = useState(0);
+  const [competenciaActiva, setCompetenciaActiva] = useState(null);
 
   if (loading) {
     return (
@@ -28,9 +30,19 @@ function AppShell() {
     <>
       <Nav onNewActivity={() => setActModalOpen(true)} />
       <Routes>
-        <Route path="/"             element={<Ranking key={refreshKey} />} />
-        <Route path="/actividades"  element={<MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} />} />
-        <Route path="*"             element={<Navigate to="/" replace />} />
+        <Route path="/" element={
+          competenciaActiva
+            ? <CompetenciaDetalle
+                key={competenciaActiva.id}
+                competencia={competenciaActiva}
+                onBack={() => setCompetenciaActiva(null)}
+                onNewActivity={() => setActModalOpen(true)}
+              />
+            : <MisCompetencias onSelect={setCompetenciaActiva} />
+        } />
+        <Route path="/actividades"
+          element={<MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ActivityModal open={actModalOpen} onClose={() => setActModalOpen(false)} onCreated={onCreated} />
     </>
