@@ -2,19 +2,17 @@ import { useEffect, useState } from 'react';
 import { getDeportes, createActividad } from '../api/actividades';
 
 export default function ActivityModal({ open, onClose, onCreated }) {
-  const [deportes, setDeportes]   = useState([]);
-  const [form, setForm]           = useState({ deporte_nombre: '', minutos: '', ponderador: '', fecha: '', notas: '' });
-  const [error, setError]         = useState('');
-  const [loading, setLoading]     = useState(false);
+  const [deportes, setDeportes] = useState([]);
+  const [form, setForm]         = useState({ deporte_nombre: '', minutos: '', ponderador: '', fecha: '', notas: '' });
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
 
-  useEffect(() => {
-    getDeportes().then(setDeportes).catch(() => {});
-  }, []);
+  useEffect(() => { getDeportes().then(setDeportes).catch(() => {}); }, []);
 
   useEffect(() => {
     if (open) {
       const today = new Date().toISOString().slice(0, 10);
-      setForm(f => ({ ...f, fecha: today, notas: '' }));
+      setForm(f => ({ ...f, fecha: today, notas: '', minutos: '' }));
       setError('');
     }
   }, [open]);
@@ -54,24 +52,37 @@ export default function ActivityModal({ open, onClose, onCreated }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-         style={{ background: 'rgba(5,12,20,0.85)', backdropFilter: 'blur(4px)' }}
+    // Sheet modal — sube desde abajo en mobile
+    <div className="fixed inset-0 z-50 flex flex-col justify-end"
+         style={{ background: 'rgba(5,12,20,0.75)', backdropFilter: 'blur(6px)' }}
          onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full max-w-md rounded-2xl border p-7 flex flex-col gap-5"
-           style={{ background: '#132236', borderColor: '#243D57' }}>
 
-        <div className="font-bold text-2xl uppercase tracking-wider"
-             style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-          Nueva actividad
+      <div className="w-full rounded-t-3xl flex flex-col"
+           style={{ background: '#132236', border: '1px solid #243D57', borderBottom: 'none', maxHeight: '92dvh', overflowY: 'auto' }}>
+
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full" style={{ background: '#243D57' }} />
+        </div>
+
+        <div className="px-5 pb-2 pt-3 flex items-center justify-between">
+          <div className="font-bold text-2xl uppercase tracking-wide"
+               style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+            Nueva actividad
+          </div>
+          <button onClick={onClose} className="text-xl px-2 py-1" style={{ color: '#7A9BBF' }}>✕</button>
         </div>
 
         {error && (
-          <div className="rounded-lg px-4 py-2 text-sm" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#F87171' }}>
+          <div className="mx-5 mb-3 rounded-xl px-4 py-3 text-sm"
+               style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#F87171' }}>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="px-5 pb-6 flex flex-col gap-4"
+              style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
+
           <Field label="Deporte">
             <Select value={form.deporte_nombre} onChange={e => onDeporteChange(e.target.value)}>
               {deportes.map(d => (
@@ -82,11 +93,11 @@ export default function ActivityModal({ open, onClose, onCreated }) {
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Minutos">
-              <Input type="number" min="1" required placeholder="60"
+              <Input type="number" inputMode="numeric" min="1" required placeholder="60"
                 value={form.minutos} onChange={e => setForm(f => ({ ...f, minutos: e.target.value }))} />
             </Field>
             <Field label="Ponderador">
-              <Input type="number" min="0.1" step="0.1" required
+              <Input type="number" inputMode="decimal" min="0.1" step="0.1" required
                 value={form.ponderador} onChange={e => setForm(f => ({ ...f, ponderador: e.target.value }))} />
             </Field>
           </div>
@@ -101,18 +112,22 @@ export default function ActivityModal({ open, onClose, onCreated }) {
               value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
           </Field>
 
-          <div className="flex gap-3 justify-end pt-1">
-            <button type="button" onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-              style={{ background: '#243D57', color: '#7A9BBF' }}>
-              Cancelar
-            </button>
-            <button type="submit" disabled={loading}
-              className="px-5 py-2 rounded-lg text-sm font-bold uppercase tracking-wide transition-opacity"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", background: '#38BDF8', color: '#0D1B2A', opacity: loading ? 0.7 : 1 }}>
-              {loading ? 'Guardando…' : 'Guardar'}
-            </button>
-          </div>
+          {/* Preview puntos */}
+          {form.minutos && form.ponderador && (
+            <div className="rounded-xl px-4 py-3 text-center"
+                 style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)' }}>
+              <span className="text-sm" style={{ color: '#7A9BBF' }}>Puntos estimados: </span>
+              <span className="font-bold text-lg" style={{ fontFamily: "'JetBrains Mono', monospace", color: '#38BDF8' }}>
+                {Math.round(parseFloat(form.minutos || 0) * parseFloat(form.ponderador || 0))}
+              </span>
+            </div>
+          )}
+
+          <button type="submit" disabled={loading}
+            className="w-full py-4 rounded-2xl font-bold text-lg uppercase tracking-wide transition-opacity mt-1"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", background: '#38BDF8', color: '#0D1B2A', opacity: loading ? 0.7 : 1 }}>
+            {loading ? 'Guardando…' : 'Guardar actividad'}
+          </button>
         </form>
       </div>
     </div>
@@ -121,8 +136,8 @@ export default function ActivityModal({ open, onClose, onCreated }) {
 
 const inputStyle = {
   width: '100%', background: '#1A2E45', border: '1px solid #243D57',
-  color: '#E8F0FE', padding: '9px 12px', borderRadius: '8px',
-  fontSize: '14px', outline: 'none',
+  color: '#E8F0FE', padding: '12px 14px', borderRadius: '12px',
+  fontSize: '16px', outline: 'none',
 };
 
 function Input(props) {
@@ -147,7 +162,7 @@ function Select({ children, ...props }) {
 
 function Field({ label, children }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#7A9BBF' }}>{label}</label>
       {children}
     </div>
