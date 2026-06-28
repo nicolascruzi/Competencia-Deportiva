@@ -81,6 +81,16 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS estatura_cm          INTEGER;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS fecha_nacimiento     DATE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS sexo                 TEXT;
 
+-- Comentarios en actividades
+CREATE TABLE IF NOT EXISTS comentarios (
+  id           SERIAL PRIMARY KEY,
+  actividad_id INTEGER NOT NULL REFERENCES actividades(id) ON DELETE CASCADE,
+  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  contenido    TEXT NOT NULL,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_comentarios_actividad ON comentarios(actividad_id);
+
 -- Deportes iniciales (los mismos del CSV actual)
 INSERT INTO deportes (nombre, icono, ponderador_default) VALUES
   ('Bicicleta MTB',    '🚵', 1.5),

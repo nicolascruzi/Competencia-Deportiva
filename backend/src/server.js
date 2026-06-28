@@ -9,6 +9,7 @@ const rankingRoutes      = require('./routes/ranking');
 const competenciasRoutes = require('./routes/competencias');
 const fotosRoutes        = require('./routes/fotos');
 const perfilRoutes       = require('./routes/perfil');
+const comentariosRoutes  = require('./routes/comentarios');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +25,7 @@ app.use('/ranking',     rankingRoutes);
 app.use('/competencias', competenciasRoutes);
 app.use('/fotos',        fotosRoutes);
 app.use('/perfil',       perfilRoutes);
+app.use('/comentarios',  comentariosRoutes);
 
 // Health check
 app.get('/health', async (req, res) => {

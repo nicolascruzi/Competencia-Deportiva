@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getActividadesComp } from '../api/competencias';
+import { useEffect, useRef, useState } from 'react';
+import { getActividadesComp, getComentarios, createComentario, deleteComentario } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 
 function timeAgo(isoStr) {
@@ -14,11 +14,145 @@ function timeAgo(isoStr) {
   return new Date(isoStr).toLocaleDateString('es', { day:'numeric', month:'short' });
 }
 
-function FeedCard({ act, onLightbox }) {
-  return (
-    <div style={{ background:'var(--t-surface)', borderBottom:'1px solid var(--t-surface2)' }}>
+// ─── Sección de comentarios ───────────────────────────────────────────────────
 
-      {/* Header de la tarjeta */}
+function ComentariosSection({ actividadId, user }) {
+  const [comentarios, setComentarios] = useState(null); // null = sin cargar
+  const [loading, setLoading]         = useState(false);
+  const [sending, setSending]         = useState(false);
+  const [texto, setTexto]             = useState('');
+  const [open, setOpen]               = useState(false);
+  const inputRef = useRef(null);
+
+  async function toggleOpen() {
+    if (!open && comentarios === null) {
+      setLoading(true);
+      try { setComentarios(await getComentarios(actividadId)); }
+      finally { setLoading(false); }
+    }
+    setOpen(o => !o);
+    if (!open) setTimeout(() => inputRef.current?.focus(), 200);
+  }
+
+  async function handleSend(e) {
+    e.preventDefault();
+    if (!texto.trim() || sending) return;
+    setSending(true);
+    try {
+      const nuevo = await createComentario(actividadId, texto.trim());
+      setComentarios(prev => [...(prev || []), nuevo]);
+      setTexto('');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleDelete(id) {
+    try {
+      await deleteComentario(id);
+      setComentarios(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  const count = comentarios?.length ?? 0;
+
+  return (
+    <div style={{ borderTop:'1px solid var(--t-surface2)' }}>
+      {/* Botón toggle */}
+      <button onClick={toggleOpen}
+        style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'transparent', border:'none', cursor:'pointer', color:'var(--t-muted)', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent', width:'100%', textAlign:'left' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+        </svg>
+        {comentarios === null
+          ? 'Comentar'
+          : count === 0
+            ? 'Comentar'
+            : `${count} comentario${count !== 1 ? 's' : ''}`
+        }
+        {loading && (
+          <div style={{ width:11, height:11, border:'1.5px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite', marginLeft:4 }} />
+        )}
+      </button>
+
+      {/* Lista + input */}
+      {open && (
+        <div style={{ padding:'0 14px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+
+          {/* Comentarios existentes */}
+          {comentarios?.map(c => (
+            <div key={c.id} style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+              {/* Avatar */}
+              <div style={{ width:28, height:28, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.1)', border:'1.5px solid rgba(var(--t-accent-r),0.18)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+                {c.foto_perfil_url
+                  ? <img src={c.foto_perfil_url} alt={c.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:12, color:'var(--t-accent)' }}>{c.nombre?.charAt(0).toUpperCase()}</span>
+                }
+              </div>
+
+              {/* Burbuja */}
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ background:'var(--t-surface2)', borderRadius:'4px 12px 12px 12px', padding:'8px 10px' }}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, marginBottom:4 }}>
+                    {c.nombre}
+                  </div>
+                  <div style={{ fontSize:14, color:'var(--t-text)', lineHeight:1.5, wordBreak:'break-word' }}>
+                    {c.contenido}
+                  </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:3, paddingLeft:2 }}>
+                  <span style={{ fontSize:11, color:'var(--t-muted)' }}>{timeAgo(c.created_at)}</span>
+                  {c.user_id === user?.id && (
+                    <button onClick={() => handleDelete(c.id)}
+                      style={{ fontSize:11, color:'var(--t-muted)', background:'transparent', border:'none', cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
+                      Eliminar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Input nuevo comentario */}
+          <form onSubmit={handleSend} style={{ display:'flex', gap:8, alignItems:'center', marginTop: (comentarios?.length ?? 0) > 0 ? 4 : 0 }}>
+            <div style={{ width:28, height:28, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.1)', border:'1.5px solid rgba(var(--t-accent-r),0.18)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+              {user?.foto_perfil_url
+                ? <img src={user.foto_perfil_url} alt={user.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:12, color:'var(--t-accent)' }}>{user?.nombre?.charAt(0).toUpperCase()}</span>
+              }
+            </div>
+            <input
+              ref={inputRef}
+              value={texto}
+              onChange={e => setTexto(e.target.value)}
+              placeholder="Escribí un comentario…"
+              style={{ flex:1, padding:'8px 12px', borderRadius:20, border:'1.5px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:14, outline:'none', minWidth:0 }}
+            />
+            <button type="submit" disabled={!texto.trim() || sending}
+              style={{ width:32, height:32, borderRadius:'50%', border:'none', background: texto.trim() ? 'var(--t-accent)' : 'var(--t-dim)', color: texto.trim() ? 'var(--t-ground)' : 'var(--t-muted)', cursor: texto.trim() ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'background 0.15s' }}>
+              {sending
+                ? <div style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.35)', borderTopColor:'var(--t-ground)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              }
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── FeedCard ─────────────────────────────────────────────────────────────────
+
+function FeedCard({ act, user, onLightbox }) {
+  return (
+    <div style={{ background:'var(--t-surface)', borderBottom:'1px solid var(--t-surface2)', marginBottom:8, borderRadius:0 }}>
+
+      {/* Header */}
       <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px 10px' }}>
         <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-accent)', flexShrink:0, overflow:'hidden' }}>
           {act.foto_perfil_url
@@ -39,7 +173,7 @@ function FeedCard({ act, onLightbox }) {
         </div>
       </div>
 
-      {/* Foto (si existe) */}
+      {/* Foto */}
       {act.foto_url && (
         <div style={{ position:'relative', cursor:'pointer' }} onClick={() => onLightbox(act.foto_url)}>
           <img src={act.foto_url} alt={act.deporte_nombre}
@@ -47,7 +181,7 @@ function FeedCard({ act, onLightbox }) {
         </div>
       )}
 
-      {/* Stats: puntos + minutos */}
+      {/* Stats */}
       <div style={{ display:'flex', alignItems:'center', gap:0, padding:'10px 14px 4px' }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
           <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:'var(--t-accent)', lineHeight:1 }}>
@@ -62,7 +196,6 @@ function FeedCard({ act, onLightbox }) {
           </span>
           <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
         </div>
-        {/* Fecha de la actividad */}
         <div style={{ marginLeft:'auto', fontSize:12, color:'var(--t-muted2)' }}>
           {new Date(act.fecha + 'T12:00:00').toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short' })}
         </div>
@@ -70,15 +203,20 @@ function FeedCard({ act, onLightbox }) {
 
       {/* Notas */}
       {act.notas && (
-        <div style={{ padding:'4px 14px 12px', fontSize:14, color:'var(--t-muted)', lineHeight:1.5 }}>
+        <div style={{ padding:'4px 14px 10px', fontSize:14, color:'var(--t-muted)', lineHeight:1.5 }}>
           {act.notas}
         </div>
       )}
 
-      {!act.notas && <div style={{ height:12 }} />}
+      {!act.notas && <div style={{ height:8 }} />}
+
+      {/* Comentarios */}
+      <ComentariosSection actividadId={act.id} user={user} />
     </div>
   );
 }
+
+// ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function FeedGrupal({ competencia }) {
   const { user } = useAuth();
@@ -89,10 +227,8 @@ export default function FeedGrupal({ competencia }) {
   useEffect(() => {
     if (!competencia) return;
     setLoading(true);
-    // sin filtro de mes → todas las actividades
     getActividadesComp(competencia.id)
       .then(data => {
-        // ordenar de más nueva a más antigua por created_at o fecha
         const sorted = [...data].sort((a, b) => {
           const tA = a.created_at ? new Date(a.created_at).getTime() : new Date(a.fecha + 'T12:00:00').getTime();
           const tB = b.created_at ? new Date(b.created_at).getTime() : new Date(b.fecha + 'T12:00:00').getTime();
@@ -102,7 +238,6 @@ export default function FeedGrupal({ competencia }) {
       })
       .finally(() => setLoading(false));
   }, [competencia?.id]);
-
 
   if (!competencia) {
     return (
@@ -151,7 +286,7 @@ export default function FeedGrupal({ competencia }) {
         </div>
       )}
 
-      {/* Header fijo del feed */}
+      {/* Header */}
       <div style={{ padding:'14px 16px 12px', borderBottom:'1px solid var(--t-surface2)' }}>
         <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', marginBottom:4 }}>
           {competencia.nombre}
@@ -164,12 +299,13 @@ export default function FeedGrupal({ competencia }) {
         </div>
       </div>
 
-      {/* Lista de tarjetas */}
+      {/* Cards */}
       <div style={{ paddingBottom:24 }}>
         {acts.map(act => (
           <FeedCard
             key={act.id}
             act={act}
+            user={user}
             onLightbox={url => setLightbox(url)}
           />
         ))}

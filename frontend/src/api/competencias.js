@@ -8,3 +8,7 @@ export const getRankingComp       = (id, mes) => apiFetch(`/competencias/${id}/r
 export const getMesesComp         = (id)     => apiFetch(`/competencias/${id}/meses`);
 export const updatePonderadores   = (id, ponderadores) => apiFetch(`/competencias/${id}/deportes`, { method: 'PUT', body: JSON.stringify({ ponderadores }) });
 export const getActividadesComp   = (id, mes) => apiFetch(`/competencias/${id}/actividades${mes ? `?mes=${mes}` : ''}`);
+
+export const getComentarios    = (actividadId)           => apiFetch(`/comentarios/${actividadId}`);
+export const createComentario  = (actividadId, contenido) => apiFetch(`/comentarios/${actividadId}`, { method: 'POST', body: JSON.stringify({ contenido }) });
+export const deleteComentario  = (id)                    => apiFetch(`/comentarios/${id}`, { method: 'DELETE' });
