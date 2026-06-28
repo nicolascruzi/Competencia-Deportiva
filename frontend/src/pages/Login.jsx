@@ -38,14 +38,21 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-5" style={{ background: 'var(--t-ground)' }}>
-      <div className="w-full max-w-sm rounded-2xl border p-9 flex flex-col gap-6"
-           style={{ background: 'var(--t-surface)', borderColor: 'var(--t-dim)' }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'var(--t-ground)' }}>
+      <div style={{ width: '100%', maxWidth: 360, borderRadius: 20, border: '1px solid var(--t-dim)', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 24, background: 'var(--t-surface)' }}>
 
-        {/* Logo */}
-        <div className="text-center font-bold text-3xl tracking-widest uppercase"
-             style={{ fontFamily: "'Barlow Condensed', sans-serif", color: 'var(--t-accent)' }}>
-          Pura Racha
+        {/* Logo visual */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="28" cy="28" r="27" stroke="var(--t-accent)" strokeWidth="1.5" fill="rgba(255,255,255,0.04)"/>
+            <path d="M31 14l-10 16h9l-5 12 12-18h-9l3-10z" fill="var(--t-accent)"/>
+          </svg>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 22, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--t-accent)', lineHeight: 1 }}>
+            PURA RACHA
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--t-muted)', letterSpacing: '0.02em' }}>
+            Seguí tu racha
+          </div>
         </div>
 
         {/* Tabs */}
@@ -136,9 +143,9 @@ function StyledInput({ children }) {
           background: var(--t-surface2);
           border: 1px solid var(--t-dim);
           color: var(--t-text);
-          padding: 10px 12px;
+          padding: 12px 14px;
           border-radius: 8px;
-          font-size: 14px;
+          font-size: 15px;
           outline: none;
           transition: border-color 0.15s;
         }
@@ -153,11 +160,15 @@ function StyledInput({ children }) {
 function SubmitBtn({ children, loading }) {
   return (
     <button type="submit" disabled={loading}
-      className="w-full py-3 rounded-lg font-bold text-base uppercase tracking-wider transition-opacity mt-1"
+      className="w-full rounded-lg font-bold uppercase tracking-wider transition-opacity mt-1"
       style={{
         fontFamily: "'Barlow Condensed', sans-serif",
         background: 'var(--t-accent)', color: 'var(--t-ground)',
         opacity: loading ? 0.7 : 1,
+        padding: '14px 0',
+        fontSize: 16,
+        border: 'none',
+        cursor: loading ? 'not-allowed' : 'pointer',
       }}>
       {loading ? 'Cargando…' : children}
     </button>

@@ -77,7 +77,7 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
 
       {/* Overlay — toca fuera para cerrar */}
       <div onClick={onClose}
-        style={{ position:'fixed', inset:0, zIndex:100, background:'rgba(5,12,20,0.72)', backdropFilter:'blur(5px)', WebkitBackdropFilter:'blur(5px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 16px' }}>
+        style={{ position:'fixed', inset:0, zIndex:100, background:'rgba(5,12,20,0.72)', backdropFilter:'blur(5px)', WebkitBackdropFilter:'blur(5px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'8px 16px' }}>
 
         {/* Tarjeta centrada — stopPropagation para que el click interno no cierre */}
         <div onClick={e => e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
@@ -120,14 +120,14 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
               <div style={{ position:'relative', flexShrink:0, cursor:'pointer', borderRadius:12, overflow:'hidden' }}
                 onClick={() => setLightbox(true)}>
                 <img src={actividad.foto_url} alt={actividad.deporte_nombre}
-                  style={{ width:'100%', aspectRatio:'16/9', objectFit:'cover', display:'block' }} />
+                  style={{ width:'100%', aspectRatio:'4/3', objectFit:'cover', display:'block' }} />
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(5,12,20,0.5) 0%, transparent 60%)' }} />
                 <button onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                  style={{ position:'absolute', top:8, right:8, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(255,255,255,0.15)', color:'var(--t-text)', borderRadius:8, padding:'5px 9px', fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
-                  <IconCamera /><span>Cambiar</span>
+                  style={{ position:'absolute', top:8, right:8, background:'rgba(13,27,42,0.55)', border:'1px solid rgba(255,255,255,0.08)', color:'rgba(232,240,254,0.55)', borderRadius:8, padding:'4px 8px', fontSize:11, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+                  <IconCamera />
                 </button>
                 <button onClick={e => { e.stopPropagation(); handleDeleteFoto(); }}
-                  style={{ position:'absolute', top:8, left:8, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', borderRadius:8, padding:'5px 9px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+                  style={{ position:'absolute', top:8, left:8, background:'rgba(13,27,42,0.55)', border:'1px solid rgba(255,255,255,0.08)', color:'rgba(248,113,113,0.75)', borderRadius:8, padding:'4px 8px', fontSize:11, fontWeight:600, cursor:'pointer' }}>
                   Quitar
                 </button>
                 <div style={{ position:'absolute', bottom:8, right:10, fontSize:10, color:'rgba(232,240,254,0.45)' }}>

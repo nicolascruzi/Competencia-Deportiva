@@ -388,6 +388,70 @@ export default function Calendario() {
         </div>
       )}
 
+      {/* Resumen del mes */}
+      {!loading && (() => {
+        const mesActs = acts.filter(a => {
+          const d = new Date(a.fecha + 'T12:00:00');
+          return d.getFullYear() === year && d.getMonth() === month;
+        });
+        const sesiones = mesActs.length;
+        const diasEntrenados = new Set(mesActs.map(a => a.fecha.slice(0, 10))).size;
+        const minutos = mesActs.reduce((s, a) => s + parseFloat(a.minutos || 0), 0);
+        const puntos  = mesActs.reduce((s, a) => s + parseFloat(a.puntos  || 0), 0);
+
+        // Racha: días consecutivos hacia atrás desde hoy
+        let rachaActual = 0;
+        const check = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        while (true) {
+          const k = `${check.getFullYear()}-${String(check.getMonth()+1).padStart(2,'0')}-${String(check.getDate()).padStart(2,'0')}`;
+          if (!byDate[k]?.length) break;
+          rachaActual++;
+          check.setDate(check.getDate() - 1);
+        }
+
+        const chipStyle = {
+          background:'var(--t-surface)', border:'1px solid var(--t-dim)',
+          borderRadius:12, padding:'11px 13px',
+        };
+        const numAccent = { fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:26, color:'var(--t-accent)', lineHeight:1 };
+        const numPlain  = { fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:26, color:'var(--t-text)',   lineHeight:1 };
+        const label     = { fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 };
+
+        return (
+          <div style={{ padding:'16px 12px 4px' }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.09em', color:'var(--t-muted)', marginBottom:10 }}>
+              Resumen del mes
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+              <div style={chipStyle}>
+                <div style={numAccent}>{sesiones}</div>
+                <div style={label}>Sesiones</div>
+              </div>
+              <div style={chipStyle}>
+                <div style={numPlain}>{diasEntrenados}</div>
+                <div style={label}>Días activos</div>
+              </div>
+              <div style={chipStyle}>
+                <div style={numPlain}>{Math.round(minutos / 60)}h</div>
+                <div style={label}>Horas</div>
+              </div>
+              <div style={chipStyle}>
+                <div style={numAccent}>{Math.round(puntos)}</div>
+                <div style={label}>Puntos</div>
+              </div>
+            </div>
+            {rachaActual >= 2 && (
+              <div style={{ marginTop:8, background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 13px', display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:18 }}>🔥</span>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-text)', textTransform:'uppercase', letterSpacing:'0.04em' }}>
+                  Racha de {rachaActual} días
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Bottom sheet con actividades del día */}
       {selectedDate && !detalle && (
         <DaySheet

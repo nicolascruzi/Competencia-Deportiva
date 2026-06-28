@@ -32,11 +32,12 @@ const IconXSmall = () => (
 function calcEdad(fechaNac) {
   if (!fechaNac) return null;
   const hoy = new Date();
-  const nac = new Date(fechaNac + 'T00:00:00');
-  let edad  = hoy.getFullYear() - nac.getFullYear();
-  const m   = hoy.getMonth() - nac.getMonth();
-  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
-  return edad;
+  const [y, m, d] = fechaNac.slice(0, 10).split('-').map(Number);
+  const nac = new Date(y, m - 1, d);
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  const mes = hoy.getMonth() - nac.getMonth();
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
+  return isNaN(edad) ? null : edad;
 }
 
 function EditField({ label, displayValue, onSave, type = 'text', options, rawValue }) {
@@ -56,23 +57,23 @@ function EditField({ label, displayValue, onSave, type = 'text', options, rawVal
 
   if (!editing) {
     return (
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'11px 0', borderBottom:'1px solid var(--t-dim)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--t-dim)' }}>
         <div>
           <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:2 }}>{label}</div>
-          <div style={{ fontSize:15, fontWeight:600, color: displayValue ? 'var(--t-text)' : 'rgba(var(--t-muted-r,128,128,128),0.5)' }}>
+          <div style={{ fontSize:14, fontWeight:600, color: displayValue ? 'var(--t-text)' : 'rgba(var(--t-muted-r,128,128,128),0.5)' }}>
             {displayValue || '—'}
           </div>
         </div>
         <button onClick={startEdit}
-          style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 10px', borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:12, fontWeight:600, flexShrink:0 }}>
-          <IconEdit /> Editar
+          style={{ display:'flex', alignItems:'center', padding:'4px', borderRadius:8, border:'none', background:'transparent', color:'var(--t-dim2)', cursor:'pointer', flexShrink:0, opacity:0.5 }}>
+          <IconEdit />
         </button>
       </div>
     );
   }
 
   return (
-    <div style={{ padding:'11px 0', borderBottom:'1px solid var(--t-dim)' }}>
+    <div style={{ padding:'8px 0', borderBottom:'1px solid var(--t-dim)' }}>
       <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-accent)', marginBottom:8 }}>{label}</div>
       {options ? (
         <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10 }}>
