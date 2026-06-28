@@ -208,12 +208,23 @@ function Ranking({ acts, nombres, myId, onOpenProfile }) {
 
 // ─── CALENDARIO ───────────────────────────────────────────────────────────────
 
-function Calendario({ acts, viewYear, viewMonth }) {
+function Calendario({ acts }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
   const DOWS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-  // Agrupar actividades del mes por día
+  // Calcular meses únicos con actividades, ordenados
+  const mesesDisponibles = [...new Set(acts.map(a => a.fecha.slice(0, 7)))].sort();
+
+  // Mes visible: el más reciente por defecto
+  const defaultMes = mesesDisponibles[mesesDisponibles.length - 1] || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const [mesCal, setMesCal] = useState(defaultMes);
+
+  // Resetear día seleccionado al cambiar mes
+  const viewYear  = parseInt(mesCal.split('-')[0]);
+  const viewMonth = parseInt(mesCal.split('-')[1]) - 1;
+
+  // Agrupar actividades del mes visible por día
   const dayActivities = {};
   acts.forEach(a => {
     const d = new Date(a.fecha + 'T12:00:00');
@@ -243,6 +254,18 @@ function Calendario({ acts, viewYear, viewMonth }) {
     setSelectedDay(prev => prev === day ? null : day);
   }
 
+  // Navegar entre meses con flechas
+  function prevMes() {
+    const idx = mesesDisponibles.indexOf(mesCal);
+    if (idx > 0) { setMesCal(mesesDisponibles[idx - 1]); setSelectedDay(null); }
+  }
+  function nextMes() {
+    const idx = mesesDisponibles.indexOf(mesCal);
+    if (idx < mesesDisponibles.length - 1) { setMesCal(mesesDisponibles[idx + 1]); setSelectedDay(null); }
+  }
+
+  if (!acts.length) return <EmptyState icon="📅" title="Sin actividades" />;
+
   return (
     <div>
       {/* Lightbox */}
@@ -255,6 +278,24 @@ function Calendario({ acts, viewYear, viewMonth }) {
             style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:16, objectFit:'contain' }} />
         </div>
       )}
+
+      {/* ── NAVEGADOR DE MES ── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+        <button onClick={prevMes} disabled={mesesDisponibles.indexOf(mesCal) === 0}
+          style={{ width:36, height:36, borderRadius:8, border:'1px solid #243D57', background:'#132236', color: mesesDisponibles.indexOf(mesCal) === 0 ? '#243D57' : '#E8F0FE', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: mesesDisponibles.indexOf(mesCal) === 0 ? 'default' : 'pointer' }}>
+          ‹
+        </button>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', letterSpacing:'0.04em', color:'#E8F0FE', lineHeight:1 }}>
+            {MONTHS_ES[viewMonth]}
+          </div>
+          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'#7A9BBF', marginTop:2 }}>{viewYear}</div>
+        </div>
+        <button onClick={nextMes} disabled={mesesDisponibles.indexOf(mesCal) === mesesDisponibles.length - 1}
+          style={{ width:36, height:36, borderRadius:8, border:'1px solid #243D57', background:'#132236', color: mesesDisponibles.indexOf(mesCal) === mesesDisponibles.length - 1 ? '#243D57' : '#E8F0FE', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: mesesDisponibles.indexOf(mesCal) === mesesDisponibles.length - 1 ? 'default' : 'pointer' }}>
+          ›
+        </button>
+      </div>
 
       {/* ── GRILLA ── */}
       <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
@@ -1015,7 +1056,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity 
     switch (tab) {
       case 'podio':    return <Podio acts={acts} nombres={nombres} />;
       case 'ranking':  return <Ranking acts={acts} nombres={nombres} myId={user?.nombre} onOpenProfile={n => setProfile(n)} />;
-      case 'calendar': return <Calendario acts={acts} viewYear={viewYear} viewMonth={viewMonth} />;
+      case 'calendar': return <Calendario acts={acts} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera acts={acts} nombres={nombres} />;
       case 'deportes': return <Deportes acts={acts} />;
