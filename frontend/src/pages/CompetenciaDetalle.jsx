@@ -20,18 +20,6 @@ const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
 
 const sportIcon = s => SPORT_ICONS[s] || '🏅';
 
-const TABS = [
-  { id: 'podio',    icon: '🏆', label: 'Podio' },
-  { id: 'ranking',  icon: '📊', label: 'Ranking' },
-  { id: 'calendar', icon: '📅', label: 'Calendario' },
-  { id: 'evolucion',icon: '📈', label: 'Evolución' },
-  { id: 'carrera',  icon: '🏁', label: 'Carrera' },
-  { id: 'deportes', icon: '🏅', label: 'Deportes' },
-  { id: 'records',  icon: '🔥', label: 'Récords' },
-  { id: 'comparar', icon: '⚔️', label: 'Comparar' },
-  { id: 'insights', icon: '💡', label: 'Insights' },
-];
-
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 function getPersonColor(nombre, nombres) {
@@ -986,15 +974,13 @@ function EmptyState({ icon, title, text }) {
 
 // ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 
-export default function CompetenciaDetalle({ competencia, onBack, onNewActivity }) {
+export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab }) {
   const { user } = useAuth();
-  const [tab, setTab]         = useState('podio');
   const [meses, setMeses]     = useState([]);
   const [mes, setMes]         = useState('');
   const [acts, setActs]       = useState([]);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState(null); // nombre seleccionado para el panel
-  const tabsRef = useRef(null);
+  const [profile, setProfile] = useState(null);
 
   // Cargar meses disponibles
   useEffect(() => {
@@ -1026,13 +1012,13 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity 
   function renderTab() {
     if (loading) return <Spinner />;
     switch (tab) {
-      case 'podio':    return <Podio acts={acts} nombres={nombres} />;
-      case 'ranking':  return <Ranking acts={acts} nombres={nombres} myId={user?.nombre} onOpenProfile={n => setProfile(n)} />;
+      case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
+      case 'ranking':  return <Ranking  acts={acts} nombres={nombres} myId={user?.nombre} onOpenProfile={n => setProfile(n)} />;
       case 'calendar': return <Calendario acts={acts} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
-      case 'carrera':  return <Carrera acts={acts} nombres={nombres} />;
+      case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
       case 'deportes': return <Deportes acts={acts} />;
-      case 'records':  return <Records acts={acts} />;
+      case 'records':  return <Records  acts={acts} />;
       case 'comparar': return <Comparador acts={acts} nombres={nombres} />;
       case 'insights': return <Insights acts={acts} />;
       default:         return null;
@@ -1044,15 +1030,16 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* ── SUBHEADER STICKY ───────────────────────────────────────────── */}
-      <div style={{ position:'sticky', top:52, zIndex:10, background:'rgba(13,27,42,0.98)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
+      {/* top = safe-area + 52 (brand row) + 32 (tabs row) ≈ 84px sin safe-area */}
+      <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 84px)', zIndex:10, background:'rgba(13,27,42,0.98)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
 
-        {/* Fila 1: back + nombre de competencia */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 16px 4px', borderBottom:'1px solid #1A2E45' }}>
+        {/* Fila 1: back + nombre + mes actual */}
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px 4px', borderBottom:'1px solid #1A2E45' }}>
           <button onClick={onBack}
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:8, border:'1px solid #243D57', background:'transparent', color:'#7A9BBF', cursor:'pointer', flexShrink:0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:7, border:'1px solid #243D57', background:'transparent', color:'#7A9BBF', cursor:'pointer', flexShrink:0 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(18px,5vw,26px)', textTransform:'uppercase', lineHeight:1.1, color:'#E8F0FE', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(16px,4.5vw,22px)', textTransform:'uppercase', lineHeight:1.1, color:'#E8F0FE', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>
             {competencia.nombre}
           </div>
           <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:10, color: mes ? '#38BDF8' : '#7A9BBF', whiteSpace:'nowrap', flexShrink:0 }}>
@@ -1060,52 +1047,29 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity 
           </div>
         </div>
 
-        {/* Fila 2: barra de mes estilo month-bar */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:0, height:34, borderBottom:'1px solid #1A2E45', padding:'0 12px' }}>
-          {/* Botón anterior */}
+        {/* Fila 2: barra de mes */}
+        <div style={{ display:'flex', alignItems:'center', height:32, borderBottom:'1px solid #1A2E45', padding:'0 8px' }}>
           <button
             onClick={() => { const i=meses.indexOf(mes); if(mes===''&&meses.length){setMes(meses[meses.length-1]);}else if(i>0){setMes(meses[i-1]);}else if(i===0){setMes('');} }}
-            style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'#7A9BBF', fontSize:18, cursor:'pointer', flexShrink:0, padding:0 }}>
+            style={{ width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'#7A9BBF', fontSize:17, cursor:'pointer', flexShrink:0, padding:0 }}>
             ‹
           </button>
-
-          {/* Scroll de meses */}
           <div style={{ flex:1, display:'flex', overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', gap:2, alignItems:'center', justifyContent:'center' }}>
-            <style>{`.mbar::-webkit-scrollbar{display:none}`}</style>
             {[{ val:'', label:'Total' }, ...meses.map(m => {
               const [y, mo] = m.split('-');
               return { val:m, label: MONTHS_ES[parseInt(mo)-1].slice(0,3).toUpperCase()+' '+y.slice(2) };
             })].map(({ val, label }) => (
               <button key={val} onClick={() => setMes(val)}
-                style={{
-                  padding:'3px 10px', borderRadius:14, fontSize:11, fontWeight:700,
-                  whiteSpace:'nowrap', flexShrink:0, border:'none', cursor:'pointer',
-                  transition:'all 0.15s',
-                  background: mes===val ? 'rgba(56,189,248,0.18)' : 'transparent',
-                  color: mes===val ? '#38BDF8' : '#7A9BBF',
-                }}>
+                style={{ padding:'2px 9px', borderRadius:12, fontSize:11, fontWeight:700, whiteSpace:'nowrap', flexShrink:0, border:'none', cursor:'pointer', transition:'all 0.15s', background: mes===val ? 'rgba(56,189,248,0.18)' : 'transparent', color: mes===val ? '#38BDF8' : '#7A9BBF' }}>
                 {label}
               </button>
             ))}
           </div>
-
-          {/* Botón siguiente */}
           <button
             onClick={() => { const i=meses.indexOf(mes); if(mes===''&&meses.length){setMes(meses[0]);}else if(i<meses.length-1){setMes(meses[i+1]);} }}
-            style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'#7A9BBF', fontSize:18, cursor:'pointer', flexShrink:0, padding:0 }}>
+            style={{ width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'#7A9BBF', fontSize:17, cursor:'pointer', flexShrink:0, padding:0 }}>
             ›
           </button>
-        </div>
-
-        {/* Fila 3: tabs de sección */}
-        <div ref={tabsRef} style={{ display:'flex', overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch' }}>
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'6px 14px', fontSize:10, fontWeight:700, whiteSpace:'nowrap', border:'none', borderBottom: tab===t.id ? '2px solid #38BDF8' : '2px solid transparent', background: tab===t.id ? 'rgba(56,189,248,0.05)' : 'transparent', color: tab===t.id ? '#38BDF8' : '#7A9BBF', cursor:'pointer', flexShrink:0, transition:'color 0.15s, background 0.15s', letterSpacing:'0.02em', textTransform:'uppercase' }}>
-              <span style={{ fontSize:15 }}>{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
         </div>
       </div>
 

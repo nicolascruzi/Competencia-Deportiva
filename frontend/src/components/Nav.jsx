@@ -30,10 +30,24 @@ const NAV_ITEMS = [
 
 const BG = '#0D1B2A';
 
-export default function Nav({ onNewActivity }) {
+const COMP_TABS = [
+  { id: 'ranking',  icon: '📊', label: 'Ranking' },
+  { id: 'podio',    icon: '🏆', label: 'Podio' },
+  { id: 'calendar', icon: '📅', label: 'Calendario' },
+  { id: 'evolucion',icon: '📈', label: 'Evolución' },
+  { id: 'carrera',  icon: '🏁', label: 'Carrera' },
+  { id: 'deportes', icon: '🏅', label: 'Deportes' },
+  { id: 'records',  icon: '🔥', label: 'Récords' },
+  { id: 'comparar', icon: '⚔️', label: 'Comparar' },
+  { id: 'insights', icon: '💡', label: 'Insights' },
+];
+
+export default function Nav({ onNewActivity, showTabs, tab, onTab }) {
   const { user, logout }    = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [headerH, setHeaderH] = useState(52);
   const drawerRef = useRef(null);
+  const headerRef = useRef(null);
   const location  = useLocation();
 
   useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
@@ -56,6 +70,17 @@ export default function Nav({ onNewActivity }) {
     return () => { document.body.style.overflow = ''; };
   }, [drawerOpen]);
 
+  // Mide la altura real del header para posicionar el drawer
+  useEffect(() => {
+    if (!headerRef.current) return;
+    const ro = new ResizeObserver(() => {
+      setHeaderH(headerRef.current?.offsetHeight ?? 52);
+    });
+    ro.observe(headerRef.current);
+    setHeaderH(headerRef.current.offsetHeight);
+    return () => ro.disconnect();
+  }, [showTabs]);
+
   return (
     <>
       {/*
@@ -73,33 +98,45 @@ export default function Nav({ onNewActivity }) {
       }} />
 
       {/* ── TOP HEADER ─────────────────────────────────────────────── */}
-      <header style={{
+      <header ref={headerRef} style={{
         position: 'sticky',
         top: 0,
         zIndex: 50,
-        height: 52,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px',
         background: BG,
         borderBottom: '1px solid #243D57',
-        // Empuja el header hacia abajo del safe area sin usar padding
-        // (el bloque fijo de arriba tapa esa zona)
         marginTop: 'env(safe-area-inset-top)',
       }}>
-        {/* Brand */}
-        <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'#38BDF8', flexShrink:0 }}>
-          Nanão Cup 🏆
-        </span>
+        {/* Fila principal: brand + hamburger */}
+        <div style={{ height: 52, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px' }}>
+          {/* Brand */}
+          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'#38BDF8', flexShrink:0 }}>
+            Nanão Cup 🏆
+          </span>
 
-        {/* Botón hamburger */}
-        <button
-          onClick={() => setDrawerOpen(o => !o)}
-          aria-label="Menú"
-          style={{ display:'flex', flexDirection:'column', justifyContent:'center', gap:5, width:36, height:36, padding:6, borderRadius:8, background:'transparent', border:'none', cursor:'pointer', flexShrink:0 }}>
-          <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(7px) rotate(45deg)' : 'none' }} />
-          <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', opacity: drawerOpen ? 0 : 1, transform: drawerOpen ? 'scaleX(0)' : 'none' }} />
-          <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(-7px) rotate(-45deg)' : 'none' }} />
-        </button>
+          {/* Botón hamburger */}
+          <button
+            onClick={() => setDrawerOpen(o => !o)}
+            aria-label="Menú"
+            style={{ display:'flex', flexDirection:'column', justifyContent:'center', gap:5, width:36, height:36, padding:6, borderRadius:8, background:'transparent', border:'none', cursor:'pointer', flexShrink:0 }}>
+            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(7px) rotate(45deg)' : 'none' }} />
+            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', opacity: drawerOpen ? 0 : 1, transform: drawerOpen ? 'scaleX(0)' : 'none' }} />
+            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(-7px) rotate(-45deg)' : 'none' }} />
+          </button>
+        </div>
+
+        {/* Fila de tabs de competencia (solo cuando hay una activa) */}
+        {showTabs && (
+          <div style={{ display:'flex', overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', borderTop:'1px solid #1A2E45' }}>
+            <style>{`.ctabs::-webkit-scrollbar{display:none}`}</style>
+            {COMP_TABS.map(t => (
+              <button key={t.id} onClick={() => onTab(t.id)}
+                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'5px 14px', fontSize:10, fontWeight:700, whiteSpace:'nowrap', border:'none', borderBottom: tab===t.id ? '2px solid #38BDF8' : '2px solid transparent', background: tab===t.id ? 'rgba(56,189,248,0.06)' : 'transparent', color: tab===t.id ? '#38BDF8' : '#7A9BBF', cursor:'pointer', flexShrink:0, transition:'color 0.15s, background 0.15s', letterSpacing:'0.02em', textTransform:'uppercase' }}>
+                <span style={{ fontSize:14 }}>{t.icon}</span>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* ── DRAWER OVERLAY ─────────────────────────────────────────── */}
@@ -121,7 +158,7 @@ export default function Nav({ onNewActivity }) {
         ref={drawerRef}
         style={{
           position: 'fixed',
-          top: 'calc(env(safe-area-inset-top) + 52px)',
+          top: `calc(env(safe-area-inset-top) + ${headerH}px)`,
           left: 0, right: 0, zIndex: 50,
           background: 'rgba(13,27,42,0.98)',
           borderBottom: '1px solid #243D57',

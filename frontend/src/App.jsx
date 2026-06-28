@@ -10,9 +10,10 @@ import ActivityModal from './components/ActivityModal';
 
 function AppShell() {
   const { user, loading } = useAuth();
-  const [actModalOpen, setActModalOpen]   = useState(false);
-  const [refreshKey, setRefreshKey]       = useState(0);
+  const [actModalOpen, setActModalOpen]         = useState(false);
+  const [refreshKey, setRefreshKey]             = useState(0);
   const [competenciaActiva, setCompetenciaActiva] = useState(null);
+  const [tab, setTab]                           = useState('ranking');
 
   if (loading) {
     return (
@@ -28,17 +29,24 @@ function AppShell() {
 
   return (
     <>
-      <Nav onNewActivity={() => setActModalOpen(true)} />
+      <Nav
+        onNewActivity={() => setActModalOpen(true)}
+        showTabs={!!competenciaActiva}
+        tab={tab}
+        onTab={setTab}
+      />
       <Routes>
         <Route path="/" element={
           competenciaActiva
             ? <CompetenciaDetalle
                 key={competenciaActiva.id}
                 competencia={competenciaActiva}
-                onBack={() => setCompetenciaActiva(null)}
+                tab={tab}
+                onTab={setTab}
+                onBack={() => { setCompetenciaActiva(null); setTab('ranking'); }}
                 onNewActivity={() => setActModalOpen(true)}
               />
-            : <MisCompetencias onSelect={setCompetenciaActiva} />
+            : <MisCompetencias onSelect={c => { setCompetenciaActiva(c); setTab('ranking'); }} />
         } />
         <Route path="/actividades"
           element={<MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} />} />
