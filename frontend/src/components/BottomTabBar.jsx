@@ -1,11 +1,5 @@
 import { useAuth } from '../context/AuthContext';
 
-const TabCompetencia = ({ active }) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 9H4.5a2.5 2.5 0 000 5H6"/><path d="M18 9h1.5a2.5 2.5 0 010 5H18"/>
-    <path d="M8 9h8"/><path d="M8 15h8"/><path d="M8 5v14"/><path d="M16 5v14"/>
-  </svg>
-);
 const TabRanking = ({ active }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
@@ -17,6 +11,12 @@ const TabCalendario = ({ active }) => (
     <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
   </svg>
 );
+const TabActividades = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+    <polyline points="13 2 13 9 20 9"/>
+  </svg>
+);
 const TabFeed = ({ active }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
@@ -26,11 +26,11 @@ const TabFeed = ({ active }) => (
 );
 
 const TABS = [
-  { id:'competencia', label:'Copa',       Icon: TabCompetencia },
-  { id:'ranking',     label:'Ranking',    Icon: TabRanking },
-  { id:'calendario',  label:'Calendario', Icon: TabCalendario },
-  { id:'feed',        label:'Grupo',      Icon: TabFeed },
-  { id:'perfil',      label:'Perfil',     Icon: null },
+  { id:'ranking',      label:'Ranking',      Icon: TabRanking },
+  { id:'calendario',   label:'Calendario',   Icon: TabCalendario },
+  { id:'actividades',  label:'Actividades',  Icon: TabActividades },
+  { id:'feed',         label:'Grupo',        Icon: TabFeed },
+  { id:'perfil',       label:'Perfil',       Icon: null },
 ];
 
 export default function BottomTabBar({ activeTab, onTab }) {
