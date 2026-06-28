@@ -37,7 +37,8 @@ router.get('/', async (req, res) => {
       SELECT
         a.id, a.user_id, u.nombre AS user_nombre,
         a.deporte_nombre, a.minutos, a.ponderador, a.puntos,
-        a.fecha, a.notas, a.foto_url, a.created_at
+        TO_CHAR(a.fecha, 'YYYY-MM-DD') AS fecha,
+        a.notas, a.foto_url, a.created_at
       FROM actividades a
       JOIN users u ON u.id = a.user_id
       ${where}
