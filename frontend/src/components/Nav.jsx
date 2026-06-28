@@ -62,30 +62,32 @@ export default function Nav({ onNewActivity }) {
       {/* ── TOP HEADER ─────────────────────────────────────────────── */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
-        height: 52,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px',
         background: 'rgba(13,27,42,0.97)',
         borderBottom: '1px solid #243D57',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
+        /* El paddingTop empuja el contenido por debajo del notch/dynamic island */
+        paddingTop: 'env(safe-area-inset-top)',
       }}>
-        {/* Brand */}
-        <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'#38BDF8', flexShrink:0 }}>
-          Nanão Cup 🏆
-        </span>
+        {/* Fila de contenido — siempre 52px de alto, independiente del safe area */}
+        <div style={{ height:52, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px' }}>
+          {/* Brand */}
+          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'#38BDF8', flexShrink:0 }}>
+            Nanão Cup 🏆
+          </span>
 
-        {/* Botón hamburger */}
-        <button
-          onClick={() => setDrawerOpen(o => !o)}
-          aria-label="Menú"
-          style={{ display:'flex', flexDirection:'column', justifyContent:'center', gap:5, width:36, height:36, padding:6, borderRadius:8, background:'transparent', border:'none', cursor:'pointer', flexShrink:0, transition:'background 0.15s' }}
-          onMouseEnter={e => e.currentTarget.style.background='#243D57'}
-          onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-          <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(7px) rotate(45deg)' : 'none' }} />
-          <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', opacity: drawerOpen ? 0 : 1, transform: drawerOpen ? 'scaleX(0)' : 'none' }} />
-          <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(-7px) rotate(-45deg)' : 'none' }} />
-        </button>
+          {/* Botón hamburger */}
+          <button
+            onClick={() => setDrawerOpen(o => !o)}
+            aria-label="Menú"
+            style={{ display:'flex', flexDirection:'column', justifyContent:'center', gap:5, width:36, height:36, padding:6, borderRadius:8, background:'transparent', border:'none', cursor:'pointer', flexShrink:0, transition:'background 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.background='#243D57'}
+            onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(7px) rotate(45deg)' : 'none' }} />
+            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', opacity: drawerOpen ? 0 : 1, transform: drawerOpen ? 'scaleX(0)' : 'none' }} />
+            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(-7px) rotate(-45deg)' : 'none' }} />
+          </button>
+        </div>
       </header>
 
       {/* ── DRAWER OVERLAY ─────────────────────────────────────────── */}
@@ -106,7 +108,7 @@ export default function Nav({ onNewActivity }) {
       <div
         ref={drawerRef}
         style={{
-          position: 'fixed', top: 52, left: 0, right: 0, zIndex: 50,
+          position: 'fixed', top: 'calc(52px + env(safe-area-inset-top))', left: 0, right: 0, zIndex: 50,
           background: 'rgba(13,27,42,0.98)',
           borderBottom: '1px solid #243D57',
           backdropFilter: 'blur(16px)',
