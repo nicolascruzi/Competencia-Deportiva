@@ -252,7 +252,7 @@ router.get('/:id/actividades', authMiddleware, async (req, res) => {
 
     const { rows } = await pool.query(
       `SELECT a.id, u.id AS user_id, u.nombre, a.deporte_nombre, a.minutos,
-              a.ponderador AS ponderador_original, a.fecha, a.notas
+              a.ponderador AS ponderador_original, a.fecha, a.notas, a.foto_url
        FROM actividades a
        JOIN competencia_participantes cp ON cp.user_id=a.user_id AND cp.competencia_id=$1
        JOIN users u ON u.id=a.user_id
