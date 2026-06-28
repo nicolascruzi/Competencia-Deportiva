@@ -14,133 +14,216 @@ function timeAgo(isoStr) {
   return new Date(isoStr).toLocaleDateString('es', { day:'numeric', month:'short' });
 }
 
-// ─── Sección de comentarios ───────────────────────────────────────────────────
+// ─── Burbuja individual de comentario ────────────────────────────────────────
 
-function ComentariosSection({ actividadId, user }) {
-  const [comentarios, setComentarios] = useState(null); // null = sin cargar
-  const [loading, setLoading]         = useState(false);
-  const [sending, setSending]         = useState(false);
-  const [texto, setTexto]             = useState('');
-  const [open, setOpen]               = useState(false);
-  const inputRef = useRef(null);
+function BurbujaComentario({ c, user, onDelete }) {
+  return (
+    <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+      <div style={{ width:28, height:28, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.1)', border:'1.5px solid rgba(var(--t-accent-r),0.18)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+        {c.foto_perfil_url
+          ? <img src={c.foto_perfil_url} alt={c.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+          : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:12, color:'var(--t-accent)' }}>{c.nombre?.charAt(0).toUpperCase()}</span>
+        }
+      </div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ background:'var(--t-surface2)', borderRadius:'4px 12px 12px 12px', padding:'8px 10px' }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, marginBottom:4 }}>
+            {c.nombre}
+          </div>
+          <div style={{ fontSize:14, color:'var(--t-text)', lineHeight:1.5, wordBreak:'break-word' }}>
+            {c.contenido}
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:3, paddingLeft:2 }}>
+          <span style={{ fontSize:11, color:'var(--t-muted)' }}>{timeAgo(c.created_at)}</span>
+          {c.user_id === user?.id && (
+            <button onClick={() => onDelete(c.id)}
+              style={{ fontSize:11, color:'var(--t-muted)', background:'transparent', border:'none', cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
+              Eliminar
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  async function toggleOpen() {
-    if (!open && comentarios === null) {
-      setLoading(true);
-      try { setComentarios(await getComentarios(actividadId)); }
-      finally { setLoading(false); }
-    }
-    setOpen(o => !o);
-    if (!open) setTimeout(() => inputRef.current?.focus(), 200);
-  }
+// ─── Input para escribir comentario ──────────────────────────────────────────
+
+function ComentarioInput({ user, onSend, inputRef }) {
+  const [texto, setTexto]   = useState('');
+  const [sending, setSending] = useState(false);
 
   async function handleSend(e) {
     e.preventDefault();
     if (!texto.trim() || sending) return;
     setSending(true);
-    try {
-      const nuevo = await createComentario(actividadId, texto.trim());
-      setComentarios(prev => [...(prev || []), nuevo]);
-      setTexto('');
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSending(false);
-    }
+    try { await onSend(texto.trim()); setTexto(''); }
+    catch (err) { console.error(err); }
+    finally { setSending(false); }
+  }
+
+  return (
+    <form onSubmit={handleSend} style={{ display:'flex', gap:8, alignItems:'center' }}>
+      <div style={{ width:28, height:28, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.1)', border:'1.5px solid rgba(var(--t-accent-r),0.18)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+        {user?.foto_perfil_url
+          ? <img src={user.foto_perfil_url} alt={user.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+          : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:12, color:'var(--t-accent)' }}>{user?.nombre?.charAt(0).toUpperCase()}</span>
+        }
+      </div>
+      <input
+        ref={inputRef}
+        value={texto}
+        onChange={e => setTexto(e.target.value)}
+        placeholder="Escribí un comentario…"
+        style={{ flex:1, padding:'8px 12px', borderRadius:20, border:'1.5px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:14, outline:'none', minWidth:0 }}
+      />
+      <button type="submit" disabled={!texto.trim() || sending}
+        style={{ width:32, height:32, borderRadius:'50%', border:'none', background: texto.trim() ? 'var(--t-accent)' : 'var(--t-dim)', color: texto.trim() ? 'var(--t-ground)' : 'var(--t-muted)', cursor: texto.trim() ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'background 0.15s' }}>
+        {sending
+          ? <div style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.35)', borderTopColor:'var(--t-ground)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+          : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        }
+      </button>
+    </form>
+  );
+}
+
+// ─── Popup con todos los comentarios ─────────────────────────────────────────
+
+function TodosPopup({ comentarios, user, onDelete, onSend, onClose }) {
+  const inputRef  = useRef(null);
+  const startY    = useRef(null);
+
+  function onTouchStart(e) { startY.current = e.touches[0].clientY; }
+  function onTouchEnd(e) {
+    if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 80) onClose();
+    startY.current = null;
+  }
+
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 250);
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)' }} />
+      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+        style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'75dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 12px)' }}>
+        {/* Handle */}
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px', flexShrink:0 }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+        </div>
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-text)' }}>
+            {comentarios.length} comentario{comentarios.length !== 1 ? 's' : ''}
+          </div>
+          <button onClick={onClose}
+            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            ✕
+          </button>
+        </div>
+        {/* Lista scrollable */}
+        <div style={{ overflowY:'auto', flex:1, padding:'12px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+          {comentarios.map(c => (
+            <BurbujaComentario key={c.id} c={c} user={user} onDelete={onDelete} />
+          ))}
+        </div>
+        {/* Input fijo abajo */}
+        <div style={{ padding:'10px 16px 0', borderTop:'1px solid var(--t-dim)', flexShrink:0 }}>
+          <ComentarioInput user={user} onSend={onSend} inputRef={inputRef} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Sección de comentarios ───────────────────────────────────────────────────
+
+function ComentariosSection({ actividadId, user }) {
+  const [comentarios, setComentarios] = useState(null);
+  const [loading, setLoading]         = useState(false);
+  const [popupOpen, setPopupOpen]     = useState(false);
+  const inputRef = useRef(null);
+
+  async function load() {
+    setLoading(true);
+    try { setComentarios(await getComentarios(actividadId)); }
+    finally { setLoading(false); }
+  }
+
+  // Carga al primer toque del botón
+  async function handleToggle() {
+    if (comentarios === null) await load();
+    else setComentarios(c => c); // fuerza re-render para mostrar input
+    // Mostrar el input inline (sección abierta)
+    setTimeout(() => inputRef.current?.focus(), 150);
+  }
+
+  async function handleSend(texto) {
+    const nuevo = await createComentario(actividadId, texto);
+    setComentarios(prev => [...(prev || []), nuevo]);
   }
 
   async function handleDelete(id) {
     try {
       await deleteComentario(id);
       setComentarios(prev => prev.filter(c => c.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }
 
-  const count = comentarios?.length ?? 0;
+  const count  = comentarios?.length ?? 0;
+  const ultimo = comentarios?.[count - 1] ?? null;
 
   return (
     <div style={{ borderTop:'1px solid var(--t-surface2)' }}>
-      {/* Botón toggle */}
-      <button onClick={toggleOpen}
-        style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'transparent', border:'none', cursor:'pointer', color:'var(--t-muted)', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent', width:'100%', textAlign:'left' }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-        </svg>
-        {comentarios === null
-          ? 'Comentar'
-          : count === 0
-            ? 'Comentar'
-            : `${count} comentario${count !== 1 ? 's' : ''}`
-        }
-        {loading && (
-          <div style={{ width:11, height:11, border:'1.5px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite', marginLeft:4 }} />
+
+      {/* Botón "Comentar" + spinner */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 14px' }}>
+        <button onClick={handleToggle}
+          style={{ display:'flex', alignItems:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', color:'var(--t-muted)', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent', padding:0 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+          </svg>
+          Comentar
+          {loading && <div style={{ width:11, height:11, border:'1.5px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />}
+        </button>
+
+        {/* "Ver todos (N)" si hay más de 1 */}
+        {count > 1 && (
+          <button onClick={() => setPopupOpen(true)}
+            style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--t-accent)', fontSize:12, fontWeight:700, WebkitTapHighlightColor:'transparent', padding:0 }}>
+            Ver todos ({count})
+          </button>
         )}
-      </button>
+      </div>
 
-      {/* Lista + input */}
-      {open && (
-        <div style={{ padding:'0 14px 12px', display:'flex', flexDirection:'column', gap:8 }}>
-
-          {/* Comentarios existentes */}
-          {comentarios?.map(c => (
-            <div key={c.id} style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-              {/* Avatar */}
-              <div style={{ width:28, height:28, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.1)', border:'1.5px solid rgba(var(--t-accent-r),0.18)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
-                {c.foto_perfil_url
-                  ? <img src={c.foto_perfil_url} alt={c.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:12, color:'var(--t-accent)' }}>{c.nombre?.charAt(0).toUpperCase()}</span>
-                }
-              </div>
-
-              {/* Burbuja */}
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ background:'var(--t-surface2)', borderRadius:'4px 12px 12px 12px', padding:'8px 10px' }}>
-                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, marginBottom:4 }}>
-                    {c.nombre}
-                  </div>
-                  <div style={{ fontSize:14, color:'var(--t-text)', lineHeight:1.5, wordBreak:'break-word' }}>
-                    {c.contenido}
-                  </div>
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:3, paddingLeft:2 }}>
-                  <span style={{ fontSize:11, color:'var(--t-muted)' }}>{timeAgo(c.created_at)}</span>
-                  {c.user_id === user?.id && (
-                    <button onClick={() => handleDelete(c.id)}
-                      style={{ fontSize:11, color:'var(--t-muted)', background:'transparent', border:'none', cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
-                      Eliminar
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Input nuevo comentario */}
-          <form onSubmit={handleSend} style={{ display:'flex', gap:8, alignItems:'center', marginTop: (comentarios?.length ?? 0) > 0 ? 4 : 0 }}>
-            <div style={{ width:28, height:28, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.1)', border:'1.5px solid rgba(var(--t-accent-r),0.18)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
-              {user?.foto_perfil_url
-                ? <img src={user.foto_perfil_url} alt={user.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:12, color:'var(--t-accent)' }}>{user?.nombre?.charAt(0).toUpperCase()}</span>
-              }
-            </div>
-            <input
-              ref={inputRef}
-              value={texto}
-              onChange={e => setTexto(e.target.value)}
-              placeholder="Escribí un comentario…"
-              style={{ flex:1, padding:'8px 12px', borderRadius:20, border:'1.5px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:14, outline:'none', minWidth:0 }}
-            />
-            <button type="submit" disabled={!texto.trim() || sending}
-              style={{ width:32, height:32, borderRadius:'50%', border:'none', background: texto.trim() ? 'var(--t-accent)' : 'var(--t-dim)', color: texto.trim() ? 'var(--t-ground)' : 'var(--t-muted)', cursor: texto.trim() ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'background 0.15s' }}>
-              {sending
-                ? <div style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.35)', borderTopColor:'var(--t-ground)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
-                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              }
-            </button>
-          </form>
+      {/* Último comentario (si existe) */}
+      {ultimo && (
+        <div style={{ padding:'0 14px 10px' }}>
+          <BurbujaComentario c={ultimo} user={user} onDelete={handleDelete} />
         </div>
+      )}
+
+      {/* Input inline (siempre visible una vez cargado) */}
+      {comentarios !== null && (
+        <div style={{ padding:'0 14px 12px' }}>
+          <ComentarioInput user={user} onSend={handleSend} inputRef={inputRef} />
+        </div>
+      )}
+
+      {/* Popup con todos los comentarios */}
+      {popupOpen && (
+        <TodosPopup
+          comentarios={comentarios}
+          user={user}
+          onDelete={handleDelete}
+          onSend={handleSend}
+          onClose={() => setPopupOpen(false)}
+        />
       )}
     </div>
   );
