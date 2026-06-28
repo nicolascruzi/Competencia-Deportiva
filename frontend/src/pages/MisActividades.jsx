@@ -75,118 +75,117 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
         </div>
       )}
 
-      {/* Overlay */}
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:100, background:'rgba(5,12,20,0.65)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)' }} />
+      {/* Overlay — toca fuera para cerrar */}
+      <div onClick={onClose}
+        style={{ position:'fixed', inset:0, zIndex:100, background:'rgba(5,12,20,0.72)', backdropFilter:'blur(5px)', WebkitBackdropFilter:'blur(5px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 16px' }}>
 
-      {/* Sheet */}
-      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-        style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:101, background:'#0F1D2E', border:'1px solid #1E3450', borderBottom:'none', borderRadius:'20px 20px 0 0', maxHeight:'88dvh', overflowY:'auto', paddingBottom:'calc(20px + env(safe-area-inset-bottom))' }}>
+        {/* Tarjeta centrada — stopPropagation para que el click interno no cierre */}
+        <div onClick={e => e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+          style={{ width:'100%', maxWidth:420, background:'#0F1D2E', border:'1px solid #1E3450', borderRadius:20, overflow:'hidden', maxHeight:'calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom))', display:'flex', flexDirection:'column' }}>
 
-        {/* Handle */}
-        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 6px' }}>
-          <div style={{ width:32, height:3, borderRadius:3, background:'#243D57' }} />
-        </div>
-
-        {/* ── FOTO ── */}
-        {actividad.foto_url ? (
-          <div style={{ position:'relative', margin:'0 14px 14px', borderRadius:14, overflow:'hidden', cursor:'pointer' }}
-            onClick={() => setLightbox(true)}>
-            <img src={actividad.foto_url} alt={actividad.deporte_nombre}
-              style={{ width:'100%', aspectRatio:'16/9', objectFit:'cover', display:'block' }} />
-            {/* Gradiente inferior */}
-            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(5,12,20,0.8) 0%, transparent 45%)' }} />
-            {/* Nombre del deporte encima de la foto */}
-            <div style={{ position:'absolute', bottom:12, left:14, right:80 }}>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'#E8F0FE', lineHeight:1 }}>
-                {actividad.deporte_nombre}
+          {/* ── FOTO ── */}
+          {actividad.foto_url ? (
+            <div style={{ position:'relative', flexShrink:0, cursor:'pointer' }}
+              onClick={() => setLightbox(true)}>
+              <img src={actividad.foto_url} alt={actividad.deporte_nombre}
+                style={{ width:'100%', aspectRatio:'16/9', objectFit:'cover', display:'block' }} />
+              <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(5,12,20,0.85) 0%, transparent 50%)' }} />
+              {/* Nombre sobre foto */}
+              <div style={{ position:'absolute', bottom:12, left:14, right:80 }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'#E8F0FE', lineHeight:1 }}>
+                  {actividad.deporte_nombre}
+                </div>
+              </div>
+              {/* Botones sobre foto */}
+              <button onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                style={{ position:'absolute', top:10, right:10, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(255,255,255,0.15)', color:'#E8F0FE', borderRadius:8, padding:'5px 9px', fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+                <IconCamera /><span>Cambiar</span>
+              </button>
+              <button onClick={e => { e.stopPropagation(); handleDeleteFoto(); }}
+                style={{ position:'absolute', top:10, left:10, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', borderRadius:8, padding:'5px 9px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+                Quitar
+              </button>
+              <div style={{ position:'absolute', bottom:12, right:12, fontSize:10, color:'rgba(232,240,254,0.45)' }}>
+                Toca para ampliar
               </div>
             </div>
-            {/* Botón cambiar foto */}
-            <button onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
-              style={{ position:'absolute', top:10, right:10, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(255,255,255,0.15)', color:'#E8F0FE', borderRadius:8, padding:'6px 10px', fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
-              <IconCamera />
-              <span>Cambiar</span>
-            </button>
-            {/* Botón quitar foto */}
-            <button onClick={e => { e.stopPropagation(); handleDeleteFoto(); }}
-              style={{ position:'absolute', top:10, left:10, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', borderRadius:8, padding:'6px 10px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
-              Quitar
-            </button>
-            <div style={{ position:'absolute', bottom:12, right:12, fontSize:11, color:'rgba(232,240,254,0.5)', letterSpacing:'0.03em' }}>
-              Toca para ampliar
-            </div>
-          </div>
-        ) : (
-          <div style={{ margin:'0 14px 14px' }}>
-            <button onClick={() => fileInputRef.current?.click()}
-              style={{ width:'100%', aspectRatio:'16/9', borderRadius:14, border:'1.5px dashed #243D57', background:'rgba(26,46,69,0.25)', color:'#7A9BBF', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer' }}>
-              {uploading
-                ? <><div style={{ width:22, height:22, border:'2px solid #243D57', borderTopColor:'#38BDF8', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /><span style={{ fontSize:13 }}>Subiendo…</span></>
-                : <><IconCamera /><span style={{ fontSize:13, fontWeight:600, marginTop:2 }}>Agregar foto</span></>}
-            </button>
-          </div>
-        )}
-
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFotoChange} style={{ display:'none' }} />
-
-        {/* ── INFO ── */}
-        <div style={{ padding:'0 14px' }}>
-
-          {/* Deporte (si no hay foto) */}
-          {!actividad.foto_url && (
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', color:'#E8F0FE', lineHeight:1, marginBottom:10 }}>
-              {actividad.deporte_nombre}
+          ) : (
+            <div style={{ padding:'14px 14px 0' }}>
+              <button onClick={() => fileInputRef.current?.click()}
+                style={{ width:'100%', padding:'14px', borderRadius:12, border:'1.5px dashed #243D57', background:'rgba(26,46,69,0.25)', color:'#7A9BBF', display:'flex', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer' }}>
+                {uploading
+                  ? <><div style={{ width:18, height:18, border:'2px solid #243D57', borderTopColor:'#38BDF8', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /><span style={{ fontSize:13 }}>Subiendo…</span></>
+                  : <><IconCamera /><span style={{ fontSize:13, fontWeight:600 }}>Agregar foto</span></>}
+              </button>
             </div>
           )}
 
-          {/* Fecha y hora */}
-          <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:5, color:'#7A9BBF', fontSize:13 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-              <span style={{ textTransform:'capitalize' }}>{fechaLabel}, {yearLabel}</span>
+          {/* ── BODY (scrollable si es largo) ── */}
+          <div style={{ padding:'14px', display:'flex', flexDirection:'column', gap:12, overflowY:'auto', flex:1 }}>
+
+            {/* Encabezado: X cerrar + nombre (solo si no hay foto) */}
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
+              {!actividad.foto_url && (
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, textTransform:'uppercase', color:'#E8F0FE', lineHeight:1, flex:1 }}>
+                  {actividad.deporte_nombre}
+                </div>
+              )}
+              {actividad.foto_url && <div style={{ flex:1 }} />}
+              <button onClick={onClose}
+                style={{ width:28, height:28, borderRadius:8, border:'1px solid #243D57', background:'transparent', color:'#7A9BBF', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                ✕
+              </button>
             </div>
-            {horaLabel && (
-              <div style={{ display:'flex', alignItems:'center', gap:5, color:'#4A7A9B', fontSize:13 }}>
+
+            {/* Fecha y hora */}
+            <div style={{ display:'flex', flexWrap:'wrap', gap:12 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:5, color:'#7A9BBF', fontSize:13 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-                <span>{horaLabel}</span>
+                <span style={{ textTransform:'capitalize' }}>{fechaLabel}, {yearLabel}</span>
+              </div>
+              {horaLabel && (
+                <div style={{ display:'flex', alignItems:'center', gap:5, color:'#4A7A9B', fontSize:13 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span>{horaLabel}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Métricas */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+              <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'11px 13px', position:'relative', overflow:'hidden' }}>
+                <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'#38BDF8', opacity:0.7 }} />
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, color:'#38BDF8', lineHeight:1 }}>
+                  {Math.round(parseFloat(actividad.puntos))}
+                </div>
+                <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Puntos</div>
+              </div>
+              <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'11px 13px' }}>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, color:'#E8F0FE', lineHeight:1 }}>
+                  {Math.round(parseFloat(actividad.minutos))}
+                </div>
+                <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Minutos</div>
+              </div>
+            </div>
+
+            {/* Notas */}
+            {actividad.notas && (
+              <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'10px 13px' }}>
+                <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:4 }}>Notas</div>
+                <div style={{ fontSize:14, color:'#E8F0FE', lineHeight:1.6 }}>{actividad.notas}</div>
               </div>
             )}
+
+            {/* Eliminar */}
+            <button onClick={handleDeleteActividad}
+              style={{ width:'100%', padding:'11px', borderRadius:12, border:'1px solid rgba(248,113,113,0.2)', background:'rgba(248,113,113,0.05)', color:'#F87171', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
+              Eliminar actividad
+            </button>
           </div>
-
-          {/* Métricas: puntos + minutos */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:14 }}>
-            <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 14px', position:'relative', overflow:'hidden' }}>
-              <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'#38BDF8', opacity:0.7 }} />
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:26, color:'#38BDF8', lineHeight:1 }}>
-                {Math.round(parseFloat(actividad.puntos))}
-              </div>
-              <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Puntos</div>
-            </div>
-            <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 14px' }}>
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:26, color:'#E8F0FE', lineHeight:1 }}>
-                {Math.round(parseFloat(actividad.minutos))}
-              </div>
-              <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Minutos</div>
-            </div>
-          </div>
-
-          {/* Notas */}
-          {actividad.notas && (
-            <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'11px 14px', marginBottom:14 }}>
-              <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:5 }}>Notas</div>
-              <div style={{ fontSize:14, color:'#E8F0FE', lineHeight:1.6 }}>{actividad.notas}</div>
-            </div>
-          )}
-
-          {/* Eliminar */}
-          <button onClick={handleDeleteActividad}
-            style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid rgba(248,113,113,0.2)', background:'rgba(248,113,113,0.05)', color:'#F87171', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
-            Eliminar actividad
-          </button>
         </div>
       </div>
 

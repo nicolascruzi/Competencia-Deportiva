@@ -1,24 +1,31 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import MisCompetencias from './pages/MisCompetencias';
 import CompetenciaDetalle from './pages/CompetenciaDetalle';
-import MisActividades from './pages/MisActividades';
+import FeedGrupal from './pages/FeedGrupal';
+import MiPerfil from './pages/MiPerfil';
 import Nav from './components/Nav';
+import BottomTabBar from './components/BottomTabBar';
 import ActivityModal from './components/ActivityModal';
+
+// Bottom tabs: 'competencia' | 'ranking' | 'calendario' | 'feed' | 'perfil'
 
 function AppShell() {
   const { user, loading } = useAuth();
-  const [actModalOpen, setActModalOpen]         = useState(false);
-  const [refreshKey, setRefreshKey]             = useState(0);
+  const [actModalOpen, setActModalOpen]           = useState(false);
+  const [refreshKey, setRefreshKey]               = useState(0);
   const [competenciaActiva, setCompetenciaActiva] = useState(null);
-  const [tab, setTab]                           = useState('ranking');
+  const [mainTab, setMainTab]                     = useState('competencia');
+  // Tab interno de CompetenciaDetalle
+  const [compTab, setCompTab]                     = useState('ranking');
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1B2A' }}>
-        <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: '#243D57', borderTopColor: '#38BDF8' }} />
+      <div style={{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', background:'#0D1B2A' }}>
+        <div style={{ width:24, height:24, borderRadius:'50%', border:'2px solid #243D57', borderTopColor:'#38BDF8', animation:'spin 0.7s linear infinite' }} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }
@@ -27,32 +34,75 @@ function AppShell() {
 
   function onCreated() { setRefreshKey(k => k + 1); }
 
+  function handleSelectCompetencia(c) {
+    setCompetenciaActiva(c);
+    setCompTab('ranking');
+    setMainTab('ranking');
+  }
+
+  function handleBack() {
+    setCompetenciaActiva(null);
+    setCompTab('ranking');
+    setMainTab('competencia');
+  }
+
+  function handleMainTab(id) {
+    setMainTab(id);
+    if (id === 'ranking')    setCompTab('ranking');
+    if (id === 'calendario') setCompTab('calendar');
+  }
+
+  function renderContent() {
+    // Feed y perfil no dependen de la competencia activa
+    if (mainTab === 'feed')   return <FeedGrupal key={competenciaActiva?.id} competencia={competenciaActiva} />;
+    if (mainTab === 'perfil') return <MiPerfil key={refreshKey} onNewActivity={() => setActModalOpen(true)} />;
+
+    // Sin competencia seleccionada → lista de competencias
+    if (!competenciaActiva)  return <MisCompetencias onSelect={handleSelectCompetencia} />;
+
+    // Con competencia activa
+    if (mainTab === 'competencia') {
+      return (
+        <CompetenciaDetalle
+          key={competenciaActiva.id}
+          competencia={competenciaActiva}
+          tab={compTab}
+          onTab={setCompTab}
+          onBack={handleBack}
+          onNewActivity={() => setActModalOpen(true)}
+        />
+      );
+    }
+
+    // ranking o calendario → CompetenciaDetalle con el tab fijado
+    return (
+      <CompetenciaDetalle
+        key={competenciaActiva.id}
+        competencia={competenciaActiva}
+        tab={compTab}
+        onTab={setCompTab}
+        onBack={handleBack}
+        onNewActivity={() => setActModalOpen(true)}
+      />
+    );
+  }
+
   return (
     <>
-      <Nav
-        onNewActivity={() => setActModalOpen(true)}
-        showTabs={!!competenciaActiva}
-        tab={tab}
-        onTab={setTab}
+      <Nav onNewActivity={() => setActModalOpen(true)} />
+
+      {/* Contenido con padding inferior para el bottom tab bar */}
+      <div style={{ paddingBottom:'calc(58px + env(safe-area-inset-bottom))' }}>
+        {renderContent()}
+      </div>
+
+      <BottomTabBar activeTab={mainTab} onTab={handleMainTab} />
+
+      <ActivityModal
+        open={actModalOpen}
+        onClose={() => setActModalOpen(false)}
+        onCreated={onCreated}
       />
-      <Routes>
-        <Route path="/" element={
-          competenciaActiva
-            ? <CompetenciaDetalle
-                key={competenciaActiva.id}
-                competencia={competenciaActiva}
-                tab={tab}
-                onTab={setTab}
-                onBack={() => { setCompetenciaActiva(null); setTab('ranking'); }}
-                onNewActivity={() => setActModalOpen(true)}
-              />
-            : <MisCompetencias onSelect={c => { setCompetenciaActiva(c); setTab('ranking'); }} />
-        } />
-        <Route path="/actividades"
-          element={<MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <ActivityModal open={actModalOpen} onClose={() => setActModalOpen(false)} onCreated={onCreated} />
     </>
   );
 }
