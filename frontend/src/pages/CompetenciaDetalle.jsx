@@ -1030,8 +1030,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* ── SUBHEADER STICKY ───────────────────────────────────────────── */}
-      {/* top = safe-area + 52 (brand row) + 32 (tabs row) ≈ 84px sin safe-area */}
-      <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 84px)', zIndex:10, background:'rgba(13,27,42,0.98)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
+      <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 52px)', zIndex:10, background:'rgba(13,27,42,0.98)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
 
         {/* Fila 1: back + nombre + mes actual */}
         <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px 4px', borderBottom:'1px solid #1A2E45' }}>

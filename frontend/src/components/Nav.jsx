@@ -2,52 +2,60 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const NAV_ITEMS = [
-  {
-    to: '/',
-    exact: true,
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 9H4.5a2.5 2.5 0 000 5H6"/><path d="M18 9h1.5a2.5 2.5 0 010 5H18"/>
-        <path d="M8 9h8"/><path d="M8 15h8"/><path d="M8 5v14"/><path d="M16 5v14"/>
-      </svg>
-    ),
-    label: 'Competencias',
-    emoji: '🏆',
-  },
-  {
-    to: '/actividades',
-    exact: false,
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-      </svg>
-    ),
-    label: 'Mis actividades',
-    emoji: '📋',
-  },
-];
-
 const BG = '#0D1B2A';
 
+// SVG icons para nav items principales
+const IconCompetencias = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9H4.5a2.5 2.5 0 000 5H6"/><path d="M18 9h1.5a2.5 2.5 0 010 5H18"/>
+    <path d="M8 9h8"/><path d="M8 15h8"/><path d="M8 5v14"/><path d="M16 5v14"/>
+  </svg>
+);
+const IconActividades = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+  </svg>
+);
+const IconPlus = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <path d="M12 5v14M5 12h14"/>
+  </svg>
+);
+const IconLogout = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+);
+
+// SVG icons para los tabs de competencia
+const TAB_ICONS = {
+  ranking:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>,
+  podio:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 000 5H6"/><path d="M18 9h1.5a2.5 2.5 0 010 5H18"/><path d="M8 9h8"/><path d="M8 15h8"/><path d="M8 5v14"/><path d="M16 5v14"/></svg>,
+  calendar:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  evolucion: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
+  carrera:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
+  deportes:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>,
+  records:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  comparar:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>,
+  insights:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+};
+
 const COMP_TABS = [
-  { id: 'ranking',  icon: '📊', label: 'Ranking' },
-  { id: 'podio',    icon: '🏆', label: 'Podio' },
-  { id: 'calendar', icon: '📅', label: 'Calendario' },
-  { id: 'evolucion',icon: '📈', label: 'Evolución' },
-  { id: 'carrera',  icon: '🏁', label: 'Carrera' },
-  { id: 'deportes', icon: '🏅', label: 'Deportes' },
-  { id: 'records',  icon: '🔥', label: 'Récords' },
-  { id: 'comparar', icon: '⚔️', label: 'Comparar' },
-  { id: 'insights', icon: '💡', label: 'Insights' },
+  { id: 'ranking',   label: 'Ranking' },
+  { id: 'podio',     label: 'Podio' },
+  { id: 'calendar',  label: 'Calendario' },
+  { id: 'evolucion', label: 'Evolución' },
+  { id: 'carrera',   label: 'Carrera' },
+  { id: 'deportes',  label: 'Deportes' },
+  { id: 'records',   label: 'Récords' },
+  { id: 'comparar',  label: 'Comparar' },
+  { id: 'insights',  label: 'Insights' },
 ];
 
 export default function Nav({ onNewActivity, showTabs, tab, onTab }) {
-  const { user, logout }    = useAuth();
+  const { user, logout }      = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [headerH, setHeaderH] = useState(52);
   const drawerRef = useRef(null);
-  const headerRef = useRef(null);
   const location  = useLocation();
 
   useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
@@ -70,197 +78,143 @@ export default function Nav({ onNewActivity, showTabs, tab, onTab }) {
     return () => { document.body.style.overflow = ''; };
   }, [drawerOpen]);
 
-  // Mide la altura real del header para posicionar el drawer
-  useEffect(() => {
-    if (!headerRef.current) return;
-    const ro = new ResizeObserver(() => {
-      setHeaderH(headerRef.current?.offsetHeight ?? 52);
-    });
-    ro.observe(headerRef.current);
-    setHeaderH(headerRef.current.offsetHeight);
-    return () => ro.disconnect();
-  }, [showTabs]);
-
   return (
     <>
-      {/*
-        Bloque fijo que cubre el status bar del sistema operativo.
-        Ocupa exactamente env(safe-area-inset-top) de altura, el mismo
-        color que el header, pegado al tope absoluto de la pantalla.
-        Esto garantiza que no haya ningún color distinto visible arriba.
-      */}
-      <div style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0,
-        height: 'env(safe-area-inset-top)',
-        background: BG,
-        zIndex: 51,
-      }} />
+      {/* Cubre el status bar del sistema con el mismo color de fondo */}
+      <div style={{ position:'fixed', top:0, left:0, right:0, height:'env(safe-area-inset-top)', background:BG, zIndex:51 }} />
 
-      {/* ── TOP HEADER ─────────────────────────────────────────────── */}
-      <header ref={headerRef} style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
+      {/* ── HEADER ───────────────────────────────────────────────────── */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        height: 52,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px',
         background: BG,
         borderBottom: '1px solid #243D57',
         marginTop: 'env(safe-area-inset-top)',
       }}>
-        {/* Fila principal: brand + hamburger */}
-        <div style={{ height: 52, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px' }}>
-          {/* Brand */}
-          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'#38BDF8', flexShrink:0 }}>
-            Nanão Cup 🏆
-          </span>
+        <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'#38BDF8' }}>
+          Nanão Cup
+        </span>
 
-          {/* Botón hamburger */}
-          <button
-            onClick={() => setDrawerOpen(o => !o)}
-            aria-label="Menú"
-            style={{ display:'flex', flexDirection:'column', justifyContent:'center', gap:5, width:36, height:36, padding:6, borderRadius:8, background:'transparent', border:'none', cursor:'pointer', flexShrink:0 }}>
-            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(7px) rotate(45deg)' : 'none' }} />
-            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', opacity: drawerOpen ? 0 : 1, transform: drawerOpen ? 'scaleX(0)' : 'none' }} />
-            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(-7px) rotate(-45deg)' : 'none' }} />
-          </button>
+        {/* Hamburger — solo 3 rayas, sin animación a X */}
+        <button
+          onClick={() => setDrawerOpen(o => !o)}
+          aria-label="Menú"
+          style={{ display:'flex', flexDirection:'column', justifyContent:'center', gap:5, width:36, height:36, padding:6, borderRadius:8, background:'transparent', border:'none', cursor:'pointer' }}>
+          <span style={{ display:'block', height:2, background:'#E8F0FE', borderRadius:2 }} />
+          <span style={{ display:'block', height:2, background:'#E8F0FE', borderRadius:2 }} />
+          <span style={{ display:'block', height:2, background:'#E8F0FE', borderRadius:2 }} />
+        </button>
+      </header>
+
+      {/* ── OVERLAY ──────────────────────────────────────────────────── */}
+      <div onClick={() => setDrawerOpen(false)} style={{
+        position:'fixed', inset:0, zIndex:49,
+        background:'rgba(5,12,20,0.55)',
+        backdropFilter:'blur(2px)', WebkitBackdropFilter:'blur(2px)',
+        opacity: drawerOpen ? 1 : 0,
+        pointerEvents: drawerOpen ? 'all' : 'none',
+        transition:'opacity 0.22s',
+      }} />
+
+      {/* ── DRAWER ───────────────────────────────────────────────────── */}
+      <div ref={drawerRef} style={{
+        position: 'fixed',
+        top: 'calc(env(safe-area-inset-top) + 52px)',
+        left: 0, right: 0, zIndex: 50,
+        background: '#0D1B2A',
+        borderBottom: '1px solid #243D57',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+        transform: drawerOpen ? 'translateY(0)' : 'translateY(-105%)',
+        transition: 'transform 0.26s cubic-bezier(0.22,1,0.36,1)',
+        paddingBottom: 8,
+        maxHeight: 'calc(100dvh - env(safe-area-inset-top) - 52px)',
+        overflowY: 'auto',
+      }}>
+
+        {/* Usuario */}
+        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 20px 12px', borderBottom:'1px solid #1A2E45' }}>
+          <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(56,189,248,0.12)', border:'1px solid rgba(56,189,248,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'#38BDF8', flexShrink:0 }}>
+            {user?.nombre?.charAt(0).toUpperCase()}
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.04em', color:'#E8F0FE', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {user?.nombre}
+            </div>
+            <div style={{ fontSize:11, color:'#7A9BBF' }}>{user?.email}</div>
+          </div>
         </div>
 
-        {/* Fila de tabs de competencia (solo cuando hay una activa) */}
+        {/* ── Navegación principal ── */}
+        <div style={{ padding:'6px 0 0' }}>
+          <div style={{ padding:'5px 20px 3px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'#4A6A8A' }}>
+            Navegación
+          </div>
+          <NavLink to="/" end
+            onClick={() => setDrawerOpen(false)}
+            style={({ isActive }) => ({
+              display:'flex', alignItems:'center', gap:12, padding:'11px 20px',
+              fontSize:14, fontWeight:600, textDecoration:'none',
+              color: isActive ? '#38BDF8' : '#E8F0FE',
+              background: isActive ? 'rgba(56,189,248,0.07)' : 'transparent',
+              borderLeft: `3px solid ${isActive ? '#38BDF8' : 'transparent'}`,
+            })}>
+            <span style={{ color:'inherit', flexShrink:0 }}><IconCompetencias /></span>
+            Competencias
+          </NavLink>
+          <NavLink to="/actividades"
+            onClick={() => setDrawerOpen(false)}
+            style={({ isActive }) => ({
+              display:'flex', alignItems:'center', gap:12, padding:'11px 20px',
+              fontSize:14, fontWeight:600, textDecoration:'none',
+              color: isActive ? '#38BDF8' : '#E8F0FE',
+              background: isActive ? 'rgba(56,189,248,0.07)' : 'transparent',
+              borderLeft: `3px solid ${isActive ? '#38BDF8' : 'transparent'}`,
+            })}>
+            <span style={{ color:'inherit', flexShrink:0 }}><IconActividades /></span>
+            Mis actividades
+          </NavLink>
+        </div>
+
+        {/* ── Secciones de competencia (solo si hay una activa) ── */}
         {showTabs && (
-          <div style={{ display:'flex', overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', borderTop:'1px solid #1A2E45' }}>
-            <style>{`.ctabs::-webkit-scrollbar{display:none}`}</style>
+          <div style={{ padding:'6px 0 0', borderTop:'1px solid #1A2E45', marginTop:4 }}>
+            <div style={{ padding:'5px 20px 3px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'#4A6A8A' }}>
+              Vista
+            </div>
             {COMP_TABS.map(t => (
-              <button key={t.id} onClick={() => onTab(t.id)}
-                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'5px 14px', fontSize:10, fontWeight:700, whiteSpace:'nowrap', border:'none', borderBottom: tab===t.id ? '2px solid #38BDF8' : '2px solid transparent', background: tab===t.id ? 'rgba(56,189,248,0.06)' : 'transparent', color: tab===t.id ? '#38BDF8' : '#7A9BBF', cursor:'pointer', flexShrink:0, transition:'color 0.15s, background 0.15s', letterSpacing:'0.02em', textTransform:'uppercase' }}>
-                <span style={{ fontSize:14 }}>{t.icon}</span>
+              <button key={t.id}
+                onClick={() => { onTab(t.id); setDrawerOpen(false); }}
+                style={{
+                  display:'flex', alignItems:'center', gap:12, padding:'11px 20px',
+                  width:'100%', fontSize:14, fontWeight:600, textAlign:'left',
+                  border:'none', cursor:'pointer',
+                  color: tab===t.id ? '#38BDF8' : '#E8F0FE',
+                  background: tab===t.id ? 'rgba(56,189,248,0.07)' : 'transparent',
+                  borderLeft: `3px solid ${tab===t.id ? '#38BDF8' : 'transparent'}`,
+                }}>
+                <span style={{ color:'inherit', flexShrink:0 }}>{TAB_ICONS[t.id]}</span>
                 {t.label}
               </button>
             ))}
           </div>
         )}
-      </header>
 
-      {/* ── DRAWER OVERLAY ─────────────────────────────────────────── */}
-      <div
-        onClick={() => setDrawerOpen(false)}
-        style={{
-          position: 'fixed', inset: 0, zIndex: 49,
-          background: 'rgba(5,12,20,0.5)',
-          backdropFilter: 'blur(2px)',
-          WebkitBackdropFilter: 'blur(2px)',
-          opacity: drawerOpen ? 1 : 0,
-          pointerEvents: drawerOpen ? 'all' : 'none',
-          transition: 'opacity 0.25s',
-        }}
-      />
-
-      {/* ── DRAWER PANEL ───────────────────────────────────────────── */}
-      <div
-        ref={drawerRef}
-        style={{
-          position: 'fixed',
-          top: `calc(env(safe-area-inset-top) + ${headerH}px)`,
-          left: 0, right: 0, zIndex: 50,
-          background: 'rgba(13,27,42,0.98)',
-          borderBottom: '1px solid #243D57',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
-          transform: drawerOpen ? 'translateY(0)' : 'translateY(-110%)',
-          transition: 'transform 0.28s cubic-bezier(0.22,1,0.36,1)',
-          paddingTop: 8,
-          paddingBottom: 12,
-        }}>
-
-        {/* Usuario */}
-        <div style={{ padding:'10px 20px 14px', borderBottom:'1px solid #243D57', marginBottom:6, display:'flex', alignItems:'center', gap:12 }}>
-          <div style={{ width:40, height:40, borderRadius:'50%', background:'rgba(56,189,248,0.15)', border:'1px solid rgba(56,189,248,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:18, color:'#38BDF8', flexShrink:0 }}>
-            {user?.nombre?.charAt(0).toUpperCase()}
-          </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.04em', color:'#E8F0FE', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-              {user?.nombre}
-            </div>
-            <div style={{ fontSize:11, color:'#7A9BBF', marginTop:1 }}>{user?.email}</div>
-          </div>
-        </div>
-
-        {/* Links */}
-        {NAV_ITEMS.map(item => (
-          <NavLink key={item.to} to={item.to} end={item.exact}
-            style={({ isActive }) => ({
-              display: 'flex', alignItems: 'center', gap: 14,
-              padding: '13px 20px',
-              fontSize: 15, fontWeight: 600,
-              color: isActive ? '#38BDF8' : '#E8F0FE',
-              background: isActive ? 'rgba(56,189,248,0.07)' : 'transparent',
-              borderLeft: `3px solid ${isActive ? '#38BDF8' : 'transparent'}`,
-              textDecoration: 'none',
-              transition: 'all 0.15s',
-            })}>
-            <span style={{ fontSize: 20, width: 24, textAlign: 'center', flexShrink: 0 }}>{item.emoji}</span>
-            {item.label}
-          </NavLink>
-        ))}
-
-        <div style={{ height:1, background:'#243D57', margin:'6px 20px' }} />
-
-        <button onClick={() => { setDrawerOpen(false); onNewActivity(); }}
-          style={{ display:'flex', alignItems:'center', gap:14, padding:'13px 20px', width:'100%', fontSize:15, fontWeight:600, color:'#38BDF8', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' }}>
-          <span style={{ fontSize:20, width:24, textAlign:'center', flexShrink:0 }}>➕</span>
-          Registrar actividad
-        </button>
-
-        <div style={{ height:1, background:'#243D57', margin:'6px 20px' }} />
-
-        <button onClick={() => { setDrawerOpen(false); logout(); }}
-          style={{ display:'flex', alignItems:'center', gap:14, padding:'13px 20px', width:'100%', fontSize:15, fontWeight:600, color:'#7A9BBF', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' }}>
-          <span style={{ fontSize:20, width:24, textAlign:'center', flexShrink:0 }}>🚪</span>
-          Cerrar sesión
-        </button>
-      </div>
-
-      {/* ── BOTTOM TAB BAR ─────────────────────────────────────────── */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 48,
-        display: 'flex', alignItems: 'stretch',
-        background: BG,
-        borderTop: '1px solid #243D57',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-      }}>
-        {NAV_ITEMS.map((item, idx) => (
-          <NavLink key={item.to} to={item.to} end={item.exact}
-            style={({ isActive }) => ({
-              flex: 1,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              gap: 4, paddingTop: 10, paddingBottom: 10,
-              fontSize: 10, fontWeight: 600,
-              color: isActive ? '#38BDF8' : '#7A9BBF',
-              textDecoration: 'none',
-              transition: 'color 0.15s',
-              ...(idx === 0 ? { marginRight: 8 } : { marginLeft: 8 }),
-            })}>
-            {({ isActive }) => (
-              <>
-                <span style={{ color: isActive ? '#38BDF8' : '#7A9BBF', transition:'color 0.15s' }}>{item.icon}</span>
-                <span>{item.label}</span>
-              </>
-            )}
-          </NavLink>
-        ))}
-
-        {/* Botón + central */}
-        <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', top:0, height:'100%', display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-          <button onClick={onNewActivity}
-            style={{ width:56, height:56, borderRadius:'50%', background:'#38BDF8', color:'#0D1B2A', fontSize:26, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', border:'none', cursor:'pointer', marginTop:-20, boxShadow:'0 4px 20px rgba(56,189,248,0.45)', pointerEvents:'all', WebkitTapHighlightColor:'transparent' }}
-            onTouchStart={e => { e.currentTarget.style.transform='scale(0.93)'; }}
-            onTouchEnd={e => { e.currentTarget.style.transform='scale(1)'; }}>
-            +
+        {/* ── Acciones ── */}
+        <div style={{ borderTop:'1px solid #1A2E45', marginTop:4, padding:'6px 0 0' }}>
+          <button onClick={() => { setDrawerOpen(false); onNewActivity(); }}
+            style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 20px', width:'100%', fontSize:14, fontWeight:600, color:'#38BDF8', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', borderLeft:'3px solid transparent' }}>
+            <IconPlus />
+            Registrar actividad
+          </button>
+          <button onClick={() => { setDrawerOpen(false); logout(); }}
+            style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 20px', width:'100%', fontSize:14, fontWeight:600, color:'#7A9BBF', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', borderLeft:'3px solid transparent' }}>
+            <IconLogout />
+            Cerrar sesión
           </button>
         </div>
-      </nav>
-
-      {/* Spacer bottom */}
-      <div style={{ height:'calc(68px + env(safe-area-inset-bottom))', flexShrink:0, pointerEvents:'none' }} />
+      </div>
     </>
   );
 }
