@@ -37,12 +37,12 @@ export default function Ranking() {
   return (
     <div className="flex flex-col min-h-0">
       {/* Header sticky */}
-      <div className="sticky z-10 px-4 pt-5 pb-3" style={{ top: '52px', background: '#0D1B2A' }}>
-        <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#38BDF8' }}>
+      <div className="sticky z-10 px-4 pt-5 pb-3" style={{ top: '52px', background: 'var(--t-ground)' }}>
+        <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--t-accent)' }}>
           Tabla de posiciones
         </div>
         <div className="font-bold uppercase leading-none mb-4"
-             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(26px,7vw,38px)' }}>
+             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(26px,7vw,38px)', color: 'var(--t-text)' }}>
           {mesLabel}
         </div>
 
@@ -55,9 +55,9 @@ export default function Ranking() {
             <button key={val} onClick={() => setMes(val)}
               className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all shrink-0"
               style={{
-                background:   mes === val ? 'rgba(56,189,248,0.15)' : 'transparent',
-                borderColor:  mes === val ? '#38BDF8' : '#243D57',
-                color:        mes === val ? '#38BDF8' : '#7A9BBF',
+                background:   mes === val ? 'rgba(var(--t-accent-r),0.15)' : 'transparent',
+                borderColor:  mes === val ? 'var(--t-accent)' : 'var(--t-dim)',
+                color:        mes === val ? 'var(--t-accent)' : 'var(--t-muted)',
               }}>
               {label}
             </button>
@@ -68,14 +68,14 @@ export default function Ranking() {
       {/* Lista */}
       <div className="px-4 pb-6 flex flex-col gap-3">
         {loading ? (
-          <div className="flex items-center justify-center gap-3 py-24 text-sm" style={{ color: '#7A9BBF' }}>
-            <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: '#243D57', borderTopColor: '#38BDF8' }} />
+          <div className="flex items-center justify-center gap-3 py-24 text-sm" style={{ color: 'var(--t-muted)' }}>
+            <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--t-dim)', borderTopColor: 'var(--t-accent)' }} />
             Cargando…
           </div>
         ) : ranking.length === 0 ? (
-          <div className="text-center py-24" style={{ color: '#7A9BBF' }}>
+          <div className="text-center py-24" style={{ color: 'var(--t-muted)' }}>
             <div className="text-5xl mb-4">🏁</div>
-            <div className="font-bold text-xl uppercase mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: '#E8F0FE' }}>
+            <div className="font-bold text-xl uppercase mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: 'var(--t-text)' }}>
               Sin registros
             </div>
             <div className="text-sm">Cargá actividades para ver el ranking.</div>
@@ -89,13 +89,13 @@ export default function Ranking() {
               <div key={p.id}
                 className="rounded-2xl border p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
                 style={{
-                  background:   isTop ? 'rgba(56,189,248,0.05)' : '#132236',
-                  borderColor:  isTop ? 'rgba(56,189,248,0.35)' : '#243D57',
+                  background:   isTop ? 'rgba(var(--t-accent-r),0.05)' : 'var(--t-surface)',
+                  borderColor:  isTop ? 'rgba(var(--t-accent-r),0.35)' : 'var(--t-dim)',
                 }}>
 
                 {/* Posición */}
                 <div className="font-bold text-4xl w-9 text-center shrink-0 leading-none"
-                     style={{ fontFamily: "'Barlow Condensed', sans-serif", color: '#7A9BBF', opacity: 0.35 }}>
+                     style={{ fontFamily: "'Barlow Condensed', sans-serif", color: 'var(--t-muted)', opacity: 0.35 }}>
                   {i + 1}
                 </div>
 
@@ -108,20 +108,20 @@ export default function Ranking() {
                       {p.nombre}
                     </div>
                   </div>
-                  <div className="text-xs mb-2" style={{ color: '#7A9BBF', fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div className="text-xs mb-2" style={{ color: 'var(--t-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
                     {p.actividades} act · {Math.round(p.minutos).toLocaleString('es')} min
                   </div>
-                  <div className="h-1.5 rounded-full" style={{ background: '#243D57' }}>
+                  <div className="h-1.5 rounded-full" style={{ background: 'var(--t-dim)' }}>
                     <div className="h-full rounded-full" style={{ width: pct + '%', background: color }} />
                   </div>
                 </div>
 
                 {/* Puntos */}
                 <div className="text-right shrink-0 pl-2">
-                  <div className="font-bold leading-none" style={{ fontFamily: "'JetBrains Mono', monospace", color: '#38BDF8', fontSize: '22px' }}>
+                  <div className="font-bold leading-none" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--t-accent)', fontSize: '22px' }}>
                     {Math.round(p.puntos).toLocaleString('es')}
                   </div>
-                  <div className="text-xs mt-1" style={{ color: '#7A9BBF' }}>pts</div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--t-muted)' }}>pts</div>
                 </div>
               </div>
             );

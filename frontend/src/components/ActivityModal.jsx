@@ -218,7 +218,7 @@ export default function ActivityModal({ open, onClose, onCreated }) {
 
           {/* Preview puntos */}
           {pts !== null && (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderRadius:10, background:'rgba(56,189,248,0.07)', border:'1px solid rgba(56,189,248,0.18)' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderRadius:10, background:'rgba(var(--t-accent-r),0.07)', border:'1px solid rgba(var(--t-accent-r),0.18)' }}>
               <span style={{ fontSize:12, color:'var(--t-muted)', fontWeight:600 }}>Puntos estimados</span>
               <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-accent)' }}>
                 {pts}

@@ -165,7 +165,7 @@ function Ranking({ acts, nombres, myId, onOpenProfile }) {
         return (
           <div key={p.nombre}
             onClick={() => onOpenProfile(p.nombre, acts)}
-            style={{ background: isTop ? 'rgba(56,189,248,0.05)' : 'var(--t-surface)', border:'1px solid', borderColor: isTop ? 'rgba(56,189,248,0.35)' : 'var(--t-dim)', borderRadius:14, padding:'12px 14px', display:'flex', alignItems:'center', gap:10, cursor:'pointer', transition:'transform 0.1s', WebkitTapHighlightColor:'transparent' }}>
+            style={{ background: isTop ? 'rgba(var(--t-accent-r),0.05)' : 'var(--t-surface)', border:'1px solid', borderColor: isTop ? 'rgba(var(--t-accent-r),0.35)' : 'var(--t-dim)', borderRadius:14, padding:'12px 14px', display:'flex', alignItems:'center', gap:10, cursor:'pointer', transition:'transform 0.1s', WebkitTapHighlightColor:'transparent' }}>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'var(--t-muted)', opacity:0.4, width:28, textAlign:'center', flexShrink:0 }}>{i+1}</div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:2 }}>
@@ -311,8 +311,8 @@ function Calendario({ acts, mes, meses, onMes }) {
                 style={{
                   aspectRatio: '1',
                   borderRadius: 6,
-                  background: isSel ? 'rgba(56,189,248,0.12)' : hasActs ? 'var(--t-surface2)' : 'transparent',
-                  border: `1px solid ${isSel ? 'var(--t-accent)' : isToday ? 'rgba(56,189,248,0.5)' : hasActs ? 'var(--t-dim)' : 'transparent'}`,
+                  background: isSel ? 'rgba(var(--t-accent-r),0.12)' : hasActs ? 'var(--t-surface2)' : 'transparent',
+                  border: `1px solid ${isSel ? 'var(--t-accent)' : isToday ? 'rgba(var(--t-accent-r),0.5)' : hasActs ? 'var(--t-dim)' : 'transparent'}`,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                   position: 'relative', overflow: 'hidden',
                   cursor: hasActs ? 'pointer' : 'default',
@@ -600,7 +600,7 @@ function Carrera({ acts, nombres }) {
     <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:16 }}>
       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, flexWrap:'wrap' }}>
         <button onClick={() => { if (frame>=allDates.length-1) setFrame(0); setPlaying(p=>!p); }}
-          style={{ width:36, height:36, border:'1px solid rgba(56,189,248,0.35)', background:'rgba(56,189,248,0.12)', color:'var(--t-accent)', borderRadius:8, fontSize:17, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+          style={{ width:36, height:36, border:'1px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.12)', color:'var(--t-accent)', borderRadius:8, fontSize:17, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
           {playing ? '⏸' : '▷'}
         </button>
         <button onClick={() => { setPlaying(false); setFrame(0); }}
@@ -1085,7 +1085,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* ── SUBHEADER STICKY ───────────────────────────────────────────── */}
-      <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 52px)', zIndex:10, background:'rgba(13,27,42,0.98)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
+      <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 52px)', zIndex:10, background:'var(--t-ground)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
 
         {/* Fila 1: back + nombre + mes actual */}
         <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
@@ -1114,7 +1114,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
               return { val:m, label: MONTHS_ES[parseInt(mo)-1].slice(0,3).toUpperCase()+' '+y.slice(2) };
             })].map(({ val, label }) => (
               <button key={val} onClick={() => setMes(val)}
-                style={{ padding:'2px 9px', borderRadius:12, fontSize:11, fontWeight:700, whiteSpace:'nowrap', flexShrink:0, border:'none', cursor:'pointer', transition:'all 0.15s', background: mes===val ? 'rgba(56,189,248,0.18)' : 'transparent', color: mes===val ? 'var(--t-accent)' : 'var(--t-muted)' }}>
+                style={{ padding:'2px 9px', borderRadius:12, fontSize:11, fontWeight:700, whiteSpace:'nowrap', flexShrink:0, border:'none', cursor:'pointer', transition:'all 0.15s', background: mes===val ? 'rgba(var(--t-accent-r),0.18)' : 'transparent', color: mes===val ? 'var(--t-accent)' : 'var(--t-muted)' }}>
                 {label}
               </button>
             ))}

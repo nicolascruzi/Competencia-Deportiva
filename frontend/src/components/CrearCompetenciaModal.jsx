@@ -48,7 +48,7 @@ function PinDisplay({ nombre, pin, onClose }) {
 
           {/* PIN grande */}
           <div className="rounded-2xl px-8 py-6 text-center w-full"
-               style={{ background: 'rgba(56,189,248,0.08)', border: '2px solid rgba(56,189,248,0.3)' }}>
+               style={{ background: 'rgba(var(--t-accent-r),0.08)', border: '2px solid rgba(var(--t-accent-r),0.3)' }}>
             <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--t-muted)' }}>
               PIN de acceso
             </div>

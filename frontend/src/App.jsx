@@ -24,8 +24,8 @@ function AppShell() {
 
   if (loading) {
     return (
-      <div style={{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', background:'#0D1B2A' }}>
-        <div style={{ width:24, height:24, borderRadius:'50%', border:'2px solid #243D57', borderTopColor:'#38BDF8', animation:'spin 0.7s linear infinite' }} />
+      <div style={{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--t-ground)' }}>
+        <div style={{ width:24, height:24, borderRadius:'50%', border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', animation:'spin 0.7s linear infinite' }} />
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );

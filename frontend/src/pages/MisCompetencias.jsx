@@ -36,7 +36,7 @@ export default function MisCompetencias({ onSelect }) {
         <div style={{ display:'flex', gap:10, marginTop:18 }}>
           <button
             onClick={() => setCrearOpen(true)}
-            style={{ flex:1, padding:'14px 0', borderRadius:14, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.04em', background:'var(--t-accent)', color:'var(--t-ground)', border:'none', cursor:'pointer', boxShadow:'0 4px 16px rgba(56,189,248,0.35)', WebkitTapHighlightColor:'transparent' }}
+            style={{ flex:1, padding:'14px 0', borderRadius:14, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.04em', background:'var(--t-accent)', color:'var(--t-ground)', border:'none', cursor:'pointer', boxShadow:'0 4px 16px rgba(var(--t-accent-r),0.35)', WebkitTapHighlightColor:'transparent' }}
             onTouchStart={e => e.currentTarget.style.transform='scale(0.97)'}
             onTouchEnd={e => e.currentTarget.style.transform='scale(1)'}>
             + Crear
@@ -77,7 +77,7 @@ export default function MisCompetencias({ onSelect }) {
               onTouchEnd={e => { e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.borderColor='var(--t-dim)'; }}>
 
               {/* Icono */}
-              <div style={{ width:50, height:50, borderRadius:14, background:'rgba(56,189,248,0.1)', border:'1px solid rgba(56,189,248,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>
+              <div style={{ width:50, height:50, borderRadius:14, background:'rgba(var(--t-accent-r),0.1)', border:'1px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>
                 🏆
               </div>
 
@@ -92,7 +92,7 @@ export default function MisCompetencias({ onSelect }) {
                   <span>por {c.creador_nombre}</span>
                 </div>
                 {/* PIN */}
-                <div style={{ marginTop:6, display:'inline-flex', alignItems:'center', gap:5, background:'rgba(56,189,248,0.06)', border:'1px solid rgba(56,189,248,0.15)', borderRadius:8, padding:'3px 8px' }}>
+                <div style={{ marginTop:6, display:'inline-flex', alignItems:'center', gap:5, background:'rgba(var(--t-accent-r),0.06)', border:'1px solid rgba(var(--t-accent-r),0.15)', borderRadius:8, padding:'3px 8px' }}>
                   <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--t-muted)' }}>PIN</span>
                   <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:13, color:'var(--t-accent)', letterSpacing:'0.12em' }}>{c.pin}</span>
                 </div>
