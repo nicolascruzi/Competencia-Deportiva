@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { joinCompetencia } from '../api/competencias';
 
 const inputStyle = {
-  background: '#1A2E45', border: '1px solid',
-  color: '#E8F0FE', padding: '16px', borderRadius: '16px',
+  background: 'var(--t-surface2)', border: '1px solid',
+  color: 'var(--t-text)', padding: '16px', borderRadius: '16px',
   fontSize: '32px', outline: 'none', textAlign: 'center',
   fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.4em',
   width: '100%',
@@ -38,10 +38,10 @@ export default function UnirseCompetenciaModal({ open, onClose, onJoined }) {
          onClick={e => e.target === e.currentTarget && onClose()}>
 
       <div className="w-full rounded-t-3xl flex flex-col"
-           style={{ background: '#132236', border: '1px solid #243D57', borderBottom: 'none' }}>
+           style={{ background: 'var(--t-surface)', border: '1px solid var(--t-dim)', borderBottom: 'none' }}>
 
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: '#243D57' }} />
+          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--t-dim)' }} />
         </div>
 
         <div className="px-5 pb-2 pt-3 flex items-center justify-between">
@@ -49,7 +49,7 @@ export default function UnirseCompetenciaModal({ open, onClose, onJoined }) {
                style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
             Unirse con PIN
           </div>
-          <button onClick={onClose} className="text-xl px-2 py-1" style={{ color: '#7A9BBF' }}>✕</button>
+          <button onClick={onClose} className="text-xl px-2 py-1" style={{ color: 'var(--t-muted)' }}>✕</button>
         </div>
 
         {error && (
@@ -63,14 +63,14 @@ export default function UnirseCompetenciaModal({ open, onClose, onJoined }) {
               style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' }}>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#7A9BBF' }}>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--t-muted)' }}>
               Ingresá el PIN de 6 dígitos
             </label>
             <input
               type="text" inputMode="numeric" maxLength={6} placeholder="000000"
               value={pin}
               onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              style={{ ...inputStyle, borderColor: focused ? '#38BDF8' : '#243D57' }}
+              style={{ ...inputStyle, borderColor: focused ? 'var(--t-accent)' : 'var(--t-dim)' }}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               autoFocus
@@ -79,7 +79,7 @@ export default function UnirseCompetenciaModal({ open, onClose, onJoined }) {
 
           <button type="submit" disabled={loading || pin.length !== 6}
             className="w-full py-4 rounded-2xl font-bold text-lg uppercase tracking-wide transition-opacity"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", background: '#38BDF8', color: '#0D1B2A', opacity: (loading || pin.length !== 6) ? 0.5 : 1 }}>
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", background: 'var(--t-accent)', color: 'var(--t-ground)', opacity: (loading || pin.length !== 6) ? 0.5 : 1 }}>
             {loading ? 'Uniéndose…' : 'Unirme'}
           </button>
         </form>

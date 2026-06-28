@@ -38,24 +38,24 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-5" style={{ background: '#0D1B2A' }}>
+    <div className="min-h-screen flex items-center justify-center p-5" style={{ background: 'var(--t-ground)' }}>
       <div className="w-full max-w-sm rounded-2xl border p-9 flex flex-col gap-6"
-           style={{ background: '#132236', borderColor: '#243D57' }}>
+           style={{ background: 'var(--t-surface)', borderColor: 'var(--t-dim)' }}>
 
         {/* Logo */}
         <div className="text-center font-bold text-3xl tracking-widest uppercase"
-             style={{ fontFamily: "'Barlow Condensed', sans-serif", color: '#38BDF8' }}>
+             style={{ fontFamily: "'Barlow Condensed', sans-serif", color: 'var(--t-accent)' }}>
           Nanão Cup 🏆
         </div>
 
         {/* Tabs */}
-        <div className="grid grid-cols-2 rounded-lg p-1 gap-1" style={{ background: '#1A2E45' }}>
+        <div className="grid grid-cols-2 rounded-lg p-1 gap-1" style={{ background: 'var(--t-surface2)' }}>
           {['login', 'register'].map(t => (
             <button key={t} onClick={() => { setTab(t); setError(''); }}
               className="py-2 rounded-md text-sm font-semibold transition-all"
               style={{
-                background: tab === t ? '#243D57' : 'transparent',
-                color: tab === t ? '#E8F0FE' : '#7A9BBF',
+                background: tab === t ? 'var(--t-dim)' : 'transparent',
+                color: tab === t ? 'var(--t-text)' : 'var(--t-muted)',
               }}>
               {t === 'login' ? 'Ingresar' : 'Registrarse'}
             </button>
@@ -115,7 +115,7 @@ export default function Login() {
 function Field({ label, children }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#7A9BBF' }}>{label}</label>
+      <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--t-muted)' }}>{label}</label>
       <div style={{ all: 'unset', display: 'contents' }}>
         {/* clone input with styles */}
         {children && (
@@ -133,17 +133,17 @@ function StyledInput({ children }) {
       <style>{`
         .auth-input-wrap input {
           width: 100%;
-          background: #1A2E45;
-          border: 1px solid #243D57;
-          color: #E8F0FE;
+          background: var(--t-surface2);
+          border: 1px solid var(--t-dim);
+          color: var(--t-text);
           padding: 10px 12px;
           border-radius: 8px;
           font-size: 14px;
           outline: none;
           transition: border-color 0.15s;
         }
-        .auth-input-wrap input:focus { border-color: #38BDF8; }
-        .auth-input-wrap input::placeholder { color: #7A9BBF; }
+        .auth-input-wrap input:focus { border-color: var(--t-accent); }
+        .auth-input-wrap input::placeholder { color: var(--t-muted); }
       `}</style>
       <div className="auth-input-wrap">{children}</div>
     </div>
@@ -156,7 +156,7 @@ function SubmitBtn({ children, loading }) {
       className="w-full py-3 rounded-lg font-bold text-base uppercase tracking-wider transition-opacity mt-1"
       style={{
         fontFamily: "'Barlow Condensed', sans-serif",
-        background: '#38BDF8', color: '#0D1B2A',
+        background: 'var(--t-accent)', color: 'var(--t-ground)',
         opacity: loading ? 0.7 : 1,
       }}>
       {loading ? 'Cargando…' : children}

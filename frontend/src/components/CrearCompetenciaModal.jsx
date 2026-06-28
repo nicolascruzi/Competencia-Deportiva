@@ -22,10 +22,10 @@ function PinDisplay({ nombre, pin, onClose }) {
     <div className="fixed inset-0 z-50 flex flex-col justify-end"
          style={{ background: 'rgba(5,12,20,0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full rounded-t-3xl flex flex-col items-center"
-           style={{ background: '#132236', border: '1px solid #243D57', borderBottom: 'none' }}>
+           style={{ background: 'var(--t-surface)', border: '1px solid var(--t-dim)', borderBottom: 'none' }}>
 
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: '#243D57' }} />
+          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--t-dim)' }} />
         </div>
 
         <div className="px-6 pt-4 pb-8 w-full flex flex-col items-center gap-6"
@@ -35,13 +35,13 @@ function PinDisplay({ nombre, pin, onClose }) {
 
           <div className="text-center">
             <div className="font-bold text-2xl uppercase mb-1"
-                 style={{ fontFamily: "'Barlow Condensed', sans-serif", color: '#E8F0FE' }}>
+                 style={{ fontFamily: "'Barlow Condensed', sans-serif", color: 'var(--t-text)' }}>
               ¡Competencia creada!
             </div>
-            <div className="text-sm" style={{ color: '#7A9BBF' }}>
+            <div className="text-sm" style={{ color: 'var(--t-muted)' }}>
               Compartí este PIN para que otros se unan a
             </div>
-            <div className="font-bold text-base mt-0.5" style={{ color: '#E8F0FE' }}>
+            <div className="font-bold text-base mt-0.5" style={{ color: 'var(--t-text)' }}>
               {nombre}
             </div>
           </div>
@@ -49,11 +49,11 @@ function PinDisplay({ nombre, pin, onClose }) {
           {/* PIN grande */}
           <div className="rounded-2xl px-8 py-6 text-center w-full"
                style={{ background: 'rgba(56,189,248,0.08)', border: '2px solid rgba(56,189,248,0.3)' }}>
-            <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#7A9BBF' }}>
+            <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--t-muted)' }}>
               PIN de acceso
             </div>
             <div className="font-bold tracking-[0.4em]"
-                 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '42px', color: '#38BDF8' }}>
+                 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '42px', color: 'var(--t-accent)' }}>
               {pin}
             </div>
           </div>
@@ -62,7 +62,7 @@ function PinDisplay({ nombre, pin, onClose }) {
           <div className="flex flex-col gap-3 w-full">
             <button onClick={copiar}
               className="w-full py-4 rounded-2xl font-bold text-base uppercase tracking-wide flex items-center justify-center gap-2 transition-all"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", background: copiado ? '#34D399' : '#38BDF8', color: '#0D1B2A' }}>
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", background: copiado ? '#34D399' : 'var(--t-accent)', color: 'var(--t-ground)' }}>
               {copiado ? '✓ Copiado!' : '📋 Copiar PIN'}
             </button>
 
@@ -74,7 +74,7 @@ function PinDisplay({ nombre, pin, onClose }) {
 
             <button onClick={onClose}
               className="w-full py-4 rounded-2xl font-bold text-base uppercase tracking-wide border"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", borderColor: '#243D57', color: '#7A9BBF', background: 'transparent' }}>
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", borderColor: 'var(--t-dim)', color: 'var(--t-muted)', background: 'transparent' }}>
               Ir a la competencia
             </button>
           </div>
@@ -87,8 +87,8 @@ function PinDisplay({ nombre, pin, onClose }) {
 // ─── Modal principal ──────────────────────────────────────────────────────────
 
 const inputStyle = {
-  width: '100%', background: '#1A2E45', border: '1px solid #243D57',
-  color: '#E8F0FE', padding: '12px 14px', borderRadius: '12px',
+  width: '100%', background: 'var(--t-surface2)', border: '1px solid var(--t-dim)',
+  color: 'var(--t-text)', padding: '12px 14px', borderRadius: '12px',
   fontSize: '16px', outline: 'none',
 };
 
@@ -144,10 +144,10 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
          onClick={e => e.target === e.currentTarget && onClose()}>
 
       <div className="w-full rounded-t-3xl flex flex-col"
-           style={{ background: '#132236', border: '1px solid #243D57', borderBottom: 'none', maxHeight: '92dvh', overflowY: 'auto' }}>
+           style={{ background: 'var(--t-surface)', border: '1px solid var(--t-dim)', borderBottom: 'none', maxHeight: '92dvh', overflowY: 'auto' }}>
 
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: '#243D57' }} />
+          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--t-dim)' }} />
         </div>
 
         <div className="px-5 pb-2 pt-3 flex items-center justify-between">
@@ -155,7 +155,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
                style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
             Nueva competencia
           </div>
-          <button onClick={onClose} className="text-xl px-2 py-1" style={{ color: '#7A9BBF' }}>✕</button>
+          <button onClick={onClose} className="text-xl px-2 py-1" style={{ color: 'var(--t-muted)' }}>✕</button>
         </div>
 
         {error && (
@@ -170,13 +170,13 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
 
           {/* Nombre */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#7A9BBF' }}>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--t-muted)' }}>
               Nombre de la competencia
             </label>
             <input
               type="text" required placeholder="Ej: Liga de verano 2026"
               value={nombre} onChange={e => setNombre(e.target.value)}
-              style={{ ...inputStyle, borderColor: focusedNombre ? '#38BDF8' : '#243D57' }}
+              style={{ ...inputStyle, borderColor: focusedNombre ? 'var(--t-accent)' : 'var(--t-dim)' }}
               onFocus={() => setFocusedNombre(true)}
               onBlur={() => setFocusedNombre(false)}
             />
@@ -184,10 +184,10 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
 
           {/* Ponderadores */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#7A9BBF' }}>
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--t-muted)' }}>
               Ponderadores por deporte
             </label>
-            <div className="text-xs mb-1" style={{ color: '#7A9BBF' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--t-muted)' }}>
               Los puntos = minutos × ponderador. Podés cambiarlo después.
             </div>
             <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
@@ -205,7 +205,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
 
           <button type="submit" disabled={loading}
             className="w-full py-4 rounded-2xl font-bold text-lg uppercase tracking-wide transition-opacity mt-1"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", background: '#38BDF8', color: '#0D1B2A', opacity: loading ? 0.7 : 1 }}>
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", background: 'var(--t-accent)', color: 'var(--t-ground)', opacity: loading ? 0.7 : 1 }}>
             {loading ? 'Creando…' : 'Crear competencia'}
           </button>
         </form>
@@ -218,17 +218,17 @@ function PonderadorRow({ deporte, icono, value, onChange }) {
   const [focused, setFocused] = useState(false);
   return (
     <div className="flex items-center gap-3 rounded-xl px-3 py-2"
-         style={{ background: '#1A2E45', border: '1px solid #243D57' }}>
+         style={{ background: 'var(--t-surface2)', border: '1px solid var(--t-dim)' }}>
       <span className="text-xl shrink-0">{icono}</span>
-      <span className="flex-1 text-sm font-medium truncate" style={{ color: '#E8F0FE' }}>{deporte}</span>
+      <span className="flex-1 text-sm font-medium truncate" style={{ color: 'var(--t-text)' }}>{deporte}</span>
       <input
         type="number" inputMode="decimal" min="0.1" step="0.1"
         value={value}
         onChange={e => onChange(e.target.value)}
         style={{
-          width: '64px', background: '#0D1B2A', border: '1px solid',
-          borderColor: focused ? '#38BDF8' : '#243D57',
-          color: '#38BDF8', padding: '6px 8px', borderRadius: '8px',
+          width: '64px', background: 'var(--t-ground)', border: '1px solid',
+          borderColor: focused ? 'var(--t-accent)' : 'var(--t-dim)',
+          color: 'var(--t-accent)', padding: '6px 8px', borderRadius: '8px',
           fontSize: '16px', outline: 'none', textAlign: 'center',
           fontFamily: "'JetBrains Mono', monospace",
         }}

@@ -4,8 +4,8 @@ import { uploadFoto } from '../api/fotos';
 
 const S = {
   input: {
-    width: '100%', background: '#1A2E45', border: '1px solid #243D57',
-    color: '#E8F0FE', padding: '9px 12px', borderRadius: '10px',
+    width: '100%', background: 'var(--t-surface2)', border: '1px solid var(--t-dim)',
+    color: 'var(--t-text)', padding: '9px 12px', borderRadius: '10px',
     fontSize: '16px', outline: 'none', boxSizing: 'border-box',
   },
 };
@@ -14,7 +14,7 @@ function Input({ style, ...props }) {
   const [focused, setFocused] = useState(false);
   return (
     <input {...props}
-      style={{ ...S.input, ...style, borderColor: focused ? '#38BDF8' : '#243D57' }}
+      style={{ ...S.input, ...style, borderColor: focused ? 'var(--t-accent)' : 'var(--t-dim)' }}
       onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
   );
 }
@@ -23,7 +23,7 @@ function Select({ children, style, ...props }) {
   const [focused, setFocused] = useState(false);
   return (
     <select {...props}
-      style={{ ...S.input, ...style, borderColor: focused ? '#38BDF8' : '#243D57', appearance: 'none', cursor: 'pointer' }}
+      style={{ ...S.input, ...style, borderColor: focused ? 'var(--t-accent)' : 'var(--t-dim)', appearance: 'none', cursor: 'pointer' }}
       onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
       {children}
     </select>
@@ -33,7 +33,7 @@ function Select({ children, style, ...props }) {
 function Field({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#7A9BBF' }}>
+      <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--t-muted)' }}>
         {label}
       </label>
       {children}
@@ -130,20 +130,20 @@ export default function ActivityModal({ open, onClose, onCreated }) {
       onClick={e => e.target === e.currentTarget && onClose()}
       style={{ position:'fixed', inset:0, zIndex:200, display:'flex', flexDirection:'column', justifyContent:'flex-end', background:'rgba(5,12,20,0.72)', backdropFilter:'blur(5px)', WebkitBackdropFilter:'blur(5px)' }}>
 
-      <div style={{ background:'#132236', borderRadius:'20px 20px 0 0', border:'1px solid #243D57', borderBottom:'none', maxHeight:'92dvh', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
+      <div style={{ background:'var(--t-surface)', borderRadius:'20px 20px 0 0', border:'1px solid var(--t-dim)', borderBottom:'none', maxHeight:'92dvh', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
 
         {/* Handle */}
         <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 6px' }}>
-          <div style={{ width:36, height:3, borderRadius:2, background:'#243D57' }} />
+          <div style={{ width:36, height:3, borderRadius:2, background:'var(--t-dim)' }} />
         </div>
 
         {/* Cabecera */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px 10px' }}>
-          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, textTransform:'uppercase', letterSpacing:'0.04em', color:'#E8F0FE' }}>
+          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-text)' }}>
             Nueva actividad
           </span>
           <button onClick={onClose}
-            style={{ width:30, height:30, borderRadius:8, border:'1px solid #243D57', background:'transparent', color:'#7A9BBF', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
             ✕
           </button>
         </div>
@@ -202,13 +202,13 @@ export default function ActivityModal({ open, onClose, onCreated }) {
               </div>
             ) : (
               <button type="button" onClick={() => fileInputRef.current?.click()}
-                style={{ width:'100%', padding:'12px 16px', borderRadius:10, border:'1px dashed #243D57', background:'transparent', color:'#7A9BBF', cursor:'pointer', display:'flex', alignItems:'center', gap:10, transition:'border-color 0.15s' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor='#38BDF8'}
-                onMouseLeave={e => e.currentTarget.style.borderColor='#243D57'}>
-                <span style={{ color:'#4A6A8A', flexShrink:0 }}><IconCamera /></span>
+                style={{ width:'100%', padding:'12px 16px', borderRadius:10, border:'1px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', gap:10, transition:'border-color 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor='var(--t-accent)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor='var(--t-dim)'}>
+                <span style={{ color:'var(--t-muted2)', flexShrink:0 }}><IconCamera /></span>
                 <div style={{ textAlign:'left' }}>
-                  <div style={{ fontSize:13, fontWeight:600, color:'#7A9BBF' }}>Agregar foto</div>
-                  <div style={{ fontSize:11, color:'#4A6A8A', marginTop:1 }}>Galería o cámara</div>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--t-muted)' }}>Agregar foto</div>
+                  <div style={{ fontSize:11, color:'var(--t-muted2)', marginTop:1 }}>Galería o cámara</div>
                 </div>
               </button>
             )}
@@ -219,8 +219,8 @@ export default function ActivityModal({ open, onClose, onCreated }) {
           {/* Preview puntos */}
           {pts !== null && (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderRadius:10, background:'rgba(56,189,248,0.07)', border:'1px solid rgba(56,189,248,0.18)' }}>
-              <span style={{ fontSize:12, color:'#7A9BBF', fontWeight:600 }}>Puntos estimados</span>
-              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'#38BDF8' }}>
+              <span style={{ fontSize:12, color:'var(--t-muted)', fontWeight:600 }}>Puntos estimados</span>
+              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-accent)' }}>
                 {pts}
               </span>
             </div>
@@ -228,7 +228,7 @@ export default function ActivityModal({ open, onClose, onCreated }) {
 
           {/* Submit */}
           <button type="submit" disabled={loading}
-            style={{ width:'100%', padding:'12px', borderRadius:12, border:'none', cursor: loading ? 'default' : 'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.06em', background:'#38BDF8', color:'#0D1B2A', opacity: loading ? 0.7 : 1, marginTop:2 }}>
+            style={{ width:'100%', padding:'12px', borderRadius:12, border:'none', cursor: loading ? 'default' : 'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.06em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: loading ? 0.7 : 1, marginTop:2 }}>
             {loading ? 'Guardando…' : 'Guardar actividad'}
           </button>
 

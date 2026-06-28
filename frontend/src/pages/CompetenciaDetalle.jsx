@@ -56,8 +56,8 @@ function aggregateBySport(acts) {
 
 function Spinner() {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:10, color:'#7A9BBF', fontFamily:"'JetBrains Mono', monospace", fontSize:13, padding:48, justifyContent:'center' }}>
-      <div style={{ width:16, height:16, border:'2px solid #243D57', borderTopColor:'#38BDF8', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+    <div style={{ display:'flex', alignItems:'center', gap:10, color:'var(--t-muted)', fontFamily:"'JetBrains Mono', monospace", fontSize:13, padding:48, justifyContent:'center' }}>
+      <div style={{ width:16, height:16, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
       Cargando…
     </div>
   );
@@ -81,12 +81,12 @@ function KpiStrip({ acts }) {
         { label:'Deporte top',   val:sports[0]?.deporte?.split(' ')[0]||'—', accent:false },
         { label:'Líder',         val:people[0]?.nombre?.split(' ')[0]||'—', accent:false },
       ].map(({ label, val, accent }) => (
-        <div key={label} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 10px', position:'relative', overflow:'hidden' }}>
-          <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'#38BDF8', opacity:0.4 }} />
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:'clamp(18px,4vw,26px)', color: accent ? '#38BDF8' : '#E8F0FE', lineHeight:1 }}>
+        <div key={label} style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'12px 10px', position:'relative', overflow:'hidden' }}>
+          <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.4 }} />
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:'clamp(18px,4vw,26px)', color: accent ? 'var(--t-accent)' : 'var(--t-text)', lineHeight:1 }}>
             {val}
           </div>
-          <div style={{ fontSize:10, color:'#7A9BBF', marginTop:4, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+          <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:4, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em' }}>
             {label}
           </div>
         </div>
@@ -123,18 +123,18 @@ function Podio({ acts, nombres }) {
           const gap    = origIdx === 0 ? 'Líder' : `-${Math.round(leader - p.pts)} pts`;
           return (
             <div key={p.nombre} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, flex:1, maxWidth:120 }}>
-              <div style={{ width:size, height:size, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===58?24:18, color:'#0D1B2A' }}>
+              <div style={{ width:size, height:size, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===58?24:18, color:'var(--t-ground)' }}>
                 {p.nombre.charAt(0).toUpperCase()}
               </div>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', textAlign:'center', color:'#E8F0FE' }}>
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', textAlign:'center', color:'var(--t-text)' }}>
                 {p.nombre.split(' ')[0]}
               </div>
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, fontWeight:600, color:'#38BDF8', textAlign:'center' }}>
+              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, fontWeight:600, color:'var(--t-accent)', textAlign:'center' }}>
                 {Math.round(p.pts).toLocaleString('es')} pts
               </div>
-              <div style={{ fontSize:10, color:'#7A9BBF', textAlign:'center', fontFamily:"'JetBrains Mono', monospace" }}>{gap}</div>
-              <div style={{ background: origIdx===0 ? 'rgba(245,158,11,0.07)' : '#132236', border:'1px solid', borderColor: origIdx===0 ? 'rgba(245,158,11,0.25)' : '#243D57', borderBottom:'none', borderRadius:'6px 6px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:34, color:'#7A9BBF', opacity:0.3 }}>{origIdx+1}</span>
+              <div style={{ fontSize:10, color:'var(--t-muted)', textAlign:'center', fontFamily:"'JetBrains Mono', monospace" }}>{gap}</div>
+              <div style={{ background: origIdx===0 ? 'rgba(245,158,11,0.07)' : 'var(--t-surface)', border:'1px solid', borderColor: origIdx===0 ? 'rgba(245,158,11,0.25)' : 'var(--t-dim)', borderBottom:'none', borderRadius:'6px 6px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:34, color:'var(--t-muted)', opacity:0.3 }}>{origIdx+1}</span>
               </div>
             </div>
           );
@@ -165,8 +165,8 @@ function Ranking({ acts, nombres, myId, onOpenProfile }) {
         return (
           <div key={p.nombre}
             onClick={() => onOpenProfile(p.nombre, acts)}
-            style={{ background: isTop ? 'rgba(56,189,248,0.05)' : '#132236', border:'1px solid', borderColor: isTop ? 'rgba(56,189,248,0.35)' : '#243D57', borderRadius:14, padding:'12px 14px', display:'flex', alignItems:'center', gap:10, cursor:'pointer', transition:'transform 0.1s', WebkitTapHighlightColor:'transparent' }}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'#7A9BBF', opacity:0.4, width:28, textAlign:'center', flexShrink:0 }}>{i+1}</div>
+            style={{ background: isTop ? 'rgba(56,189,248,0.05)' : 'var(--t-surface)', border:'1px solid', borderColor: isTop ? 'rgba(56,189,248,0.35)' : 'var(--t-dim)', borderRadius:14, padding:'12px 14px', display:'flex', alignItems:'center', gap:10, cursor:'pointer', transition:'transform 0.1s', WebkitTapHighlightColor:'transparent' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'var(--t-muted)', opacity:0.4, width:28, textAlign:'center', flexShrink:0 }}>{i+1}</div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:2 }}>
                 {i < 3 && <span style={{ fontSize:16 }}>{MEDALS[i]}</span>}
@@ -174,18 +174,18 @@ function Ranking({ acts, nombres, myId, onOpenProfile }) {
                   {p.nombre}{isMe ? ' (yo)' : ''}
                 </div>
               </div>
-              <div style={{ fontSize:11, color:'#7A9BBF', fontFamily:"'JetBrains Mono', monospace", marginBottom:6 }}>
+              <div style={{ fontSize:11, color:'var(--t-muted)', fontFamily:"'JetBrains Mono', monospace", marginBottom:6 }}>
                 {p.actividades} act · {Math.round(p.minutos).toLocaleString('es')} min
               </div>
-              <div style={{ height:3, background:'#243D57', borderRadius:2 }}>
+              <div style={{ height:3, background:'var(--t-dim)', borderRadius:2 }}>
                 <div style={{ height:'100%', borderRadius:2, background:color, width:pct+'%', transition:'width 0.5s' }} />
               </div>
             </div>
             <div style={{ textAlign:'right', flexShrink:0, paddingLeft:8 }}>
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:20, color:'#38BDF8', lineHeight:1 }}>
+              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:20, color:'var(--t-accent)', lineHeight:1 }}>
                 {Math.round(p.pts).toLocaleString('es')}
               </div>
-              <div style={{ fontSize:10, color:'#7A9BBF', marginTop:2 }}>pts</div>
+              <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:2 }}>pts</div>
             </div>
           </div>
         );
@@ -261,7 +261,7 @@ function Calendario({ acts, mes, meses, onMes }) {
         <div onClick={() => setLightboxUrl(null)}
           style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
           <button onClick={() => setLightboxUrl(null)}
-            style={{ position:'absolute', top:16, right:16, background:'transparent', border:'none', color:'#7A9BBF', fontSize:22, cursor:'pointer', padding:'8px 12px' }}>✕</button>
+            style={{ position:'absolute', top:16, right:16, background:'transparent', border:'none', color:'var(--t-muted)', fontSize:22, cursor:'pointer', padding:'8px 12px' }}>✕</button>
           <img src={lightboxUrl} alt="foto" onClick={e => e.stopPropagation()}
             style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:12, objectFit:'contain' }} />
         </div>
@@ -270,17 +270,17 @@ function Calendario({ acts, mes, meses, onMes }) {
       {/* ── Cabecera del mes ── */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <button onClick={prevMes} disabled={!canPrev}
-          style={{ width:32, height:32, borderRadius:8, border:'1px solid #243D57', background:'transparent', color: canPrev ? '#E8F0FE' : '#243D57', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: canPrev ? 'pointer' : 'default' }}>
+          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color: canPrev ? 'var(--t-text)' : 'var(--t-dim)', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: canPrev ? 'pointer' : 'default' }}>
           ‹
         </button>
         <div style={{ textAlign:'center' }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', letterSpacing:'0.05em', color:'#E8F0FE', lineHeight:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', letterSpacing:'0.05em', color:'var(--t-text)', lineHeight:1 }}>
             {MONTHS_ES[viewMonth]}
           </div>
-          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:10, color:'#7A9BBF', marginTop:2 }}>{viewYear}</div>
+          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:10, color:'var(--t-muted)', marginTop:2 }}>{viewYear}</div>
         </div>
         <button onClick={nextMes} disabled={!canNext}
-          style={{ width:32, height:32, borderRadius:8, border:'1px solid #243D57', background:'transparent', color: canNext ? '#E8F0FE' : '#243D57', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: canNext ? 'pointer' : 'default' }}>
+          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color: canNext ? 'var(--t-text)' : 'var(--t-dim)', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: canNext ? 'pointer' : 'default' }}>
           ›
         </button>
       </div>
@@ -290,7 +290,7 @@ function Calendario({ acts, mes, meses, onMes }) {
         {/* Días de semana */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:3 }}>
           {DOWS.map(d => (
-            <div key={d} style={{ textAlign:'center', fontSize:10, fontWeight:700, color:'#4A6A8A', padding:'2px 0' }}>{d}</div>
+            <div key={d} style={{ textAlign:'center', fontSize:10, fontWeight:700, color:'var(--t-muted2)', padding:'2px 0' }}>{d}</div>
           ))}
         </div>
         {/* Celdas de días */}
@@ -311,8 +311,8 @@ function Calendario({ acts, mes, meses, onMes }) {
                 style={{
                   aspectRatio: '1',
                   borderRadius: 6,
-                  background: isSel ? 'rgba(56,189,248,0.12)' : hasActs ? '#1A2E45' : 'transparent',
-                  border: `1px solid ${isSel ? '#38BDF8' : isToday ? 'rgba(56,189,248,0.5)' : hasActs ? '#243D57' : 'transparent'}`,
+                  background: isSel ? 'rgba(56,189,248,0.12)' : hasActs ? 'var(--t-surface2)' : 'transparent',
+                  border: `1px solid ${isSel ? 'var(--t-accent)' : isToday ? 'rgba(56,189,248,0.5)' : hasActs ? 'var(--t-dim)' : 'transparent'}`,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                   position: 'relative', overflow: 'hidden',
                   cursor: hasActs ? 'pointer' : 'default',
@@ -322,7 +322,7 @@ function Calendario({ acts, mes, meses, onMes }) {
                 <span style={{
                   fontFamily: "'JetBrains Mono', monospace",
                   fontSize: 10, fontWeight: 600, lineHeight: 1,
-                  color: isToday ? '#38BDF8' : hasActs ? '#E8F0FE' : '#4A6A8A',
+                  color: isToday ? 'var(--t-accent)' : hasActs ? 'var(--t-text)' : 'var(--t-muted2)',
                 }}>{day}</span>
                 {/* Iconos de deporte (emoji) */}
                 {hasActs && (
@@ -352,13 +352,13 @@ function Calendario({ acts, mes, meses, onMes }) {
 
       {/* ── Detalle del día seleccionado ── */}
       {selectedDay && selectedActs.length > 0 && (
-        <div style={{ background:'#1A2E45', border:'1px solid #38BDF8', borderRadius:10, overflow:'hidden' }}>
+        <div style={{ background:'var(--t-surface2)', border:'1px solid var(--t-accent)', borderRadius:10, overflow:'hidden' }}>
           {/* Header del día */}
-          <div style={{ padding:'10px 14px 8px', borderBottom:'1px solid #243D57', display:'flex', alignItems:'baseline', justifyContent:'space-between' }}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', color:'#38BDF8' }}>
+          <div style={{ padding:'10px 14px 8px', borderBottom:'1px solid var(--t-dim)', display:'flex', alignItems:'baseline', justifyContent:'space-between' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', color:'var(--t-accent)' }}>
               {new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' }).replace(/^\w/, c => c.toUpperCase())}
             </div>
-            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'#7A9BBF' }}>
+            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'var(--t-muted)' }}>
               {Math.round(selectedActs.reduce((s,a) => s + (parseFloat(a.puntos)||0), 0))} pts
             </div>
           </div>
@@ -370,10 +370,10 @@ function Calendario({ acts, mes, meses, onMes }) {
             }}>
               <span style={{ fontSize:20, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:'#E8F0FE' }}>{a.deporte_nombre}</div>
-                <div style={{ fontSize:11, color:'#7A9BBF', marginTop:1 }}>{a.nombre}</div>
+                <div style={{ fontSize:13, fontWeight:600, color:'var(--t-text)' }}>{a.deporte_nombre}</div>
+                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>{a.nombre}</div>
                 {a.notas && (
-                  <div style={{ fontSize:11, color:'#4A7A9B', fontStyle:'italic', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  <div style={{ fontSize:11, color:'var(--t-muted2)', fontStyle:'italic', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     {a.notas}
                   </div>
                 )}
@@ -381,14 +381,14 @@ function Calendario({ acts, mes, meses, onMes }) {
               {/* Foto thumbnail */}
               {a.foto_url && (
                 <div onClick={() => setLightboxUrl(a.foto_url)}
-                  style={{ width:44, height:44, borderRadius:6, overflow:'hidden', cursor:'pointer', flexShrink:0, border:'1px solid #243D57' }}>
+                  style={{ width:44, height:44, borderRadius:6, overflow:'hidden', cursor:'pointer', flexShrink:0, border:'1px solid var(--t-dim)' }}>
                   <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                 </div>
               )}
               {/* Puntos + minutos */}
               <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace" }}>
-                <div style={{ fontSize:13, fontWeight:700, color:'#38BDF8' }}>{Math.round(parseFloat(a.puntos)||0)} pts</div>
-                <div style={{ fontSize:10, color:'#7A9BBF', marginTop:1 }}>{Math.round(parseFloat(a.minutos))} min</div>
+                <div style={{ fontSize:13, fontWeight:700, color:'var(--t-accent)' }}>{Math.round(parseFloat(a.puntos)||0)} pts</div>
+                <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:1 }}>{Math.round(parseFloat(a.minutos))} min</div>
               </div>
             </div>
           ))}
@@ -397,8 +397,8 @@ function Calendario({ acts, mes, meses, onMes }) {
 
       {/* ── Log mensual (lista cronológica) ── */}
       {sortedDays.length > 0 && (
-        <div style={{ borderTop:'1px solid #243D57', paddingTop:12 }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#4A6A8A', marginBottom:10 }}>
+        <div style={{ borderTop:'1px solid var(--t-dim)', paddingTop:12 }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted2)', marginBottom:10 }}>
             Actividades de {MONTHS_ES[viewMonth]}
           </div>
           {sortedDays.map(day => {
@@ -407,25 +407,25 @@ function Calendario({ acts, mes, meses, onMes }) {
               .toLocaleDateString('es', { weekday:'short' });
             return (
               <div key={day} style={{ marginBottom:10 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:'#7A9BBF', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                <div style={{ fontSize:10, fontWeight:700, color:'var(--t-muted)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.05em' }}>
                   {dow.charAt(0).toUpperCase() + dow.slice(1)} {day}
                 </div>
                 {dayActs.map((a, i) => (
-                  <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'#132236', border:'1px solid #243D57', borderRadius:8, marginBottom:3 }}>
+                  <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:8, marginBottom:3 }}>
                     <span style={{ fontSize:16, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:'#E8F0FE', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.deporte_nombre}</div>
-                      <div style={{ fontSize:11, color:'#7A9BBF' }}>{a.nombre}</div>
+                      <div style={{ fontSize:13, fontWeight:600, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.deporte_nombre}</div>
+                      <div style={{ fontSize:11, color:'var(--t-muted)' }}>{a.nombre}</div>
                     </div>
                     {a.foto_url && (
                       <div onClick={() => setLightboxUrl(a.foto_url)}
-                        style={{ width:34, height:34, borderRadius:5, overflow:'hidden', cursor:'pointer', flexShrink:0, border:'1px solid #243D57' }}>
+                        style={{ width:34, height:34, borderRadius:5, overflow:'hidden', cursor:'pointer', flexShrink:0, border:'1px solid var(--t-dim)' }}>
                         <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                       </div>
                     )}
                     <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:11 }}>
-                      <div style={{ color:'#38BDF8', fontWeight:600 }}>{Math.round(parseFloat(a.puntos)||0)} pts</div>
-                      <div style={{ color:'#7A9BBF' }}>{Math.round(parseFloat(a.minutos))} min</div>
+                      <div style={{ color:'var(--t-accent)', fontWeight:600 }}>{Math.round(parseFloat(a.puntos)||0)} pts</div>
+                      <div style={{ color:'var(--t-muted)' }}>{Math.round(parseFloat(a.minutos))} min</div>
                     </div>
                   </div>
                 ))}
@@ -437,7 +437,7 @@ function Calendario({ acts, mes, meses, onMes }) {
 
       {/* Sin actividades en este mes */}
       {sortedDays.length === 0 && (
-        <div style={{ textAlign:'center', padding:'24px 0', color:'#4A6A8A', fontSize:13 }}>
+        <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t-muted2)', fontSize:13 }}>
           Sin actividades registradas en {MONTHS_ES[viewMonth]}
         </div>
       )}
@@ -547,13 +547,13 @@ function Evolucion({ acts, nombres }) {
   if (!acts.length) return <EmptyState icon="📈" title="Sin datos" />;
 
   return (
-    <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:14, padding:16 }}>
+    <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:16 }}>
       <canvas ref={canvasRef} style={{ display:'block', width:'100%' }} />
       <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:12 }}>
         {people.map(p => (
           <button key={p}
             onClick={() => setHidden(h => { const n=new Set(h); n.has(p)?n.delete(p):n.add(p); return n; })}
-            style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, fontWeight:500, padding:'3px 8px', borderRadius:6, border:'1px solid transparent', background:'transparent', color: hidden.has(p) ? '#7A9BBF' : '#E8F0FE', opacity: hidden.has(p) ? 0.45 : 1, cursor:'pointer', transition:'all 0.15s' }}>
+            style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, fontWeight:500, padding:'3px 8px', borderRadius:6, border:'1px solid transparent', background:'transparent', color: hidden.has(p) ? 'var(--t-muted)' : 'var(--t-text)', opacity: hidden.has(p) ? 0.45 : 1, cursor:'pointer', transition:'all 0.15s' }}>
             <span style={{ width:9, height:9, borderRadius:'50%', background:getPersonColor(p, nombres), flexShrink:0, display:'inline-block' }} />
             {p}
           </button>
@@ -597,17 +597,17 @@ function Carrera({ acts, nombres }) {
   if (!acts.length) return <EmptyState icon="🏁" title="Sin datos" />;
 
   return (
-    <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:14, padding:16 }}>
+    <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:16 }}>
       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, flexWrap:'wrap' }}>
         <button onClick={() => { if (frame>=allDates.length-1) setFrame(0); setPlaying(p=>!p); }}
-          style={{ width:36, height:36, border:'1px solid rgba(56,189,248,0.35)', background:'rgba(56,189,248,0.12)', color:'#38BDF8', borderRadius:8, fontSize:17, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+          style={{ width:36, height:36, border:'1px solid rgba(56,189,248,0.35)', background:'rgba(56,189,248,0.12)', color:'var(--t-accent)', borderRadius:8, fontSize:17, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
           {playing ? '⏸' : '▷'}
         </button>
         <button onClick={() => { setPlaying(false); setFrame(0); }}
-          style={{ width:36, height:36, border:'1px solid #243D57', background:'#243D57', color:'#E8F0FE', borderRadius:8, fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+          style={{ width:36, height:36, border:'1px solid var(--t-dim)', background:'var(--t-dim)', color:'var(--t-text)', borderRadius:8, fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
           ⟳
         </button>
-        <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, color:'#7A9BBF' }}>{allDates[frame]}</span>
+        <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, color:'var(--t-muted)' }}>{allDates[frame]}</span>
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
         {people.slice(0, 8).map(p => {
@@ -618,9 +618,9 @@ function Carrera({ acts, nombres }) {
               <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', width:72, textAlign:'right', flexShrink:0, color, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                 {p.nombre.split(' ')[0]}
               </div>
-              <div style={{ flex:1, height:30, background:'#243D57', borderRadius:3, overflow:'hidden' }}>
+              <div style={{ flex:1, height:30, background:'var(--t-dim)', borderRadius:3, overflow:'hidden' }}>
                 <div style={{ height:'100%', borderRadius:3, background:color, width:pct+'%', transition:'width 0.4s cubic-bezier(0.22,1,0.36,1)', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:7, minWidth:4 }}>
-                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'#0D1B2A' }}>{Math.round(p.pts)}</span>
+                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'var(--t-ground)' }}>{Math.round(p.pts)}</span>
                 </div>
               </div>
             </div>
@@ -640,9 +640,9 @@ function Deportes({ acts }) {
   if (!sports.length) return <EmptyState icon="🏅" title="Sin datos" />;
 
   return (
-    <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:14, padding:16 }}>
+    <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:16 }}>
       <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:3 }}>Minutos por deporte</div>
-      <div style={{ fontSize:12, color:'#7A9BBF', marginBottom:14 }}>Total de minutos por disciplina en el período</div>
+      <div style={{ fontSize:12, color:'var(--t-muted)', marginBottom:14 }}>Total de minutos por disciplina en el período</div>
       <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
         {sports.map((s, i) => {
           const pct   = Math.round((s.min/maxMin)*100);
@@ -650,11 +650,11 @@ function Deportes({ acts }) {
           return (
             <div key={s.deporte} style={{ display:'flex', alignItems:'center', gap:8, minHeight:28 }}>
               <span style={{ fontSize:16, flexShrink:0, width:22, textAlign:'center' }}>{sportIcon(s.deporte)}</span>
-              <div style={{ flexShrink:0, width:'clamp(80px,25vw,130px)', fontSize:12, color:'#E8F0FE', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', textAlign:'right' }}>{s.deporte}</div>
-              <div style={{ flex:1, height:18, background:'#243D57', borderRadius:3, overflow:'hidden', position:'relative' }}>
+              <div style={{ flexShrink:0, width:'clamp(80px,25vw,130px)', fontSize:12, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', textAlign:'right' }}>{s.deporte}</div>
+              <div style={{ flex:1, height:18, background:'var(--t-dim)', borderRadius:3, overflow:'hidden', position:'relative' }}>
                 <div style={{ height:'100%', width:pct+'%', background:color, borderRadius:3, opacity:0.85, transition:'width 0.5s' }} />
               </div>
-              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'#7A9BBF', flexShrink:0, minWidth:44, textAlign:'right' }}>
+              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'var(--t-muted)', flexShrink:0, minWidth:44, textAlign:'right' }}>
                 {Math.round(s.min).toLocaleString('es')}
               </span>
             </div>
@@ -762,20 +762,20 @@ function Records({ acts }) {
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
         {recs.map(r => (
-          <div key={r.label} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px' }}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'#38BDF8', lineHeight:1 }}>{r.value}</div>
-            <div style={{ fontSize:12, fontWeight:600, color:'#E8F0FE', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.sub || '—'}</div>
-            <div style={{ fontSize:10, color:'#7A9BBF', marginTop:2, textTransform:'uppercase', letterSpacing:'0.05em' }}>{r.label}</div>
+          <div key={r.label} style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'12px' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'var(--t-accent)', lineHeight:1 }}>{r.value}</div>
+            <div style={{ fontSize:12, fontWeight:600, color:'var(--t-text)', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.sub || '—'}</div>
+            <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:2, textTransform:'uppercase', letterSpacing:'0.05em' }}>{r.label}</div>
           </div>
         ))}
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
         {awards.map(a => (
-          <div key={a.title} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px' }}>
-            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'#4A6A8A', marginBottom:4 }}>{a.title}</div>
-            <div style={{ fontSize:14, fontWeight:700, color:'#38BDF8', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.winner || '—'}</div>
-            <div style={{ fontSize:11, color:'#7A9BBF', marginTop:2, fontFamily:"'JetBrains Mono', monospace" }}>{a.detail}</div>
+          <div key={a.title} style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'12px' }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--t-muted2)', marginBottom:4 }}>{a.title}</div>
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--t-accent)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.winner || '—'}</div>
+            <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2, fontFamily:"'JetBrains Mono', monospace" }}>{a.detail}</div>
           </div>
         ))}
       </div>
@@ -817,7 +817,7 @@ function Comparador({ acts, nombres }) {
     { label:'Prom/ses.',   vA:sA.act?Math.round(sA.pts/sA.act):0, vB:sB.act?Math.round(sB.pts/sB.act):0, fmt:v=>v+' pts' },
   ];
 
-  const selectStyle = { width:'100%', background:'#1A2E45', border:'1px solid #243D57', color:'#E8F0FE', padding:'9px 12px', borderRadius:8, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', appearance:'none', cursor:'pointer', fontSize:16 };
+  const selectStyle = { width:'100%', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'9px 12px', borderRadius:8, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', appearance:'none', cursor:'pointer', fontSize:16 };
 
   return (
     <div>
@@ -829,7 +829,7 @@ function Comparador({ acts, nombres }) {
             {people.map(p=><option key={p} value={p}>{p}</option>)}
           </select>
         </div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:18, color:'#7A9BBF', flexShrink:0 }}>VS</div>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:18, color:'var(--t-muted)', flexShrink:0 }}>VS</div>
         <div style={{ flex:1 }}>
           <select style={selectStyle} value={selB} onChange={e=>setSelB(e.target.value)}>
             <option value="">— B —</option>
@@ -842,20 +842,20 @@ function Comparador({ acts, nombres }) {
         <div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', gap:4, marginBottom:12, alignItems:'center' }}>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:'clamp(16px,4vw,24px)', textTransform:'uppercase', color:cA }}>{selA.split(' ')[0]}</div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'#7A9BBF', textAlign:'center' }}>VS</div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-muted)', textAlign:'center' }}>VS</div>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:'clamp(16px,4vw,24px)', textTransform:'uppercase', color:cB, textAlign:'right' }}>{selB.split(' ')[0]}</div>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', gap:3, marginBottom:14 }}>
             {comps.map(c => (
               <>
-                <div key={c.label+'A'} style={{ background:'#132236', border:'1px solid #243D57', borderTop:`3px solid ${cA}`, borderRadius:8, padding:'8px', textAlign:'center' }}>
-                  <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:15, marginTop:2, color: c.vA>c.vB?'#38BDF8':'#E8F0FE' }}>{c.fmt(c.vA)}</div>
-                  <div style={{ fontSize:9, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:600 }}>{c.label}</div>
+                <div key={c.label+'A'} style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderTop:`3px solid ${cA}`, borderRadius:8, padding:'8px', textAlign:'center' }}>
+                  <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:15, marginTop:2, color: c.vA>c.vB?'var(--t-accent)':'var(--t-text)' }}>{c.fmt(c.vA)}</div>
+                  <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:600 }}>{c.label}</div>
                 </div>
-                <div key={c.label+'div'} style={{ display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#243D57' }}>·</div>
-                <div key={c.label+'B'} style={{ background:'#132236', border:'1px solid #243D57', borderTop:`3px solid ${cB}`, borderRadius:8, padding:'8px', textAlign:'center' }}>
-                  <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:15, marginTop:2, color: c.vB>c.vA?'#38BDF8':'#E8F0FE' }}>{c.fmt(c.vB)}</div>
-                  <div style={{ fontSize:9, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:600 }}>{c.label}</div>
+                <div key={c.label+'div'} style={{ display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'var(--t-dim)' }}>·</div>
+                <div key={c.label+'B'} style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderTop:`3px solid ${cB}`, borderRadius:8, padding:'8px', textAlign:'center' }}>
+                  <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:15, marginTop:2, color: c.vB>c.vA?'var(--t-accent)':'var(--t-text)' }}>{c.fmt(c.vB)}</div>
+                  <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:600 }}>{c.label}</div>
                 </div>
               </>
             ))}
@@ -863,9 +863,9 @@ function Comparador({ acts, nombres }) {
           <canvas ref={canvasRef} style={{ display:'block', width:'100%' }} height={170} />
         </div>
       ) : (
-        <div style={{ textAlign:'center', padding:'40px 20px', color:'#7A9BBF' }}>
+        <div style={{ textAlign:'center', padding:'40px 20px', color:'var(--t-muted)' }}>
           <div style={{ fontSize:40, marginBottom:10 }}>⚔️</div>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:18, textTransform:'uppercase', color:'#E8F0FE' }}>Elige dos competidores</div>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:18, textTransform:'uppercase', color:'var(--t-text)' }}>Elige dos competidores</div>
         </div>
       )}
     </div>
@@ -923,23 +923,23 @@ function Insights({ acts }) {
 
   if (people.length>=2) {
     const gap=Math.round(people[0].pts-people[1].pts);
-    ins.push(<>🥇 <strong style={{color:'#38BDF8'}}>{people[0].nombre.split(' ')[0]}</strong> lidera con {Math.round(people[0].pts).toLocaleString('es')} puntos — {gap} por encima del segundo.</>);
+    ins.push(<>🥇 <strong style={{color:'var(--t-accent)'}}>{people[0].nombre.split(' ')[0]}</strong> lidera con {Math.round(people[0].pts).toLocaleString('es')} puntos — {gap} por encima del segundo.</>);
   }
   if (sports.length) {
     const total=acts.reduce((s,a)=>s+a.puntos,0);
     const pct=Math.round((sports[0].pts/total)*100);
-    ins.push(<>🏅 El <strong style={{color:'#38BDF8'}}>{sports[0].deporte}</strong> aporta el {pct}% de los puntos del período.</>);
+    ins.push(<>🏅 El <strong style={{color:'var(--t-accent)'}}>{sports[0].deporte}</strong> aporta el {pct}% de los puntos del período.</>);
   }
   const totalH=Math.round(acts.reduce((s,a)=>s+parseFloat(a.minutos),0)/60);
-  ins.push(<>⏱ El grupo registró <strong style={{color:'#38BDF8'}}>{totalH} horas</strong> de entrenamiento en el período.</>);
+  ins.push(<>⏱ El grupo registró <strong style={{color:'var(--t-accent)'}}>{totalH} horas</strong> de entrenamiento en el período.</>);
 
   const topAct=[...people].sort((a,b)=>b.actividades-a.actividades)[0];
-  if (topAct) ins.push(<>📌 <strong style={{color:'#38BDF8'}}>{topAct.nombre.split(' ')[0]}</strong> es el más constante con {topAct.actividades} actividades registradas.</>);
+  if (topAct) ins.push(<>📌 <strong style={{color:'var(--t-accent)'}}>{topAct.nombre.split(' ')[0]}</strong> es el más constante con {topAct.actividades} actividades registradas.</>);
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
       {ins.map((text, i) => (
-        <div key={i} style={{ background:'#132236', border:'1px solid #243D57', borderLeft:'3px solid #38BDF8', borderRadius:8, padding:'12px 14px', fontSize:14, lineHeight:1.5, color:'#E8F0FE' }}>
+        <div key={i} style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderLeft:'3px solid var(--t-accent)', borderRadius:8, padding:'12px 14px', fontSize:14, lineHeight:1.5, color:'var(--t-text)' }}>
           {text}
         </div>
       ))}
@@ -968,8 +968,8 @@ function ProfilePanel({ nombre, acts, nombres, onClose }) {
   return (
     <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(5,12,20,0.75)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', display:'flex', alignItems:'flex-start', justifyContent:'flex-end' }}
          onClick={e => e.target===e.currentTarget && onClose()}>
-      <div style={{ width:'min(400px,100vw)', height:'100vh', background:'#132236', borderLeft:'1px solid #243D57', overflowY:'auto', WebkitOverflowScrolling:'touch', padding:'52px 20px 32px', display:'flex', flexDirection:'column', gap:18 }}>
-        <button onClick={onClose} style={{ position:'absolute', top:14, right:16, color:'#7A9BBF', fontSize:18, padding:'6px 10px', borderRadius:8, background:'transparent', border:'none', cursor:'pointer' }}>✕</button>
+      <div style={{ width:'min(400px,100vw)', height:'100vh', background:'var(--t-surface)', borderLeft:'1px solid var(--t-dim)', overflowY:'auto', WebkitOverflowScrolling:'touch', padding:'52px 20px 32px', display:'flex', flexDirection:'column', gap:18 }}>
+        <button onClick={onClose} style={{ position:'absolute', top:14, right:16, color:'var(--t-muted)', fontSize:18, padding:'6px 10px', borderRadius:8, background:'transparent', border:'none', cursor:'pointer' }}>✕</button>
 
         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:'clamp(32px,8vw,50px)', textTransform:'uppercase', letterSpacing:'0.02em', lineHeight:1, color }}>{nombre}</div>
 
@@ -980,9 +980,9 @@ function ProfilePanel({ nombre, acts, nombres, onClose }) {
             { label:'Actividades', val:data.length },
             { label:'Prom/sesión', val:data.length?Math.round(pts/data.length):0 },
           ].map(s => (
-            <div key={s.label} style={{ background:'#1A2E45', border:'1px solid #243D57', borderRadius:8, padding:'10px 12px' }}>
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:19, color:'#38BDF8' }}>{s.val}</div>
-              <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:3 }}>{s.label}</div>
+            <div key={s.label} style={{ background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8, padding:'10px 12px' }}>
+              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:19, color:'var(--t-accent)' }}>{s.val}</div>
+              <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:3 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -993,17 +993,17 @@ function ProfilePanel({ nombre, acts, nombres, onClose }) {
             {sportRows.map(([sport, v]) => {
               const pct = pts > 0 ? Math.round(v.pts/pts*100) : 0;
               return (
-                <div key={sport} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'#1A2E45', border:'1px solid #243D57', borderRadius:8 }}>
+                <div key={sport} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8 }}>
                   <span style={{ fontSize:22, flexShrink:0 }}>{sportIcon(sport)}</span>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontWeight:700, fontSize:13, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{sport}</div>
-                    <div style={{ height:4, background:'#243D57', borderRadius:2, marginTop:5 }}>
+                    <div style={{ height:4, background:'var(--t-dim)', borderRadius:2, marginTop:5 }}>
                       <div style={{ height:4, width:pct+'%', background:color, borderRadius:2, transition:'width 0.4s' }} />
                     </div>
                   </div>
                   <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:12, lineHeight:1.6 }}>
-                    <div style={{ color:'#E8F0FE', fontWeight:700 }}>{Math.round(v.pts)} <span style={{ color:'#7A9BBF', fontWeight:400 }}>pts</span></div>
-                    <div style={{ color:'#7A9BBF' }}>{Math.round(v.min)} min · {v.sesiones} ses.</div>
+                    <div style={{ color:'var(--t-text)', fontWeight:700 }}>{Math.round(v.pts)} <span style={{ color:'var(--t-muted)', fontWeight:400 }}>pts</span></div>
+                    <div style={{ color:'var(--t-muted)' }}>{Math.round(v.min)} min · {v.sesiones} ses.</div>
                   </div>
                 </div>
               );
@@ -1019,9 +1019,9 @@ function ProfilePanel({ nombre, acts, nombres, onClose }) {
 
 function EmptyState({ icon, title, text }) {
   return (
-    <div style={{ textAlign:'center', padding:'48px 20px', color:'#7A9BBF' }}>
+    <div style={{ textAlign:'center', padding:'48px 20px', color:'var(--t-muted)' }}>
       <div style={{ fontSize:40, marginBottom:10 }}>{icon}</div>
-      <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:19, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:6, color:'#E8F0FE' }}>{title}</div>
+      <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:19, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:6, color:'var(--t-text)' }}>{title}</div>
       {text && <div style={{ fontSize:13 }}>{text}</div>}
     </div>
   );
@@ -1088,24 +1088,24 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 52px)', zIndex:10, background:'rgba(13,27,42,0.98)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
 
         {/* Fila 1: back + nombre + mes actual */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px 4px', borderBottom:'1px solid #1A2E45' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
           <button onClick={onBack}
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:7, border:'1px solid #243D57', background:'transparent', color:'#7A9BBF', cursor:'pointer', flexShrink:0 }}>
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', flexShrink:0 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(16px,4.5vw,22px)', textTransform:'uppercase', lineHeight:1.1, color:'#E8F0FE', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(16px,4.5vw,22px)', textTransform:'uppercase', lineHeight:1.1, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>
             {competencia.nombre}
           </div>
-          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:10, color: mes ? '#38BDF8' : '#7A9BBF', whiteSpace:'nowrap', flexShrink:0 }}>
+          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:10, color: mes ? 'var(--t-accent)' : 'var(--t-muted)', whiteSpace:'nowrap', flexShrink:0 }}>
             {mesLabel}
           </div>
         </div>
 
         {/* Fila 2: barra de mes */}
-        <div style={{ display:'flex', alignItems:'center', height:32, borderBottom:'1px solid #1A2E45', padding:'0 8px' }}>
+        <div style={{ display:'flex', alignItems:'center', height:32, borderBottom:'1px solid var(--t-surface2)', padding:'0 8px' }}>
           <button
             onClick={() => { const i=meses.indexOf(mes); if(mes===''&&meses.length){setMes(meses[meses.length-1]);}else if(i>0){setMes(meses[i-1]);}else if(i===0){setMes('');} }}
-            style={{ width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'#7A9BBF', fontSize:17, cursor:'pointer', flexShrink:0, padding:0 }}>
+            style={{ width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'var(--t-muted)', fontSize:17, cursor:'pointer', flexShrink:0, padding:0 }}>
             ‹
           </button>
           <div style={{ flex:1, display:'flex', overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', gap:2, alignItems:'center', justifyContent:'center' }}>
@@ -1114,14 +1114,14 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
               return { val:m, label: MONTHS_ES[parseInt(mo)-1].slice(0,3).toUpperCase()+' '+y.slice(2) };
             })].map(({ val, label }) => (
               <button key={val} onClick={() => setMes(val)}
-                style={{ padding:'2px 9px', borderRadius:12, fontSize:11, fontWeight:700, whiteSpace:'nowrap', flexShrink:0, border:'none', cursor:'pointer', transition:'all 0.15s', background: mes===val ? 'rgba(56,189,248,0.18)' : 'transparent', color: mes===val ? '#38BDF8' : '#7A9BBF' }}>
+                style={{ padding:'2px 9px', borderRadius:12, fontSize:11, fontWeight:700, whiteSpace:'nowrap', flexShrink:0, border:'none', cursor:'pointer', transition:'all 0.15s', background: mes===val ? 'rgba(56,189,248,0.18)' : 'transparent', color: mes===val ? 'var(--t-accent)' : 'var(--t-muted)' }}>
                 {label}
               </button>
             ))}
           </div>
           <button
             onClick={() => { const i=meses.indexOf(mes); if(mes===''&&meses.length){setMes(meses[0]);}else if(i<meses.length-1){setMes(meses[i+1]);} }}
-            style={{ width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'#7A9BBF', fontSize:17, cursor:'pointer', flexShrink:0, padding:0 }}>
+            style={{ width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'var(--t-muted)', fontSize:17, cursor:'pointer', flexShrink:0, padding:0 }}>
             ›
           </button>
         </div>

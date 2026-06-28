@@ -20,23 +20,25 @@
   --font-mono:    'JetBrains Mono', monospace;
 }
 
-/* Valores por defecto del tema (modo noche) — ThemeContext los sobreescribe en runtime */
+/* Valores por defecto del tema (Crema cálida) — ThemeContext los sobreescribe en runtime */
 :root {
-  --t-ground:    #0E0F11;
-  --t-surface:   #161719;
-  --t-surface2:  #1E2025;
-  --t-dim:       #2E3138;
-  --t-dim2:      #3A3F4A;
-  --t-text:      #E8E2D4;
-  --t-muted:     #5A5E65;
-  --t-muted2:    #4A4E58;
-  --t-accent:    #D4A853;
-  --t-accent-r:  212,168,83;
-  --t-brand:     #E8E2D4;
-  --t-danger:    #F87171;
-  --t-nav-bg:    #161719;
-  --t-nav-border:#252729;
-  --t-tab-bg:    #161719;
+  --t-ground:    #F5F2ED;
+  --t-surface:   #FAFAF8;
+  --t-surface2:  #EDE8E1;
+  --t-dim:       #E5DFD5;
+  --t-dim2:      #D4C2AB;
+  --t-text:      #2C1F14;
+  --t-muted:     #9E8E7A;
+  --t-muted2:    #7A6A58;
+  --t-accent:    #C4703A;
+  --t-accent-r:  196,112,58;
+  --t-brand:     #2C1F14;
+  --t-danger:    #B91C1C;
+  --t-nav-bg:    #FAFAF8;
+  --t-nav-border:#E5DFD5;
+  --t-tab-bg:    #FAFAF8;
+  --t-overlay:   rgba(44,31,20,0.55);
+  --t-card-shadow:rgba(44,31,20,0.08);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

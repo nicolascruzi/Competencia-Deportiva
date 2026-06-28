@@ -1,6 +1,6 @@
 import { useTheme } from '../context/ThemeContext';
 
-const PALETTE_ORDER = ['noche', 'indigo', 'tierra', 'salvia', 'ciruela'];
+const PALETTE_ORDER = ['tierra', 'ciruela', 'noche'];
 
 const IconCheck = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

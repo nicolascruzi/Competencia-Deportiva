@@ -26,22 +26,22 @@ function timeAgo(isoStr) {
 
 function FeedCard({ act, color, initials, lightbox, onLightbox }) {
   return (
-    <div style={{ background:'#0F1D2E', borderBottom:'1px solid #1A2E45' }}>
+    <div style={{ background:'var(--t-surface)', borderBottom:'1px solid var(--t-surface2)' }}>
 
       {/* Header de la tarjeta */}
       <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px 10px' }}>
-        <div style={{ width:36, height:36, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'#0D1B2A', flexShrink:0 }}>
+        <div style={{ width:36, height:36, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-ground)', flexShrink:0 }}>
           {initials}
         </div>
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color:'#E8F0FE', lineHeight:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1 }}>
             {act.nombre}
           </div>
-          <div style={{ fontSize:12, color:'#4A7A9B', marginTop:2 }}>
+          <div style={{ fontSize:12, color:'var(--t-muted2)', marginTop:2 }}>
             {act.deporte_nombre}
           </div>
         </div>
-        <div style={{ fontSize:12, color:'#4A7A9B', flexShrink:0 }}>
+        <div style={{ fontSize:12, color:'var(--t-muted2)', flexShrink:0 }}>
           {timeAgo(act.created_at || act.fecha)}
         </div>
       </div>
@@ -60,24 +60,24 @@ function FeedCard({ act, color, initials, lightbox, onLightbox }) {
           <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:color, lineHeight:1 }}>
             {Math.round(act.puntos)}
           </span>
-          <span style={{ fontSize:11, color:'#4A7A9B', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</span>
+          <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</span>
         </div>
-        <div style={{ width:1, height:16, background:'#1A2E45', margin:'0 12px' }} />
+        <div style={{ width:1, height:16, background:'var(--t-surface2)', margin:'0 12px' }} />
         <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:16, color:'#7A9BBF', lineHeight:1 }}>
+          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:16, color:'var(--t-muted)', lineHeight:1 }}>
             {Math.round(parseFloat(act.minutos))}
           </span>
-          <span style={{ fontSize:11, color:'#4A7A9B', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
+          <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
         </div>
         {/* Fecha de la actividad */}
-        <div style={{ marginLeft:'auto', fontSize:12, color:'#4A7A9B' }}>
+        <div style={{ marginLeft:'auto', fontSize:12, color:'var(--t-muted2)' }}>
           {new Date(act.fecha + 'T12:00:00').toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short' })}
         </div>
       </div>
 
       {/* Notas */}
       {act.notas && (
-        <div style={{ padding:'4px 14px 12px', fontSize:14, color:'#7A9BBF', lineHeight:1.5 }}>
+        <div style={{ padding:'4px 14px 12px', fontSize:14, color:'var(--t-muted)', lineHeight:1.5 }}>
           {act.notas}
         </div>
       )}
@@ -114,12 +114,12 @@ export default function FeedGrupal({ competencia }) {
 
   if (!competencia) {
     return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px 24px', color:'#7A9BBF', textAlign:'center', gap:12 }}>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px 24px', color:'var(--t-muted)', textAlign:'center', gap:12 }}>
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity:0.4 }}>
           <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
         </svg>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:18, textTransform:'uppercase', color:'#E8F0FE' }}>Sin competencia activa</div>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:18, textTransform:'uppercase', color:'var(--t-text)' }}>Sin competencia activa</div>
         <div style={{ fontSize:14, lineHeight:1.6 }}>Seleccioná una competencia para ver el feed del grupo.</div>
       </div>
     );
@@ -127,8 +127,8 @@ export default function FeedGrupal({ competencia }) {
 
   if (loading) {
     return (
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'80px 20px', color:'#7A9BBF' }}>
-        <div style={{ width:18, height:18, border:'2px solid #243D57', borderTopColor:'#38BDF8', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'80px 20px', color:'var(--t-muted)' }}>
+        <div style={{ width:18, height:18, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
         <span style={{ fontSize:14 }}>Cargando feed…</span>
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
@@ -137,8 +137,8 @@ export default function FeedGrupal({ competencia }) {
 
   if (!acts.length) {
     return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px 24px', color:'#7A9BBF', textAlign:'center', gap:12 }}>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:18, textTransform:'uppercase', color:'#E8F0FE' }}>Sin actividades</div>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px 24px', color:'var(--t-muted)', textAlign:'center', gap:12 }}>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:18, textTransform:'uppercase', color:'var(--t-text)' }}>Sin actividades</div>
         <div style={{ fontSize:14 }}>El grupo todavía no registró actividades.</div>
       </div>
     );
@@ -153,21 +153,21 @@ export default function FeedGrupal({ competencia }) {
         <div onClick={() => setLightbox(null)}
           style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <button onClick={() => setLightbox(null)}
-            style={{ position:'absolute', top:20, right:20, width:36, height:36, borderRadius:'50%', background:'rgba(36,61,87,0.9)', border:'none', color:'#E8F0FE', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+            style={{ position:'absolute', top:20, right:20, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,0.85)', border:'none', color:'var(--t-text)', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
           <img src={lightbox} alt="" onClick={e => e.stopPropagation()}
             style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:12, objectFit:'contain' }} />
         </div>
       )}
 
       {/* Header fijo del feed */}
-      <div style={{ padding:'14px 16px 12px', borderBottom:'1px solid #1A2E45' }}>
-        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'#38BDF8', marginBottom:4 }}>
+      <div style={{ padding:'14px 16px 12px', borderBottom:'1px solid var(--t-surface2)' }}>
+        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', marginBottom:4 }}>
           {competencia.nombre}
         </div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'#E8F0FE' }}>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
           Feed del grupo
         </div>
-        <div style={{ fontSize:12, color:'#4A7A9B', marginTop:4 }}>
+        <div style={{ fontSize:12, color:'var(--t-muted2)', marginTop:4 }}>
           {acts.length} actividades · {nombres.length} participantes
         </div>
       </div>
