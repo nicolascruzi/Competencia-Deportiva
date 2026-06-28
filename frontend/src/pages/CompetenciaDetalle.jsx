@@ -30,7 +30,8 @@ function getPersonColor(nombre, nombres) {
 function aggregateByPerson(acts) {
   const map = {};
   acts.forEach(a => {
-    if (!map[a.nombre]) map[a.nombre] = { nombre: a.nombre, pts: 0, minutos: 0, actividades: 0, deportes: new Set(), ultimaFecha: null };
+    if (!map[a.nombre]) map[a.nombre] = { nombre: a.nombre, foto_perfil_url: a.foto_perfil_url ?? null, pts: 0, minutos: 0, actividades: 0, deportes: new Set(), ultimaFecha: null };
+    if (!map[a.nombre].foto_perfil_url && a.foto_perfil_url) map[a.nombre].foto_perfil_url = a.foto_perfil_url;
     map[a.nombre].pts       += a.puntos;
     map[a.nombre].minutos   += parseFloat(a.minutos);
     map[a.nombre].actividades++;
@@ -119,8 +120,11 @@ function Podio({ acts, nombres }) {
           const gap    = origIdx === 0 ? 'Líder' : `-${Math.round(leader - p.pts)} pts`;
           return (
             <div key={p.nombre} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, flex:1, maxWidth:120 }}>
-              <div style={{ width:size, height:size, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===58?24:18, color:'var(--t-ground)' }}>
-                {p.nombre.charAt(0).toUpperCase()}
+              <div style={{ width:size, height:size, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===58?24:18, color:'var(--t-ground)', overflow:'hidden', border:'2px solid rgba(255,255,255,0.15)' }}>
+                {p.foto_perfil_url
+                  ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  : p.nombre.charAt(0).toUpperCase()
+                }
               </div>
               <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', textAlign:'center', color:'var(--t-text)' }}>
                 {p.nombre.split(' ')[0]}
@@ -171,9 +175,12 @@ function PlayerDrawer({ person, acts, onClose }) {
         {/* Header del jugador */}
         <div style={{ padding:'12px 20px 16px', borderBottom:'1px solid var(--t-dim)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-            {/* Avatar inicial */}
-            <div style={{ width:48, height:48, borderRadius:14, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, color:'var(--t-muted2)', flexShrink:0 }}>
-              {person.nombre.charAt(0).toUpperCase()}
+            {/* Avatar */}
+            <div style={{ width:48, height:48, borderRadius:14, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, color:'var(--t-muted2)', flexShrink:0, overflow:'hidden' }}>
+              {person.foto_perfil_url
+                ? <img src={person.foto_perfil_url} alt={person.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                : person.nombre.charAt(0).toUpperCase()
+              }
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1 }}>
@@ -302,6 +309,14 @@ function Ranking({ acts, nombres, myId }) {
                 {/* Posición */}
                 <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:32, lineHeight:1, width:32, textAlign:'center', flexShrink:0, fontVariantNumeric:'tabular-nums', color: isTop ? 'var(--t-accent)' : 'var(--t-dim2)' }}>
                   {i + 1}
+                </div>
+
+                {/* Avatar */}
+                <div style={{ width:36, height:36, borderRadius:'50%', flexShrink:0, background:'rgba(var(--t-accent-r),0.1)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                  {p.foto_perfil_url
+                    ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-accent)' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
+                  }
                 </div>
 
                 {/* Info central */}

@@ -25,25 +25,27 @@ router.get('/', async (req, res) => {
       SELECT
         u.id,
         u.nombre,
+        u.foto_perfil_url,
         COUNT(a.id)::int              AS actividades,
         COALESCE(SUM(a.minutos), 0)   AS minutos,
         COALESCE(SUM(a.puntos),  0)   AS puntos,
         MAX(a.fecha)                  AS ultima_fecha
       FROM users u
       LEFT JOIN actividades a ON a.user_id = u.id ${where}
-      GROUP BY u.id, u.nombre
+      GROUP BY u.id, u.nombre, u.foto_perfil_url
       HAVING COALESCE(SUM(a.puntos), 0) > 0
       ORDER BY puntos DESC
     `, params);
 
     const rows = result.rows.map((r, i) => ({
-      rank:         i + 1,
-      id:           r.id,
-      nombre:       r.nombre,
-      actividades:  r.actividades,
-      minutos:      Math.round(parseFloat(r.minutos)),
-      puntos:       Math.round(parseFloat(r.puntos) * 100) / 100,
-      ultima_fecha: r.ultima_fecha,
+      rank:             i + 1,
+      id:               r.id,
+      nombre:           r.nombre,
+      foto_perfil_url:  r.foto_perfil_url,
+      actividades:      r.actividades,
+      minutos:          Math.round(parseFloat(r.minutos)),
+      puntos:           Math.round(parseFloat(r.puntos) * 100) / 100,
+      ultima_fecha:     r.ultima_fecha,
     }));
 
     res.json(rows);
@@ -84,7 +86,7 @@ router.get('/usuario/:id', async (req, res) => {
 
   try {
     const [userRes, actRes, sportRes] = await Promise.all([
-      pool.query('SELECT id, nombre, email, role, created_at FROM users WHERE id = $1', [userId]),
+      pool.query('SELECT id, nombre, email, role, created_at, foto_perfil_url FROM users WHERE id = $1', [userId]),
       pool.query(`
         SELECT id, deporte_nombre, minutos, ponderador, puntos, fecha, notas
         FROM actividades ${where}

@@ -89,6 +89,13 @@ export default function Ranking() {
                   <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:32, lineHeight:1, width:32, textAlign:'center', flexShrink:0, fontVariantNumeric:'tabular-nums', color: isTop ? 'var(--t-accent)' : 'var(--t-dim2)' }}>
                     {i + 1}
                   </div>
+                  {/* Avatar */}
+                  <div style={{ width:36, height:36, borderRadius:'50%', flexShrink:0, background:'rgba(var(--t-accent-r),0.1)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                    {p.foto_perfil_url
+                      ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                      : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-accent)' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
+                    }
+                  </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:19, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                       {p.nombre}
