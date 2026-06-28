@@ -208,11 +208,12 @@ function Ranking({ acts, nombres, myId, onOpenProfile }) {
 
 // ─── CALENDARIO ───────────────────────────────────────────────────────────────
 
-function Calendario({ acts, viewYear, viewMonth, nombres }) {
+function Calendario({ acts, viewYear, viewMonth }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
   const DOWS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
+  // Agrupar actividades del mes por día
   const dayActivities = {};
   acts.forEach(a => {
     const d = new Date(a.fecha + 'T12:00:00');
@@ -228,202 +229,168 @@ function Calendario({ acts, viewYear, viewMonth, nombres }) {
   const today       = new Date();
   const todayDate   = today.getFullYear()===viewYear && today.getMonth()===viewMonth ? today.getDate() : -1;
 
-  const emptyCells = Array.from({ length: firstDow });
-  const days       = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const emptyCells  = Array.from({ length: firstDow });
+  const days        = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const selectedActs= selectedDay ? (dayActivities[selectedDay] || []) : [];
+  const sortedDays  = Object.keys(dayActivities).map(Number).sort((a, b) => a - b);
 
-  const selectedActs = selectedDay ? (dayActivities[selectedDay] || []) : [];
-  const dayPhotos = selectedActs.filter(a => a.foto_url);
+  // Deportes únicos del mes para leyenda
+  const sportsInMonth = [...new Set(
+    Object.values(dayActivities).flat().map(a => a.deporte_nombre)
+  )].sort();
+
+  function toggleDay(day) {
+    setSelectedDay(prev => prev === day ? null : day);
+  }
 
   return (
     <div>
       {/* Lightbox */}
       {lightboxUrl && (
         <div onClick={() => setLightboxUrl(null)}
-          style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
           <button onClick={() => setLightboxUrl(null)}
-            style={{ position:'absolute', top:16, right:16, color:'#7A9BBF', fontSize:22, background:'transparent', border:'none', cursor:'pointer', padding:'8px 12px', zIndex:1 }}>✕</button>
-          <img src={lightboxUrl} alt="foto"
-            onClick={e => e.stopPropagation()}
+            style={{ position:'absolute', top:16, right:16, color:'#7A9BBF', fontSize:22, background:'transparent', border:'none', cursor:'pointer', padding:'8px 12px' }}>✕</button>
+          <img src={lightboxUrl} alt="foto" onClick={e => e.stopPropagation()}
             style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:16, objectFit:'contain' }} />
         </div>
       )}
 
-      {/* Grilla del mes */}
-      <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:16, padding:14 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3, marginBottom:6 }}>
-          {DOWS.map(d => (
-            <div key={d} style={{ textAlign:'center', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'#7A9BBF', padding:'2px 0' }}>{d}</div>
-          ))}
-        </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
-          {emptyCells.map((_, i) => <div key={'e'+i} style={{ aspectRatio:'1' }} />)}
-          {days.map(day => {
-            const dayActs = dayActivities[day] || [];
-            const hasActs = dayActs.length > 0;
-            const isToday = day === todayDate;
-            const isSel   = day === selectedDay;
-            const hasPhoto= dayActs.some(a => a.foto_url);
-            const photoUrl= dayActs.find(a => a.foto_url)?.foto_url;
-            const icons   = [...new Set(dayActs.map(a => sportIcon(a.deporte_nombre)))].slice(0, 2);
-            return (
-              <div key={day}
-                onClick={() => hasActs && setSelectedDay(isSel ? null : day)}
-                style={{
-                  aspectRatio:'1', borderRadius:8, border:'1.5px solid',
-                  borderColor: isSel ? '#38BDF8' : isToday ? 'rgba(56,189,248,0.5)' : hasActs ? '#243D57' : '#1A2E45',
-                  background: hasPhoto && !isSel ? 'transparent' : isSel ? 'rgba(56,189,248,0.1)' : hasActs ? '#1A2E45' : 'transparent',
-                  display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start',
-                  cursor: hasActs ? 'pointer' : 'default', position:'relative', overflow:'hidden',
-                  boxShadow: isSel ? '0 0 0 2px rgba(56,189,248,0.3)' : 'none',
-                  transition:'border-color 0.15s, box-shadow 0.15s',
-                }}>
-                {/* Fondo: foto miniatura */}
-                {hasPhoto && photoUrl && (
-                  <img src={photoUrl} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity: isSel ? 0.4 : 0.55, pointerEvents:'none' }} />
-                )}
-                {/* Overlay oscuro */}
-                {hasActs && (
-                  <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg, rgba(13,27,42,0.7) 0%, rgba(13,27,42,0.2) 100%)', pointerEvents:'none' }} />
-                )}
-                {/* Número del día */}
-                <span style={{ position:'relative', zIndex:1, fontFamily:"'JetBrains Mono', monospace", fontSize:9, fontWeight:700, color: isToday ? '#38BDF8' : hasActs ? '#E8F0FE' : '#3A5470', padding:'3px 3px 0', lineHeight:1, alignSelf:'flex-start' }}>{day}</span>
-                {/* Iconos deportes */}
-                {hasActs && (
-                  <div style={{ position:'relative', zIndex:1, display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'center', gap:1, padding:'1px 2px 2px', width:'100%', flex:1 }}>
-                    {icons.map((ic, ii) => <span key={ii} style={{ fontSize:'clamp(10px,2.8vw,16px)', lineHeight:1 }}>{ic}</span>)}
-                    {dayActs.length > 1 && <span style={{ fontSize:8, color:'rgba(232,240,254,0.8)', fontWeight:700 }}>×{dayActs.length}</span>}
-                  </div>
-                )}
-                {/* Punto indicador foto */}
-                {hasPhoto && (
-                  <div style={{ position:'absolute', bottom:2, right:3, width:5, height:5, borderRadius:'50%', background:'#38BDF8', zIndex:2 }} />
-                )}
-              </div>
-            );
-          })}
+      {/* ── GRILLA ── */}
+      <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+        <div style={{ minWidth:280 }}>
+          {/* Días de semana */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3, marginBottom:4 }}>
+            {DOWS.map(d => (
+              <div key={d} style={{ textAlign:'center', fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', color:'#7A9BBF', padding:'4px 0' }}>{d}</div>
+            ))}
+          </div>
+          {/* Celdas */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
+            {emptyCells.map((_, i) => <div key={'e'+i} style={{ aspectRatio:'1' }} />)}
+            {days.map(day => {
+              const dayActs = dayActivities[day] || [];
+              const hasActs = dayActs.length > 0;
+              const isToday = day === todayDate;
+              const isSel   = day === selectedDay;
+              const icons   = [...new Set(dayActs.map(a => sportIcon(a.deporte_nombre)))].slice(0, 4);
+              return (
+                <div key={day}
+                  onClick={() => hasActs && toggleDay(day)}
+                  style={{
+                    aspectRatio:'1', borderRadius:6,
+                    background: isSel ? '#132236' : hasActs ? '#1A2E45' : '#1A2E45',
+                    border: `1px solid ${isSel ? '#38BDF8' : isToday ? '#38BDF8' : hasActs ? '#243D57' : '#243D57'}`,
+                    boxShadow: isToday && !isSel ? '0 0 0 1px rgba(56,189,248,0.3)' : 'none',
+                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                    position:'relative', overflow:'hidden',
+                    cursor: hasActs ? 'pointer' : 'default',
+                    transition:'border-color 0.15s',
+                    opacity: hasActs ? 1 : 0.35,
+                  }}>
+                  {/* Número */}
+                  <span style={{
+                    fontFamily:"'JetBrains Mono', monospace", fontSize:9, fontWeight:600,
+                    color: isToday ? '#38BDF8' : '#7A9BBF',
+                    position:'absolute', top:3, left:4, lineHeight:1,
+                  }}>{day}</span>
+                  {/* Iconos de deportes */}
+                  {hasActs && (
+                    <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'center', gap:1, padding:'12px 2px 2px', width:'100%' }}>
+                      {icons.map((ic, ii) => (
+                        <span key={ii} style={{ fontSize:'clamp(10px,2.5vw,16px)', lineHeight:1, flexShrink:0 }}>{ic}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Panel detalle día seleccionado */}
+      {/* ── DETALLE DEL DÍA SELECCIONADO ── */}
       {selectedDay && selectedActs.length > 0 && (
-        <div style={{ marginTop:12, border:'1px solid #38BDF8', background:'#0F1D2E', borderRadius:16, overflow:'hidden', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>
-          {/* Header del día */}
-          <div style={{ padding:'12px 16px 10px', borderBottom:'1px solid #243D57', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', letterSpacing:'0.06em', color:'#E8F0FE', lineHeight:1 }}>
-                {new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}
+        <div style={{ background:'#1A2E45', border:'1px solid #38BDF8', borderRadius:8, padding:'12px 14px', marginTop:12 }}>
+          {/* Título */}
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.06em', color:'#38BDF8', marginBottom:8 }}>
+            {(() => {
+              const dow = new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('es', { weekday:'long' });
+              return `${dow.charAt(0).toUpperCase()+dow.slice(1)} ${selectedDay} de ${MONTHS_ES[viewMonth]} · ${Math.round(selectedActs.reduce((s,a)=>s+a.puntos,0))} pts`;
+            })()}
+          </div>
+          {/* Actividades */}
+          {selectedActs.map((a, i) => (
+            <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'5px 0', borderBottom: i < selectedActs.length-1 ? '1px solid rgba(36,61,87,0.6)' : 'none', fontSize:13 }}>
+              <span style={{ fontSize:18, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:600, color:'#E8F0FE' }}>{a.deporte_nombre}</div>
+                <div style={{ fontSize:11, color:'#7A9BBF' }}>{a.nombre}</div>
+                {a.notas && <div style={{ fontSize:11, color:'#4A7A9B', fontStyle:'italic', marginTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.notas}</div>}
               </div>
-              <div style={{ fontSize:11, color:'#7A9BBF', marginTop:3 }}>
-                {selectedActs.length} actividad{selectedActs.length>1?'es':''} · {Math.round(selectedActs.reduce((s,a)=>s+a.puntos,0))} pts totales
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2, flexShrink:0 }}>
+                {a.foto_url && (
+                  <div onClick={() => setLightboxUrl(a.foto_url)}
+                    style={{ width:40, height:40, borderRadius:6, overflow:'hidden', cursor:'pointer', flexShrink:0, border:'1px solid #243D57' }}>
+                    <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  </div>
+                )}
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, color:'#38BDF8', textAlign:'right', lineHeight:1.5 }}>
+                  {Math.round(a.puntos)} pts<br />
+                  <span style={{ fontSize:10, color:'#7A9BBF' }}>{Math.round(parseFloat(a.minutos))} min</span>
+                </div>
               </div>
             </div>
-            <button onClick={() => setSelectedDay(null)}
-              style={{ color:'#7A9BBF', background:'transparent', border:'none', fontSize:18, cursor:'pointer', padding:'4px 6px', flexShrink:0 }}>✕</button>
-          </div>
-
-          {/* Fotos del día — carrusel horizontal */}
-          {dayPhotos.length > 0 && (
-            <div style={{ display:'flex', gap:8, padding:'12px 16px 8px', overflowX:'auto', WebkitOverflowScrolling:'touch', scrollbarWidth:'none' }}>
-              {dayPhotos.map((a, i) => (
-                <div key={i} onClick={() => setLightboxUrl(a.foto_url)}
-                  style={{ flexShrink:0, width:120, height:90, borderRadius:10, overflow:'hidden', border:'1px solid #243D57', cursor:'pointer', position:'relative' }}>
-                  <img src={a.foto_url} alt={a.deporte_nombre}
-                    style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                  {/* Badge nombre */}
-                  <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'3px 6px', background:'linear-gradient(0deg, rgba(5,12,20,0.85) 0%, transparent 100%)', fontSize:9, fontWeight:700, color:'#E8F0FE', lineHeight:1.4 }}>
-                    {a.nombre.split(' ')[0]} · {sportIcon(a.deporte_nombre)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Lista de actividades del día */}
-          <div style={{ padding:'8px 0 4px' }}>
-            {selectedActs.map((a, i) => {
-              const initials = a.nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-              const color = getPersonColor(a.nombre, nombres);
-              return (
-                <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px', borderBottom: i<selectedActs.length-1 ? '1px solid rgba(36,61,87,0.4)' : 'none' }}>
-                  {/* Avatar */}
-                  <div style={{ width:36, height:36, borderRadius:'50%', background:`${color}22`, border:`1.5px solid ${color}`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color, flexShrink:0 }}>
-                    {initials}
-                  </div>
-                  {/* Info */}
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:700, fontSize:14, color:'#E8F0FE', lineHeight:1.2 }}>{a.nombre}</div>
-                    <div style={{ fontSize:12, color:'#7A9BBF', marginTop:2 }}>
-                      {sportIcon(a.deporte_nombre)} {a.deporte_nombre}
-                    </div>
-                    {a.notas && <div style={{ fontSize:11, color:'#4A7A9B', marginTop:2, fontStyle:'italic', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>"{a.notas}"</div>}
-                  </div>
-                  {/* Stats */}
-                  <div style={{ textAlign:'right', flexShrink:0 }}>
-                    <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'#38BDF8', lineHeight:1 }}>{Math.round(a.puntos)}<span style={{ fontSize:10, color:'#7A9BBF', marginLeft:2 }}>pts</span></div>
-                    <div style={{ fontSize:11, color:'#7A9BBF', marginTop:2 }}>{Math.round(parseFloat(a.minutos))} min</div>
-                    {a.foto_url && <div style={{ fontSize:9, color:'#38BDF8', marginTop:2 }}>📷 foto</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          ))}
         </div>
       )}
 
-      {/* Log mensual */}
-      {Object.keys(dayActivities).length > 0 && (
-        <div style={{ marginTop:20 }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'0.09em', color:'#7A9BBF', marginBottom:12 }}>
-            Todas las actividades de {MONTHS_ES[viewMonth]}
+      {/* ── LEYENDA ── */}
+      {sportsInMonth.length > 0 && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:14 }}>
+          {sportsInMonth.map(s => (
+            <div key={s} style={{ display:'flex', alignItems:'center', gap:4, fontSize:12, color:'#7A9BBF' }}>
+              <span>{sportIcon(s)}</span><span>{s}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── LOG MENSUAL ── */}
+      {sortedDays.length > 0 && (
+        <div style={{ marginTop:20, borderTop:'1px solid #243D57', paddingTop:16 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.07em', color:'#7A9BBF', marginBottom:10 }}>
+            Actividades de {MONTHS_ES[viewMonth]}
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-            {Object.keys(dayActivities).map(Number).sort((a,b)=>b-a).map(day => {
-              const dayActs = dayActivities[day];
-              const dow = new Date(viewYear, viewMonth, day).toLocaleDateString('es',{weekday:'short'});
-              const dayPts = Math.round(dayActs.reduce((s,a)=>s+a.puntos,0));
-              return (
-                <div key={day}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                    <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:10, fontWeight:700, color:'#4A7A9B', background:'#132236', border:'1px solid #243D57', borderRadius:6, padding:'2px 7px', flexShrink:0 }}>
-                      {dow.charAt(0).toUpperCase()+dow.slice(1)} {day}
+          {sortedDays.map(day => {
+            const dayActs = dayActivities[day];
+            const dow = new Date(viewYear, viewMonth, day).toLocaleDateString('es', { weekday:'short' });
+            const dayLabel = `${dow.charAt(0).toUpperCase()+dow.slice(1)} ${day}`;
+            return (
+              <div key={day} style={{ marginBottom:12 }}>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'#7A9BBF', marginBottom:5, letterSpacing:'0.04em' }}>{dayLabel}</div>
+                {dayActs.map((a, i) => (
+                  <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'#132236', border:'1px solid #243D57', borderRadius:8, marginBottom:4, fontSize:13 }}>
+                    <span style={{ fontSize:16, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:600, color:'#E8F0FE', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.deporte_nombre}</div>
+                      <div style={{ fontSize:11, color:'#7A9BBF' }}>{a.nombre}</div>
                     </div>
-                    <div style={{ height:1, flex:1, background:'#1A2E45' }} />
-                    <div style={{ fontSize:10, color:'#38BDF8', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}>{dayPts} pts</div>
+                    {a.foto_url && (
+                      <div onClick={() => setLightboxUrl(a.foto_url)}
+                        style={{ width:36, height:36, borderRadius:6, overflow:'hidden', cursor:'pointer', flexShrink:0, border:'1px solid #243D57' }}>
+                        <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                      </div>
+                    )}
+                    <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'#7A9BBF', flexShrink:0, textAlign:'right', lineHeight:1.5 }}>
+                      <div style={{ color:'#38BDF8' }}>{Math.round(a.puntos)} pts</div>
+                      <div>{Math.round(parseFloat(a.minutos))} min</div>
+                    </div>
                   </div>
-                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                    {dayActs.map((a, i) => {
-                      const initials = a.nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-                      const color = getPersonColor(a.nombre, nombres);
-                      return (
-                        <div key={i} style={{ display:'flex', alignItems:'center', gap:10, background:'#0F1D2E', border:'1px solid #243D57', borderRadius:12, overflow:'hidden' }}>
-                          {/* Foto thumbnail */}
-                          {a.foto_url && (
-                            <div onClick={() => setLightboxUrl(a.foto_url)}
-                              style={{ width:64, height:64, flexShrink:0, cursor:'pointer', overflow:'hidden' }}>
-                              <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                            </div>
-                          )}
-                          <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0, padding: a.foto_url ? '8px 12px 8px 0' : '10px 12px' }}>
-                            {/* Avatar */}
-                            <div style={{ width:30, height:30, borderRadius:'50%', background:`${color}22`, border:`1.5px solid ${color}`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:12, color, flexShrink:0 }}>
-                              {initials}
-                            </div>
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontWeight:700, fontSize:13, color:'#E8F0FE', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.nombre.split(' ')[0]}</div>
-                              <div style={{ fontSize:11, color:'#7A9BBF' }}>{sportIcon(a.deporte_nombre)} {a.deporte_nombre}</div>
-                            </div>
-                            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, fontWeight:700, color:'#38BDF8', flexShrink:0 }}>
-                              {Math.round(a.puntos)}<span style={{ fontSize:9, color:'#7A9BBF', marginLeft:1 }}>pts</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1048,7 +1015,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity 
     switch (tab) {
       case 'podio':    return <Podio acts={acts} nombres={nombres} />;
       case 'ranking':  return <Ranking acts={acts} nombres={nombres} myId={user?.nombre} onOpenProfile={n => setProfile(n)} />;
-      case 'calendar': return <Calendario acts={acts} viewYear={viewYear} viewMonth={viewMonth} nombres={nombres} />;
+      case 'calendar': return <Calendario acts={acts} viewYear={viewYear} viewMonth={viewMonth} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera acts={acts} nombres={nombres} />;
       case 'deportes': return <Deportes acts={acts} />;
