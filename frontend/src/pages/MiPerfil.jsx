@@ -2,22 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { getActividades } from '../api/actividades';
 import { updatePerfil, uploadFotoPerfil } from '../api/perfil';
 import { useAuth } from '../context/AuthContext';
-import Configuracion from './Configuracion';
 
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-const IconSettings = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-  </svg>
-);
-const IconChevron = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 18l6-6-6-6"/>
-  </svg>
-);
 const IconCamera = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
@@ -122,11 +110,10 @@ function EditField({ label, displayValue, onSave, type = 'text', options, rawVal
   );
 }
 
-export default function MiPerfil({ onNewActivity }) {
+export default function MiPerfil() {
   const { user, logout, updateUser } = useAuth();
   const [acts, setActs]             = useState([]);
   const [loading, setLoading]       = useState(true);
-  const [showConfig, setShowConfig] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -182,23 +169,6 @@ export default function MiPerfil({ onNewActivity }) {
         return label + (edad !== null ? ` · ${edad} años` : '');
       })()
     : null;
-
-  if (showConfig) {
-    return (
-      <>
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px 10px', borderBottom:'1px solid var(--t-dim)', background:'var(--t-nav-bg)' }}>
-          <button onClick={() => setShowConfig(false)}
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', flexShrink:0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:18, textTransform:'uppercase', color:'var(--t-text)' }}>
-            Configuración
-          </span>
-        </div>
-        <Configuracion />
-      </>
-    );
-  }
 
   return (
     <div style={{ paddingBottom:32 }}>
@@ -357,20 +327,6 @@ export default function MiPerfil({ onNewActivity }) {
 
       {/* ── OPCIONES ── */}
       <div style={{ padding:'12px 20px', display:'flex', flexDirection:'column', gap:8 }}>
-        <button onClick={() => setShowConfig(true)}
-          style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'14px 16px', borderRadius:14, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-text)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-          <span style={{ color:'var(--t-accent)' }}><IconSettings /></span>
-          <span style={{ flex:1, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.04em' }}>
-            Configuración
-          </span>
-          <span style={{ color:'var(--t-muted)' }}><IconChevron /></span>
-        </button>
-
-        <button onClick={onNewActivity}
-          style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
-          + Registrar actividad
-        </button>
-
         <button onClick={logout}
           style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
           Cerrar sesión

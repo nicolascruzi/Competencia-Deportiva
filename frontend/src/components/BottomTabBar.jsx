@@ -13,8 +13,7 @@ const TabCalendario = ({ active }) => (
 );
 const TabActividades = ({ active }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
-    <polyline points="13 2 13 9 20 9"/>
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
   </svg>
 );
 const TabFeed = ({ active }) => (
@@ -28,8 +27,8 @@ const TabFeed = ({ active }) => (
 const TABS = [
   { id:'ranking',      label:'Ranking',      Icon: TabRanking },
   { id:'calendario',   label:'Calendario',   Icon: TabCalendario },
-  { id:'actividades',  label:'Actividades',  Icon: TabActividades },
   { id:'feed',         label:'Grupo',        Icon: TabFeed },
+  { id:'actividades',  label:'Actividades',  Icon: TabActividades },
   { id:'perfil',       label:'Perfil',       Icon: null },
 ];
 

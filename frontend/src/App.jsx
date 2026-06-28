@@ -7,6 +7,7 @@ import CompetenciaDetalle from './pages/CompetenciaDetalle';
 import MisActividades from './pages/MisActividades';
 import FeedGrupal from './pages/FeedGrupal';
 import MiPerfil from './pages/MiPerfil';
+import Calendario from './pages/Calendario';
 import Nav from './components/Nav';
 import BottomTabBar from './components/BottomTabBar';
 import ActivityModal from './components/ActivityModal';
@@ -61,13 +62,11 @@ function AppShell() {
 
   function handleSelectCompetencia(c) {
     setCompetenciaActiva(c);
-    setCompTab(mainTab === 'calendario' ? 'calendar' : 'ranking');
+    setCompTab('ranking');
   }
 
   function handleMainTab(id) {
     setMainTab(id);
-    if (id === 'ranking')    setCompTab('ranking');
-    if (id === 'calendario') setCompTab('calendar');
   }
 
   function handleCreated() {
@@ -82,10 +81,11 @@ function AppShell() {
 
   function renderContent() {
     if (mainTab === 'actividades') return <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} />;
+    if (mainTab === 'calendario')  return <Calendario key={refreshKey} />;
     if (mainTab === 'feed')        return <FeedGrupal key={competenciaActiva?.id} competencia={competenciaActiva} />;
-    if (mainTab === 'perfil')      return <MiPerfil key={refreshKey} onNewActivity={() => setActModalOpen(true)} />;
+    if (mainTab === 'perfil')      return <MiPerfil key={refreshKey} />;
 
-    // ranking / calendario — requieren competencia
+    // ranking — requiere competencia
     if (!competenciaActiva) {
       return <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />;
     }
