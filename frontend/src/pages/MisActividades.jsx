@@ -2,13 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { getActividades, deleteActividad } from '../api/actividades';
 import { uploadFoto, deleteFoto } from '../api/fotos';
 
-const SPORT_ICONS = {
-  'Bicicleta MTB':'🚵','Bicicleta Rodillo':'🚴','Bicicleta Ruta':'🚴','Box':'🥊',
-  'Buceo':'🤿','Crossfit':'🏋️','Cuerda':'🪢','Escalada':'🧗','Funcional':'💪',
-  'Fútbol':'⚽','Gimnasio':'🏋️','Golf':'⛳','Natación':'🏊','Padel':'🏓',
-  'Spinning':'🚴','Surf':'🏄','Tenis':'🎾','Trail Running':'🏃','Trekking':'🥾','Trote':'🏃',
-};
-const icon = s => SPORT_ICONS[s] || '🏅';
+const IconCamera = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+);
 
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -55,7 +54,13 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
   }
 
   const fecha = new Date(actividad.fecha + 'T12:00:00');
-  const fechaLabel = fecha.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const fechaLabel = fecha.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' });
+  const yearLabel  = fecha.getFullYear();
+
+  // Hora registrada: viene de created_at
+  const horaLabel = actividad.created_at
+    ? new Date(actividad.created_at).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })
+    : null;
 
   return (
     <>
@@ -75,90 +80,111 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
 
       {/* Sheet */}
       <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-        style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:101, background:'#0F1D2E', border:'1px solid #243D57', borderBottom:'none', borderRadius:'20px 20px 0 0', maxHeight:'93dvh', overflowY:'auto', paddingBottom:'calc(24px + env(safe-area-inset-bottom))' }}>
+        style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:101, background:'#0F1D2E', border:'1px solid #1E3450', borderBottom:'none', borderRadius:'20px 20px 0 0', maxHeight:'88dvh', overflowY:'auto', paddingBottom:'calc(20px + env(safe-area-inset-bottom))' }}>
 
         {/* Handle */}
-        <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 8px' }}>
-          <div style={{ width:36, height:4, borderRadius:4, background:'#243D57' }} />
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 6px' }}>
+          <div style={{ width:32, height:3, borderRadius:3, background:'#243D57' }} />
         </div>
 
-        {/* Foto */}
+        {/* ── FOTO ── */}
         {actividad.foto_url ? (
-          <div onClick={() => setLightbox(true)} style={{ position:'relative', margin:'0 16px 16px', borderRadius:14, overflow:'hidden', cursor:'pointer' }}>
+          <div style={{ position:'relative', margin:'0 14px 14px', borderRadius:14, overflow:'hidden', cursor:'pointer' }}
+            onClick={() => setLightbox(true)}>
             <img src={actividad.foto_url} alt={actividad.deporte_nombre}
-              style={{ width:'100%', aspectRatio:'4/3', objectFit:'cover', display:'block' }} />
-            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(5,12,20,0.75) 0%, transparent 50%)' }} />
-            <div style={{ position:'absolute', bottom:10, left:0, right:0, textAlign:'center', fontSize:11, color:'rgba(232,240,254,0.6)', letterSpacing:'0.04em' }}>
+              style={{ width:'100%', aspectRatio:'16/9', objectFit:'cover', display:'block' }} />
+            {/* Gradiente inferior */}
+            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(5,12,20,0.8) 0%, transparent 45%)' }} />
+            {/* Nombre del deporte encima de la foto */}
+            <div style={{ position:'absolute', bottom:12, left:14, right:80 }}>
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'#E8F0FE', lineHeight:1 }}>
+                {actividad.deporte_nombre}
+              </div>
+            </div>
+            {/* Botón cambiar foto */}
+            <button onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
+              style={{ position:'absolute', top:10, right:10, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(255,255,255,0.15)', color:'#E8F0FE', borderRadius:8, padding:'6px 10px', fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+              <IconCamera />
+              <span>Cambiar</span>
+            </button>
+            {/* Botón quitar foto */}
+            <button onClick={e => { e.stopPropagation(); handleDeleteFoto(); }}
+              style={{ position:'absolute', top:10, left:10, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', borderRadius:8, padding:'6px 10px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+              Quitar
+            </button>
+            <div style={{ position:'absolute', bottom:12, right:12, fontSize:11, color:'rgba(232,240,254,0.5)', letterSpacing:'0.03em' }}>
               Toca para ampliar
             </div>
-            <button onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
-              style={{ position:'absolute', top:10, right:10, background:'rgba(13,27,42,0.8)', border:'1px solid rgba(255,255,255,0.15)', color:'#E8F0FE', borderRadius:8, padding:'6px 11px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
-              📷 Cambiar
-            </button>
-            <button onClick={e => { e.stopPropagation(); handleDeleteFoto(); }}
-              style={{ position:'absolute', top:10, left:10, background:'rgba(13,27,42,0.8)', border:'1px solid rgba(248,113,113,0.35)', color:'#F87171', borderRadius:8, padding:'6px 11px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
-              ✕ Quitar
-            </button>
           </div>
         ) : (
-          <div style={{ margin:'0 16px 16px' }}>
+          <div style={{ margin:'0 14px 14px' }}>
             <button onClick={() => fileInputRef.current?.click()}
-              style={{ width:'100%', aspectRatio:'16/9', borderRadius:14, border:'1.5px dashed #243D57', background:'rgba(26,46,69,0.3)', color:'#7A9BBF', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer' }}>
+              style={{ width:'100%', aspectRatio:'16/9', borderRadius:14, border:'1.5px dashed #243D57', background:'rgba(26,46,69,0.25)', color:'#7A9BBF', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer' }}>
               {uploading
-                ? <><div style={{ width:24, height:24, border:'2px solid #243D57', borderTopColor:'#38BDF8', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /><span style={{ fontSize:13 }}>Subiendo…</span></>
-                : <><span style={{ fontSize:34 }}>📷</span><span style={{ fontSize:14, fontWeight:600 }}>Agregar foto</span><span style={{ fontSize:12, marginTop:2 }}>Galería o cámara</span></>}
+                ? <><div style={{ width:22, height:22, border:'2px solid #243D57', borderTopColor:'#38BDF8', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /><span style={{ fontSize:13 }}>Subiendo…</span></>
+                : <><IconCamera /><span style={{ fontSize:13, fontWeight:600, marginTop:2 }}>Agregar foto</span></>}
             </button>
           </div>
         )}
 
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFotoChange} style={{ display:'none' }} />
 
-        {/* Info principal */}
-        <div style={{ padding:'0 20px' }}>
+        {/* ── INFO ── */}
+        <div style={{ padding:'0 14px' }}>
 
-          {/* Deporte + fecha + puntos */}
-          <div style={{ display:'flex', alignItems:'flex-start', gap:14, marginBottom:18 }}>
-            <span style={{ fontSize:44, lineHeight:1, flexShrink:0 }}>{icon(actividad.deporte_nombre)}</span>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'#E8F0FE' }}>
-                {actividad.deporte_nombre}
-              </div>
-              <div style={{ fontSize:12, color:'#7A9BBF', marginTop:4, lineHeight:1.4 }}>
-                {fechaLabel.charAt(0).toUpperCase() + fechaLabel.slice(1)}
-              </div>
+          {/* Deporte (si no hay foto) */}
+          {!actividad.foto_url && (
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', color:'#E8F0FE', lineHeight:1, marginBottom:10 }}>
+              {actividad.deporte_nombre}
             </div>
-            <div style={{ textAlign:'right', flexShrink:0 }}>
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:30, color:'#38BDF8', lineHeight:1 }}>
-                {Math.round(parseFloat(actividad.puntos))}
-              </div>
-              <div style={{ fontSize:10, color:'#7A9BBF', marginTop:3, textTransform:'uppercase', letterSpacing:'0.08em' }}>puntos</div>
+          )}
+
+          {/* Fecha y hora */}
+          <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:5, color:'#7A9BBF', fontSize:13 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <span style={{ textTransform:'capitalize' }}>{fechaLabel}, {yearLabel}</span>
             </div>
+            {horaLabel && (
+              <div style={{ display:'flex', alignItems:'center', gap:5, color:'#4A7A9B', fontSize:13 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>{horaLabel}</span>
+              </div>
+            )}
           </div>
 
-          {/* Stats grid */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
-            {[
-              { label:'Minutos', value: Math.round(parseFloat(actividad.minutos)) + ' min' },
-              { label:'Ponderador', value: '×' + parseFloat(actividad.ponderador).toFixed(1) },
-            ].map(({ label, value }) => (
-              <div key={label} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 14px' }}>
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:22, color:'#E8F0FE', lineHeight:1 }}>{value}</div>
-                <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>{label}</div>
+          {/* Métricas: puntos + minutos */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:14 }}>
+            <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 14px', position:'relative', overflow:'hidden' }}>
+              <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'#38BDF8', opacity:0.7 }} />
+              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:26, color:'#38BDF8', lineHeight:1 }}>
+                {Math.round(parseFloat(actividad.puntos))}
               </div>
-            ))}
+              <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Puntos</div>
+            </div>
+            <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 14px' }}>
+              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:26, color:'#E8F0FE', lineHeight:1 }}>
+                {Math.round(parseFloat(actividad.minutos))}
+              </div>
+              <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Minutos</div>
+            </div>
           </div>
 
           {/* Notas */}
           {actividad.notas && (
-            <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 14px', marginBottom:14 }}>
-              <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:6 }}>Notas</div>
+            <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'11px 14px', marginBottom:14 }}>
+              <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:5 }}>Notas</div>
               <div style={{ fontSize:14, color:'#E8F0FE', lineHeight:1.6 }}>{actividad.notas}</div>
             </div>
           )}
 
           {/* Eliminar */}
           <button onClick={handleDeleteActividad}
-            style={{ width:'100%', padding:'14px', borderRadius:14, border:'1px solid rgba(248,113,113,0.25)', background:'rgba(248,113,113,0.06)', color:'#F87171', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer', marginTop:4 }}>
+            style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid rgba(248,113,113,0.2)', background:'rgba(248,113,113,0.05)', color:'#F87171', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
             Eliminar actividad
           </button>
         </div>
@@ -180,27 +206,21 @@ function ActividadCard({ a, onClick }) {
 
       {/* Foto lateral (si existe) */}
       {a.foto_url && (
-        <div style={{ width:72, flexShrink:0, position:'relative', overflow:'hidden' }}>
+        <div style={{ width:68, flexShrink:0, position:'relative', overflow:'hidden' }}>
           <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
           <div style={{ position:'absolute', inset:0, background:'linear-gradient(90deg, transparent 60%, rgba(15,29,46,0.4) 100%)' }} />
         </div>
       )}
 
       {/* Contenido */}
-      <div style={{ flex:1, minWidth:0, padding:'12px 14px', display:'flex', alignItems:'center', gap:12 }}>
-        {/* Icono (solo si no hay foto) */}
-        {!a.foto_url && (
-          <span style={{ fontSize:28, flexShrink:0, lineHeight:1 }}>{icon(a.deporte_nombre)}</span>
-        )}
-
+      <div style={{ flex:1, minWidth:0, padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
         {/* Info */}
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.02em', color:'#E8F0FE', lineHeight:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', letterSpacing:'0.02em', color:'#E8F0FE', lineHeight:1 }}>
             {a.deporte_nombre}
           </div>
           <div style={{ fontSize:12, color:'#7A9BBF', marginTop:4, fontFamily:"'JetBrains Mono', monospace" }}>
             {Math.round(parseFloat(a.minutos))} min
-            {a.foto_url && <span style={{ marginLeft:8, color:'rgba(56,189,248,0.7)' }}>📷</span>}
           </div>
           {a.notas && (
             <div style={{ fontSize:11, color:'#4A7A9B', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontStyle:'italic' }}>
@@ -211,14 +231,14 @@ function ActividadCard({ a, onClick }) {
 
         {/* Puntos */}
         <div style={{ textAlign:'right', flexShrink:0 }}>
-          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:'#38BDF8', lineHeight:1 }}>
+          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:19, color:'#38BDF8', lineHeight:1 }}>
             {Math.round(parseFloat(a.puntos))}
           </div>
           <div style={{ fontSize:10, color:'#7A9BBF', marginTop:3, textTransform:'uppercase', letterSpacing:'0.05em' }}>pts</div>
         </div>
 
         {/* Chevron */}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2A4A6A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2A4A6A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
           <path d="M9 18l6-6-6-6"/>
         </svg>
       </div>
@@ -273,34 +293,33 @@ export default function MisActividades({ onNewActivity }) {
   const actsMes  = actividades.filter(a => a.fecha.slice(0,7) === mesKey);
   const ptosMes  = actsMes.reduce((s, a) => s + parseFloat(a.puntos), 0);
   const minsMes  = actsMes.reduce((s, a) => s + parseFloat(a.minutos), 0);
-  const totalActs = actividades.length;
 
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:0 }}>
 
       {/* ── HEADER ── */}
-      <div style={{ padding:'22px 20px 18px', background:'linear-gradient(180deg, #0A1520 0%, #0D1B2A 100%)', borderBottom:'1px solid #1A2E45' }}>
-        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'#38BDF8', marginBottom:6 }}>
+      <div style={{ padding:'20px 20px 16px', background:'linear-gradient(180deg, #0A1520 0%, #0D1B2A 100%)', borderBottom:'1px solid #1A2E45' }}>
+        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'#38BDF8', marginBottom:5 }}>
           Historial
         </div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(28px,8vw,40px)', textTransform:'uppercase', lineHeight:1, color:'#E8F0FE' }}>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(26px,7vw,36px)', textTransform:'uppercase', lineHeight:1, color:'#E8F0FE' }}>
           Mis actividades
         </div>
 
         {/* KPIs del mes actual */}
         {actsMes.length > 0 && (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginTop:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginTop:14 }}>
             {[
               { label:'Este mes',  value: actsMes.length,                           unit:'actividades', accent:false },
               { label:'Minutos',   value: Math.round(minsMes).toLocaleString('es'), unit:'min',         accent:false },
               { label:'Puntos',    value: Math.round(ptosMes).toLocaleString('es'), unit:'pts',         accent:true  },
             ].map(({ label, value, unit, accent }) => (
-              <div key={label} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 12px 10px', position:'relative', overflow:'hidden' }}>
+              <div key={label} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'10px 10px 8px', position:'relative', overflow:'hidden' }}>
                 <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background: accent ? '#38BDF8' : '#243D57', opacity: accent ? 0.8 : 0.4 }} />
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:'clamp(16px,4.5vw,22px)', color: accent ? '#38BDF8' : '#E8F0FE', lineHeight:1 }}>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:'clamp(15px,4vw,20px)', color: accent ? '#38BDF8' : '#E8F0FE', lineHeight:1 }}>
                   {value}
                 </div>
-                <div style={{ fontSize:10, color:'#7A9BBF', marginTop:4, textTransform:'uppercase', letterSpacing:'0.06em' }}>{unit}</div>
+                <div style={{ fontSize:10, color:'#7A9BBF', marginTop:3, textTransform:'uppercase', letterSpacing:'0.06em' }}>{unit}</div>
               </div>
             ))}
           </div>
@@ -316,7 +335,6 @@ export default function MisActividades({ onNewActivity }) {
           </div>
         ) : actividades.length === 0 ? (
           <div style={{ textAlign:'center', padding:'80px 24px', color:'#7A9BBF' }}>
-            <div style={{ fontSize:52, marginBottom:16 }}>🏅</div>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, textTransform:'uppercase', color:'#E8F0FE', marginBottom:8 }}>
               Sin actividades
             </div>
@@ -338,8 +356,8 @@ export default function MisActividades({ onNewActivity }) {
             return (
               <div key={mes}>
                 {/* Separador de mes */}
-                <div style={{ display:'flex', alignItems:'center', gap:12, padding:'20px 20px 10px' }}>
-                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', letterSpacing:'0.07em', color:'#7A9BBF', flexShrink:0 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:12, padding:'18px 20px 8px' }}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, textTransform:'uppercase', letterSpacing:'0.07em', color:'#7A9BBF', flexShrink:0 }}>
                     {mesLabel}
                   </div>
                   <div style={{ flex:1, height:1, background:'#1A2E45' }} />
@@ -349,7 +367,7 @@ export default function MisActividades({ onNewActivity }) {
                 </div>
 
                 {/* Días del mes */}
-                <div style={{ display:'flex', flexDirection:'column', gap:16, padding:'0 20px' }}>
+                <div style={{ display:'flex', flexDirection:'column', gap:14, padding:'0 16px' }}>
                   {fechas.map(fecha => {
                     const acts = grouped[mes][fecha];
                     const date = new Date(fecha + 'T12:00:00');
@@ -360,7 +378,7 @@ export default function MisActividades({ onNewActivity }) {
                     return (
                       <div key={fecha}>
                         {/* Header del día */}
-                        <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:8 }}>
+                        <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:7 }}>
                           <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:700, color:'#4A7A9B', textTransform:'capitalize' }}>
                             {dow} {day}
                           </span>
@@ -369,7 +387,7 @@ export default function MisActividades({ onNewActivity }) {
                           </span>
                         </div>
                         {/* Tarjetas */}
-                        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                        <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
                           {acts.map(a => (
                             <ActividadCard key={a.id} a={a} onClick={() => setDetalle(a)} />
                           ))}
