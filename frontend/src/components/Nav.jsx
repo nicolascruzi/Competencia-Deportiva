@@ -62,15 +62,15 @@ export default function Nav({ onNewActivity }) {
       {/* ── TOP HEADER ─────────────────────────────────────────────── */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
+        height: 52,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px',
         background: 'rgba(13,27,42,0.97)',
         borderBottom: '1px solid #243D57',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        /* El paddingTop empuja el contenido por debajo del notch/dynamic island */
-        paddingTop: 'env(safe-area-inset-top)',
       }}>
-        {/* Fila de contenido — siempre 52px de alto, independiente del safe area */}
-        <div style={{ height:52, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px' }}>
+        <div style={{ display:'contents' }}>
           {/* Brand */}
           <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'#38BDF8', flexShrink:0 }}>
             Nanão Cup 🏆
@@ -108,7 +108,7 @@ export default function Nav({ onNewActivity }) {
       <div
         ref={drawerRef}
         style={{
-          position: 'fixed', top: 'calc(52px + env(safe-area-inset-top))', left: 0, right: 0, zIndex: 50,
+          position: 'fixed', top: 52, left: 0, right: 0, zIndex: 50,
           background: 'rgba(13,27,42,0.98)',
           borderBottom: '1px solid #243D57',
           backdropFilter: 'blur(16px)',

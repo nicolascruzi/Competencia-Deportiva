@@ -1083,7 +1083,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Header sticky */}
-      <div style={{ position:'sticky', top:'calc(52px + env(safe-area-inset-top))', zIndex:10, background:'rgba(13,27,42,0.98)', borderBottom:'1px solid #1A2E45', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
+      <div style={{ position:'sticky', top:52, zIndex:10, background:'rgba(13,27,42,0.98)', borderBottom:'1px solid #1A2E45', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
         {/* Back + título */}
         <div style={{ padding:'10px 20px 6px' }}>
           <button onClick={onBack} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:12, fontWeight:600, color:'#7A9BBF', background:'none', border:'none', cursor:'pointer', marginBottom:6, padding:0, letterSpacing:'0.01em' }}>
