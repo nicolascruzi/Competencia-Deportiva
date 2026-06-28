@@ -45,7 +45,7 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center font-bold text-3xl tracking-widest uppercase"
              style={{ fontFamily: "'Barlow Condensed', sans-serif", color: 'var(--t-accent)' }}>
-          Nanão Cup 🏆
+          Pura Racha
         </div>
 
         {/* Tabs */}

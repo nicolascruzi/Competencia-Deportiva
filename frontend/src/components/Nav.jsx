@@ -105,7 +105,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
   function onTitleClick()    { if (!didLongPress.current) openSelector(); }
 
   const anyOpen = selectorOpen || settingsOpen;
-  const titleText = competenciaActiva ? competenciaActiva.nombre : 'Nanão Cup';
+  const titleText = competenciaActiva ? competenciaActiva.nombre : 'Pura Racha';
 
   return (
     <>

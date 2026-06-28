@@ -176,8 +176,11 @@ export default function MiPerfil({ onNewActivity }) {
   const edad = calcEdad(user?.fecha_nacimiento);
   const sexoLabel = user?.sexo === 'M' ? 'Masculino' : user?.sexo === 'F' ? 'Femenino' : user?.sexo === 'X' ? 'Otro' : null;
   const fechaNacDisplay = user?.fecha_nacimiento
-    ? new Date(user.fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' })
-      + (edad !== null ? ` · ${edad} años` : '')
+    ? (() => {
+        const [y, m, d] = user.fecha_nacimiento.slice(0, 10).split('-').map(Number);
+        const label = new Date(y, m - 1, d).toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' });
+        return label + (edad !== null ? ` · ${edad} años` : '');
+      })()
     : null;
 
   if (showConfig) {

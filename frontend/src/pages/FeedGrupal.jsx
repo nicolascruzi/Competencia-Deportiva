@@ -2,16 +2,6 @@ import { useEffect, useState } from 'react';
 import { getActividadesComp } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 
-const PERSON_COLORS = [
-  '#38BDF8','#34D399','#F59E0B','#F87171','#A78BFA',
-  '#FB923C','#2DD4BF','#E879F9','#86EFAC','#FDE68A',
-];
-
-function getPersonColor(nombre, nombres) {
-  const sorted = [...nombres].sort();
-  return PERSON_COLORS[sorted.indexOf(nombre) % PERSON_COLORS.length];
-}
-
 function timeAgo(isoStr) {
   const diff = Date.now() - new Date(isoStr).getTime();
   const min  = Math.floor(diff / 60000);
@@ -24,14 +14,17 @@ function timeAgo(isoStr) {
   return new Date(isoStr).toLocaleDateString('es', { day:'numeric', month:'short' });
 }
 
-function FeedCard({ act, color, initials, lightbox, onLightbox }) {
+function FeedCard({ act, onLightbox }) {
   return (
     <div style={{ background:'var(--t-surface)', borderBottom:'1px solid var(--t-surface2)' }}>
 
       {/* Header de la tarjeta */}
       <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px 10px' }}>
-        <div style={{ width:36, height:36, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-ground)', flexShrink:0 }}>
-          {initials}
+        <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-accent)', flexShrink:0, overflow:'hidden' }}>
+          {act.foto_perfil_url
+            ? <img src={act.foto_perfil_url} alt={act.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+            : act.nombre.charAt(0).toUpperCase()
+          }
         </div>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1 }}>
@@ -57,7 +50,7 @@ function FeedCard({ act, color, initials, lightbox, onLightbox }) {
       {/* Stats: puntos + minutos */}
       <div style={{ display:'flex', alignItems:'center', gap:0, padding:'10px 14px 4px' }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:color, lineHeight:1 }}>
+          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:'var(--t-accent)', lineHeight:1 }}>
             {Math.round(act.puntos)}
           </span>
           <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</span>
@@ -110,7 +103,6 @@ export default function FeedGrupal({ competencia }) {
       .finally(() => setLoading(false));
   }, [competencia?.id]);
 
-  const nombres = [...new Set(acts.map(a => a.nombre))].sort();
 
   if (!competencia) {
     return (
@@ -168,7 +160,7 @@ export default function FeedGrupal({ competencia }) {
           Feed del grupo
         </div>
         <div style={{ fontSize:12, color:'var(--t-muted2)', marginTop:4 }}>
-          {acts.length} actividades · {nombres.length} participantes
+          {acts.length} actividades
         </div>
       </div>
 
@@ -178,8 +170,6 @@ export default function FeedGrupal({ competencia }) {
           <FeedCard
             key={act.id}
             act={act}
-            color={getPersonColor(act.nombre, nombres)}
-            initials={act.nombre.charAt(0).toUpperCase()}
             onLightbox={url => setLightbox(url)}
           />
         ))}

@@ -14,7 +14,7 @@ function PinDisplay({ nombre, pin, onClose }) {
   }
 
   function compartirWhatsApp() {
-    const texto = encodeURIComponent(`Unite a mi competencia "${nombre}" en Nanão Cup 🏆\nEl PIN es: ${pin}`);
+    const texto = encodeURIComponent(`Unite a mi competencia "${nombre}" en Pura Racha 🔥\nEl PIN es: ${pin}`);
     window.open(`https://wa.me/?text=${texto}`, '_blank');
   }
 
