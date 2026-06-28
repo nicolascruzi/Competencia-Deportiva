@@ -229,7 +229,7 @@ router.get('/:id/meses', authMiddleware, async (req, res) => {
 });
 
 // GET /competencias/:id/actividades — todas las actividades de participantes (para gráficos)
-router.get('/:id/actividades', auth, async (req, res) => {
+router.get('/:id/actividades', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { mes } = req.query; // YYYY-MM opcional
   try {
