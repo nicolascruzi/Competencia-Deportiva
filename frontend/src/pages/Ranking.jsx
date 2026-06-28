@@ -36,7 +36,6 @@ export default function Ranking() {
         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(26px,7vw,34px)', textTransform:'uppercase', lineHeight:1, color:'var(--t-text)', marginBottom:14 }}>
           {mesLabel}
         </div>
-
         {/* Selector de mes */}
         <div style={{ display:'flex', gap:6, overflowX:'auto', scrollbarWidth:'none', paddingBottom:2 }}>
           {[{ val: '', label: 'Acumulado' }, ...meses.map(m => {
@@ -44,18 +43,12 @@ export default function Ranking() {
             return { val: m, label: MONTHS_ES[parseInt(mo) - 1].slice(0, 3) + ' ' + y };
           })].map(({ val, label }) => (
             <button key={val} onClick={() => setMes(val)} style={{
-              padding: '4px 12px',
-              borderRadius: 20,
-              fontSize: 11,
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              border: '1.5px solid',
-              cursor: 'pointer',
+              padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+              whiteSpace: 'nowrap', flexShrink: 0, border: '1.5px solid', cursor: 'pointer',
               transition: 'all .15s',
-              background:   mes === val ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
-              borderColor:  mes === val ? 'var(--t-accent)' : 'var(--t-dim)',
-              color:        mes === val ? 'var(--t-accent)' : 'var(--t-muted)',
+              background:  mes === val ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
+              borderColor: mes === val ? 'var(--t-accent)' : 'var(--t-dim)',
+              color:       mes === val ? 'var(--t-accent)' : 'var(--t-muted)',
             }}>
               {label}
             </button>
@@ -63,8 +56,8 @@ export default function Ranking() {
         </div>
       </div>
 
-      {/* Lista */}
-      <div style={{ flex:1 }}>
+      {/* Cards */}
+      <div style={{ padding:'14px 16px 24px', display:'flex', flexDirection:'column', gap:8 }}>
         {loading ? (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'80px 20px', color:'var(--t-muted)', fontSize:14 }}>
             <div style={{ width:18, height:18, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
@@ -82,47 +75,37 @@ export default function Ranking() {
             const isTop = i === 0;
             return (
               <div key={p.id} style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                padding: '13px 18px',
-                borderBottom: '1px solid var(--t-dim)',
-                cursor: 'default',
+                background: 'var(--t-surface)',
+                border: '1px solid',
+                borderColor: isTop ? 'rgba(var(--t-accent-r),0.4)' : 'var(--t-dim)',
+                borderRadius: 14,
+                padding: '14px 16px',
+                position: 'relative',
+                overflow: 'hidden',
               }}>
-                {/* Posición */}
-                <div style={{
-                  fontFamily: "'Barlow Condensed', sans-serif",
-                  fontWeight: 900,
-                  fontSize: 30,
-                  lineHeight: 1,
-                  width: 28,
-                  textAlign: 'right',
-                  flexShrink: 0,
-                  fontVariantNumeric: 'tabular-nums',
-                  color: isTop ? 'var(--t-accent)' : 'var(--t-dim2)',
-                }}>
-                  {i + 1}
-                </div>
+                {isTop && <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.7 }} />}
 
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:19, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                    {p.nombre}
+                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:32, lineHeight:1, width:32, textAlign:'center', flexShrink:0, fontVariantNumeric:'tabular-nums', color: isTop ? 'var(--t-accent)' : 'var(--t-dim2)' }}>
+                    {i + 1}
                   </div>
-                  <div style={{ height:3, background:'var(--t-dim)', borderRadius:2, marginTop:7, overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.55 }} />
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:19, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                      {p.nombre}
+                    </div>
+                    <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2, fontVariantNumeric:'tabular-nums' }}>
+                      {p.actividades} ses · {Math.round(p.minutos).toLocaleString('es')} min
+                    </div>
+                    <div style={{ height:3, background:'var(--t-dim)', borderRadius:2, marginTop:8, overflow:'hidden' }}>
+                      <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.5 }} />
+                    </div>
                   </div>
-                  <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:4, fontVariantNumeric:'tabular-nums', letterSpacing:'0.02em' }}>
-                    {p.actividades} ses · {Math.round(p.minutos).toLocaleString('es')} min
+                  <div style={{ textAlign:'right', flexShrink:0, paddingLeft:4 }}>
+                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, lineHeight:1, color: isTop ? 'var(--t-accent)' : 'var(--t-text)', fontVariantNumeric:'tabular-nums' }}>
+                      {Math.round(p.puntos).toLocaleString('es')}
+                    </div>
+                    <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginTop:2 }}>pts</div>
                   </div>
-                </div>
-
-                {/* Puntos */}
-                <div style={{ textAlign:'right', flexShrink:0 }}>
-                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, lineHeight:1, color:'var(--t-text)', fontVariantNumeric:'tabular-nums' }}>
-                    {Math.round(p.puntos).toLocaleString('es')}
-                  </div>
-                  <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginTop:2 }}>pts</div>
                 </div>
               </div>
             );

@@ -142,51 +142,206 @@ function Podio({ acts, nombres }) {
 
 // ─── RANKING ──────────────────────────────────────────────────────────────────
 
-function Ranking({ acts, nombres, myId, onOpenProfile }) {
-  const people = aggregateByPerson(acts);
-  const maxPts = people[0]?.pts || 1;
+function PlayerDrawer({ person, acts, onClose }) {
+  const myActs = acts
+    .filter(a => a.nombre === person.nombre)
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+  const sportMap = {};
+  myActs.forEach(a => {
+    if (!sportMap[a.deporte_nombre]) sportMap[a.deporte_nombre] = { min:0, pts:0, n:0 };
+    sportMap[a.deporte_nombre].min += parseFloat(a.minutos);
+    sportMap[a.deporte_nombre].pts += a.puntos;
+    sportMap[a.deporte_nombre].n++;
+  });
+  const sports = Object.entries(sportMap).sort((a,b) => b[1].pts - a[1].pts);
+
+  return (
+    <>
+      {/* Overlay */}
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)' }} />
+
+      {/* Sheet */}
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:201, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'78dvh', overflowY:'auto', paddingBottom:'calc(env(safe-area-inset-bottom) + 24px)' }}>
+        {/* Handle */}
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px' }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+        </div>
+
+        {/* Header del jugador */}
+        <div style={{ padding:'12px 20px 16px', borderBottom:'1px solid var(--t-dim)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+            {/* Avatar inicial */}
+            <div style={{ width:48, height:48, borderRadius:14, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, color:'var(--t-muted2)', flexShrink:0 }}>
+              {person.nombre.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1 }}>
+                {person.nombre}
+              </div>
+              <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:3 }}>
+                Posición #{person.rank}
+              </div>
+            </div>
+            <button onClick={onClose} style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>✕</button>
+          </div>
+
+          {/* Stats en fila */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:0, marginTop:14, border:'1px solid var(--t-dim)', borderRadius:10, overflow:'hidden' }}>
+            {[
+              { label:'Puntos', val: Math.round(person.pts).toLocaleString('es') },
+              { label:'Sesiones', val: person.actividades },
+              { label:'Horas', val: Math.round(person.minutos / 60) + 'h' },
+            ].map(({ label, val }, i) => (
+              <div key={label} style={{ padding:'10px 8px', textAlign:'center', borderRight: i < 2 ? '1px solid var(--t-dim)' : 'none', background:'var(--t-surface)' }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, color:'var(--t-text)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>{val}</div>
+                <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginTop:3 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Deportes */}
+        {sports.length > 0 && (
+          <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--t-dim)' }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:10 }}>
+              Deportes
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+              {sports.map(([deporte, v]) => {
+                const pct = Math.round((v.pts / person.pts) * 100);
+                return (
+                  <div key={deporte} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <span style={{ fontSize:16, flexShrink:0 }}>{sportIcon(deporte)}</span>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
+                        <span style={{ fontSize:13, fontWeight:600, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{deporte}</span>
+                        <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'var(--t-muted)', flexShrink:0, marginLeft:8 }}>{v.n} ses</span>
+                      </div>
+                      <div style={{ height:3, background:'var(--t-dim)', borderRadius:2, overflow:'hidden' }}>
+                        <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.6 }} />
+                      </div>
+                    </div>
+                    <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, fontWeight:700, color:'var(--t-accent)', flexShrink:0, minWidth:52, textAlign:'right' }}>
+                      {Math.round(v.pts)} pts
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Últimas actividades */}
+        <div style={{ padding:'14px 20px' }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:10 }}>
+            Últimas actividades
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            {myActs.slice(0, 8).map((a, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', background:'var(--t-surface2)', borderRadius:10, border:'1px solid var(--t-dim)' }}>
+                <span style={{ fontSize:15, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.deporte_nombre}</div>
+                  <div style={{ fontSize:11, color:'var(--t-muted)' }}>
+                    {new Date(a.fecha + 'T12:00:00').toLocaleDateString('es', { day:'numeric', month:'short' })}
+                  </div>
+                </div>
+                <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace" }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)' }}>{Math.round(a.puntos)} pts</div>
+                  <div style={{ fontSize:10, color:'var(--t-muted)' }}>{Math.round(parseFloat(a.minutos))} min</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Ranking({ acts, nombres, myId }) {
+  const people  = aggregateByPerson(acts);
+  const maxPts  = people[0]?.pts || 1;
+  const [selected, setSelected] = useState(null);
 
   if (!people.length) return <EmptyState icon="🏁" title="Sin registros" text="Cargá actividades para ver el ranking." />;
 
   return (
     <div>
       <KpiStrip acts={acts} />
-      <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid var(--t-dim)' }}>
+
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
         {people.map((p, i) => {
-          const pct  = Math.round((p.pts / maxPts) * 100);
+          const pct   = Math.round((p.pts / maxPts) * 100);
           const isTop = i === 0;
           const isMe  = p.nombre === myId;
+
           return (
             <div key={p.nombre}
-              onClick={() => onOpenProfile(p.nombre, acts)}
-              style={{ display:'flex', alignItems:'center', gap:14, padding:'13px 14px', borderBottom: i < people.length-1 ? '1px solid var(--t-dim)' : 'none', background: isTop ? 'rgba(var(--t-accent-r),0.04)' : 'var(--t-surface)', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'background 0.12s' }}>
-              {/* Posición */}
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:28, lineHeight:1, width:26, textAlign:'right', flexShrink:0, fontVariantNumeric:'tabular-nums', color: isTop ? 'var(--t-accent)' : 'var(--t-dim2)' }}>
-                {i + 1}
-              </div>
-              {/* Info */}
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:18, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                  {p.nombre}{isMe ? ' ·  yo' : ''}
+              onClick={() => setSelected(p)}
+              style={{
+                background: 'var(--t-surface)',
+                border: '1px solid',
+                borderColor: isTop ? 'rgba(var(--t-accent-r),0.4)' : 'var(--t-dim)',
+                borderRadius: 14,
+                padding: '14px 16px',
+                cursor: 'pointer',
+                WebkitTapHighlightColor: 'transparent',
+                transition: 'border-color 0.15s',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+
+              {/* Franja superior para el líder */}
+              {isTop && (
+                <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.7 }} />
+              )}
+
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                {/* Posición */}
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:32, lineHeight:1, width:32, textAlign:'center', flexShrink:0, fontVariantNumeric:'tabular-nums', color: isTop ? 'var(--t-accent)' : 'var(--t-dim2)' }}>
+                  {i + 1}
                 </div>
-                <div style={{ height:3, background:'var(--t-dim)', borderRadius:2, marginTop:6, overflow:'hidden' }}>
-                  <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.5, transition:'width 0.5s' }} />
+
+                {/* Info central */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
+                    <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:19, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                      {p.nombre}
+                    </span>
+                    {isMe && <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)', flexShrink:0 }}>yo</span>}
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2, fontVariantNumeric:'tabular-nums' }}>
+                    {p.actividades} ses · {Math.round(p.minutos).toLocaleString('es')} min
+                  </div>
+                  {/* Barra */}
+                  <div style={{ height:3, background:'var(--t-dim)', borderRadius:2, marginTop:8, overflow:'hidden' }}>
+                    <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.5 }} />
+                  </div>
                 </div>
-                <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:4, fontVariantNumeric:'tabular-nums' }}>
-                  {p.actividades} ses · {Math.round(p.minutos).toLocaleString('es')} min
+
+                {/* Puntos */}
+                <div style={{ textAlign:'right', flexShrink:0, paddingLeft:4 }}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, lineHeight:1, color: isTop ? 'var(--t-accent)' : 'var(--t-text)', fontVariantNumeric:'tabular-nums' }}>
+                    {Math.round(p.pts).toLocaleString('es')}
+                  </div>
+                  <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginTop:2 }}>pts</div>
                 </div>
-              </div>
-              {/* Puntos */}
-              <div style={{ textAlign:'right', flexShrink:0 }}>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, lineHeight:1, color:'var(--t-text)', fontVariantNumeric:'tabular-nums' }}>
-                  {Math.round(p.pts).toLocaleString('es')}
-                </div>
-                <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginTop:2 }}>pts</div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Drawer de detalle */}
+      {selected && (
+        <PlayerDrawer
+          person={selected}
+          acts={acts}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }
