@@ -26,6 +26,7 @@ html {
   text-size-adjust: 100%;
   width: 100%;
   overflow-x: hidden;
+  background: #0D1B2A;
 }
 body {
   font-family: var(--font-body, 'Inter', sans-serif);

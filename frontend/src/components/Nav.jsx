@@ -28,16 +28,16 @@ const NAV_ITEMS = [
   },
 ];
 
+const BG = '#0D1B2A';
+
 export default function Nav({ onNewActivity }) {
   const { user, logout }    = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef = useRef(null);
   const location  = useLocation();
 
-  // Cierra el drawer al cambiar de ruta
   useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
 
-  // Cierra el drawer al tocar fuera
   useEffect(() => {
     if (!drawerOpen) return;
     function handleOutside(e) {
@@ -51,7 +51,6 @@ export default function Nav({ onNewActivity }) {
     };
   }, [drawerOpen]);
 
-  // Bloquea el scroll del body cuando el drawer está abierto
   useEffect(() => {
     document.body.style.overflow = drawerOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -59,35 +58,48 @@ export default function Nav({ onNewActivity }) {
 
   return (
     <>
+      {/*
+        Bloque fijo que cubre el status bar del sistema operativo.
+        Ocupa exactamente env(safe-area-inset-top) de altura, el mismo
+        color que el header, pegado al tope absoluto de la pantalla.
+        Esto garantiza que no haya ningún color distinto visible arriba.
+      */}
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0,
+        height: 'env(safe-area-inset-top)',
+        background: BG,
+        zIndex: 51,
+      }} />
+
       {/* ── TOP HEADER ─────────────────────────────────────────────── */}
       <header style={{
-        position: 'sticky', top: 0, zIndex: 50,
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
         height: 52,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 16px',
-        background: 'rgba(13,27,42,0.97)',
+        background: BG,
         borderBottom: '1px solid #243D57',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        // Empuja el header hacia abajo del safe area sin usar padding
+        // (el bloque fijo de arriba tapa esa zona)
+        marginTop: 'env(safe-area-inset-top)',
       }}>
-        <div style={{ display:'contents' }}>
-          {/* Brand */}
-          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'#38BDF8', flexShrink:0 }}>
-            Nanão Cup 🏆
-          </span>
+        {/* Brand */}
+        <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'#38BDF8', flexShrink:0 }}>
+          Nanão Cup 🏆
+        </span>
 
-          {/* Botón hamburger */}
-          <button
-            onClick={() => setDrawerOpen(o => !o)}
-            aria-label="Menú"
-            style={{ display:'flex', flexDirection:'column', justifyContent:'center', gap:5, width:36, height:36, padding:6, borderRadius:8, background:'transparent', border:'none', cursor:'pointer', flexShrink:0, transition:'background 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background='#243D57'}
-            onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(7px) rotate(45deg)' : 'none' }} />
-            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', opacity: drawerOpen ? 0 : 1, transform: drawerOpen ? 'scaleX(0)' : 'none' }} />
-            <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(-7px) rotate(-45deg)' : 'none' }} />
-          </button>
-        </div>
+        {/* Botón hamburger */}
+        <button
+          onClick={() => setDrawerOpen(o => !o)}
+          aria-label="Menú"
+          style={{ display:'flex', flexDirection:'column', justifyContent:'center', gap:5, width:36, height:36, padding:6, borderRadius:8, background:'transparent', border:'none', cursor:'pointer', flexShrink:0 }}>
+          <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(7px) rotate(45deg)' : 'none' }} />
+          <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', opacity: drawerOpen ? 0 : 1, transform: drawerOpen ? 'scaleX(0)' : 'none' }} />
+          <span style={{ display:'block', height:2, background: drawerOpen ? '#38BDF8' : '#E8F0FE', borderRadius:2, transition:'all 0.25s cubic-bezier(0.22,1,0.36,1)', transformOrigin:'center', transform: drawerOpen ? 'translateY(-7px) rotate(-45deg)' : 'none' }} />
+        </button>
       </header>
 
       {/* ── DRAWER OVERLAY ─────────────────────────────────────────── */}
@@ -108,7 +120,9 @@ export default function Nav({ onNewActivity }) {
       <div
         ref={drawerRef}
         style={{
-          position: 'fixed', top: 52, left: 0, right: 0, zIndex: 50,
+          position: 'fixed',
+          top: 'calc(env(safe-area-inset-top) + 52px)',
+          left: 0, right: 0, zIndex: 50,
           background: 'rgba(13,27,42,0.98)',
           borderBottom: '1px solid #243D57',
           backdropFilter: 'blur(16px)',
@@ -133,12 +147,9 @@ export default function Nav({ onNewActivity }) {
           </div>
         </div>
 
-        {/* Links de navegación */}
+        {/* Links */}
         {NAV_ITEMS.map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.exact}
+          <NavLink key={item.to} to={item.to} end={item.exact}
             style={({ isActive }) => ({
               display: 'flex', alignItems: 'center', gap: 14,
               padding: '13px 20px',
@@ -154,23 +165,17 @@ export default function Nav({ onNewActivity }) {
           </NavLink>
         ))}
 
-        {/* Divider */}
         <div style={{ height:1, background:'#243D57', margin:'6px 20px' }} />
 
-        {/* Registrar actividad */}
-        <button
-          onClick={() => { setDrawerOpen(false); onNewActivity(); }}
+        <button onClick={() => { setDrawerOpen(false); onNewActivity(); }}
           style={{ display:'flex', alignItems:'center', gap:14, padding:'13px 20px', width:'100%', fontSize:15, fontWeight:600, color:'#38BDF8', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' }}>
           <span style={{ fontSize:20, width:24, textAlign:'center', flexShrink:0 }}>➕</span>
           Registrar actividad
         </button>
 
-        {/* Divider */}
         <div style={{ height:1, background:'#243D57', margin:'6px 20px' }} />
 
-        {/* Cerrar sesión */}
-        <button
-          onClick={() => { setDrawerOpen(false); logout(); }}
+        <button onClick={() => { setDrawerOpen(false); logout(); }}
           style={{ display:'flex', alignItems:'center', gap:14, padding:'13px 20px', width:'100%', fontSize:15, fontWeight:600, color:'#7A9BBF', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' }}>
           <span style={{ fontSize:20, width:24, textAlign:'center', flexShrink:0 }}>🚪</span>
           Cerrar sesión
@@ -181,17 +186,12 @@ export default function Nav({ onNewActivity }) {
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 48,
         display: 'flex', alignItems: 'stretch',
-        background: 'rgba(13,27,42,0.97)',
+        background: BG,
         borderTop: '1px solid #243D57',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
         {NAV_ITEMS.map((item, idx) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.exact}
+          <NavLink key={item.to} to={item.to} end={item.exact}
             style={({ isActive }) => ({
               flex: 1,
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -200,14 +200,11 @@ export default function Nav({ onNewActivity }) {
               color: isActive ? '#38BDF8' : '#7A9BBF',
               textDecoration: 'none',
               transition: 'color 0.15s',
-              // Espacio para el botón central
               ...(idx === 0 ? { marginRight: 8 } : { marginLeft: 8 }),
             })}>
             {({ isActive }) => (
               <>
-                <span style={{ color: isActive ? '#38BDF8' : '#7A9BBF', transition:'color 0.15s' }}>
-                  {item.icon}
-                </span>
+                <span style={{ color: isActive ? '#38BDF8' : '#7A9BBF', transition:'color 0.15s' }}>{item.icon}</span>
                 <span>{item.label}</span>
               </>
             )}
@@ -215,18 +212,17 @@ export default function Nav({ onNewActivity }) {
         ))}
 
         {/* Botón + central */}
-        <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', top:0, display:'flex', alignItems:'center', justifyContent:'center', height:'100%', pointerEvents:'none' }}>
-          <button
-            onClick={onNewActivity}
-            style={{ width:56, height:56, borderRadius:'50%', background:'#38BDF8', color:'#0D1B2A', fontSize:26, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', border:'none', cursor:'pointer', marginTop:-20, boxShadow:'0 4px 20px rgba(56,189,248,0.45)', transition:'transform 0.15s, box-shadow 0.15s', pointerEvents:'all', WebkitTapHighlightColor:'transparent' }}
-            onTouchStart={e => { e.currentTarget.style.transform='scale(0.93)'; e.currentTarget.style.boxShadow='0 2px 10px rgba(56,189,248,0.3)'; }}
-            onTouchEnd={e => { e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.boxShadow='0 4px 20px rgba(56,189,248,0.45)'; }}>
+        <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', top:0, height:'100%', display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+          <button onClick={onNewActivity}
+            style={{ width:56, height:56, borderRadius:'50%', background:'#38BDF8', color:'#0D1B2A', fontSize:26, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', border:'none', cursor:'pointer', marginTop:-20, boxShadow:'0 4px 20px rgba(56,189,248,0.45)', pointerEvents:'all', WebkitTapHighlightColor:'transparent' }}
+            onTouchStart={e => { e.currentTarget.style.transform='scale(0.93)'; }}
+            onTouchEnd={e => { e.currentTarget.style.transform='scale(1)'; }}>
             +
           </button>
         </div>
       </nav>
 
-      {/* Spacer para que el contenido no quede tapado por la tab bar */}
+      {/* Spacer bottom */}
       <div style={{ height:'calc(68px + env(safe-area-inset-bottom))', flexShrink:0, pointerEvents:'none' }} />
     </>
   );

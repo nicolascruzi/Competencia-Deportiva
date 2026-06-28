@@ -211,27 +211,15 @@ function Ranking({ acts, nombres, myId, onOpenProfile }) {
 function Calendario({ acts }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
-  const [mesCal, setMesCal] = useState(null); // null = "aún no inicializado"
   const DOWS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-  // Calcular meses únicos con actividades, ordenados
-  const mesesDisponibles = [...new Set(acts.map(a => a.fecha.slice(0, 7)))].sort();
-
-  // Inicializar (o actualizar) mesCal cuando llegan los datos
-  useEffect(() => {
-    if (mesesDisponibles.length > 0) {
-      setMesCal(prev => {
-        // Si ya hay un mes válido dentro de los disponibles, mantenerlo
-        if (prev && mesesDisponibles.includes(prev)) return prev;
-        // Si no, ir al más reciente
-        return mesesDisponibles[mesesDisponibles.length - 1];
-      });
-    }
-  }, [mesesDisponibles.join(',')]);
-
-  const activeMes = mesCal && mesesDisponibles.includes(mesCal)
-    ? mesCal
-    : mesesDisponibles[mesesDisponibles.length - 1] || null;
+  // El mes lo determina el mes más frecuente/reciente de las acts recibidas
+  const activeMes = (() => {
+    if (!acts.length) return null;
+    const counts = {};
+    acts.forEach(a => { const m = a.fecha.slice(0,7); counts[m]=(counts[m]||0)+1; });
+    return Object.keys(counts).sort().pop();
+  })();
 
   const viewYear  = activeMes ? parseInt(activeMes.split('-')[0]) : new Date().getFullYear();
   const viewMonth = activeMes ? parseInt(activeMes.split('-')[1]) - 1 : new Date().getMonth();
@@ -266,15 +254,6 @@ function Calendario({ acts }) {
     setSelectedDay(prev => prev === day ? null : day);
   }
 
-  // Navegar entre meses con flechas
-  const calIdx = mesesDisponibles.indexOf(activeMes);
-  function prevMes() {
-    if (calIdx > 0) { setMesCal(mesesDisponibles[calIdx - 1]); setSelectedDay(null); }
-  }
-  function nextMes() {
-    if (calIdx < mesesDisponibles.length - 1) { setMesCal(mesesDisponibles[calIdx + 1]); setSelectedDay(null); }
-  }
-
   if (!acts.length) return <EmptyState icon="📅" title="Sin actividades" />;
 
   return (
@@ -289,24 +268,6 @@ function Calendario({ acts }) {
             style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:16, objectFit:'contain' }} />
         </div>
       )}
-
-      {/* ── NAVEGADOR DE MES ── */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-        <button onClick={prevMes} disabled={calIdx <= 0}
-          style={{ width:36, height:36, borderRadius:8, border:'1px solid #243D57', background:'#132236', color: calIdx <= 0 ? '#243D57' : '#E8F0FE', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: calIdx <= 0 ? 'default' : 'pointer' }}>
-          ‹
-        </button>
-        <div style={{ textAlign:'center' }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', letterSpacing:'0.04em', color:'#E8F0FE', lineHeight:1 }}>
-            {MONTHS_ES[viewMonth]}
-          </div>
-          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'#7A9BBF', marginTop:2 }}>{viewYear}</div>
-        </div>
-        <button onClick={nextMes} disabled={calIdx >= mesesDisponibles.length - 1}
-          style={{ width:36, height:36, borderRadius:8, border:'1px solid #243D57', background:'#132236', color: calIdx >= mesesDisponibles.length - 1 ? '#243D57' : '#E8F0FE', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: calIdx >= mesesDisponibles.length - 1 ? 'default' : 'pointer' }}>
-          ›
-        </button>
-      </div>
 
       {/* ── GRILLA ── */}
       <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
@@ -1082,38 +1043,66 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity 
     <>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* Header sticky */}
-      <div style={{ position:'sticky', top:52, zIndex:10, background:'rgba(13,27,42,0.98)', borderBottom:'1px solid #1A2E45', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
-        {/* Back + título */}
-        <div style={{ padding:'10px 20px 6px' }}>
-          <button onClick={onBack} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:12, fontWeight:600, color:'#7A9BBF', background:'none', border:'none', cursor:'pointer', marginBottom:6, padding:0, letterSpacing:'0.01em' }}>
+      {/* ── SUBHEADER STICKY ───────────────────────────────────────────── */}
+      <div style={{ position:'sticky', top:52, zIndex:10, background:'rgba(13,27,42,0.98)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
+
+        {/* Fila 1: back + nombre de competencia */}
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 16px 4px', borderBottom:'1px solid #1A2E45' }}>
+          <button onClick={onBack}
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:8, border:'1px solid #243D57', background:'transparent', color:'#7A9BBF', cursor:'pointer', flexShrink:0 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-            Mis competencias
           </button>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(22px,6vw,34px)', textTransform:'uppercase', lineHeight:1, color:'#E8F0FE', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(18px,5vw,26px)', textTransform:'uppercase', lineHeight:1.1, color:'#E8F0FE', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>
             {competencia.nombre}
+          </div>
+          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:10, color: mes ? '#38BDF8' : '#7A9BBF', whiteSpace:'nowrap', flexShrink:0 }}>
+            {mesLabel}
           </div>
         </div>
 
-        {/* Selector de mes */}
-        <div style={{ display:'flex', gap:6, overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', padding:'4px 20px 8px' }}>
-          {[{ val:'', label:'Acumulado' }, ...meses.map(m => {
-            const [y, mo] = m.split('-');
-            return { val:m, label: MONTHS_ES[parseInt(mo)-1].slice(0,3)+' '+y };
-          })].map(({ val, label }) => (
-            <button key={val} onClick={() => setMes(val)}
-              style={{ padding:'5px 12px', borderRadius:20, fontSize:12, fontWeight:700, whiteSpace:'nowrap', border:'1px solid', flexShrink:0, cursor:'pointer', transition:'all 0.15s', background: mes===val ? 'rgba(56,189,248,0.15)' : 'transparent', borderColor: mes===val ? '#38BDF8' : '#243D57', color: mes===val ? '#38BDF8' : '#7A9BBF' }}>
-              {label}
-            </button>
-          ))}
+        {/* Fila 2: barra de mes estilo month-bar */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:0, height:34, borderBottom:'1px solid #1A2E45', padding:'0 12px' }}>
+          {/* Botón anterior */}
+          <button
+            onClick={() => { const i=meses.indexOf(mes); if(mes===''&&meses.length){setMes(meses[meses.length-1]);}else if(i>0){setMes(meses[i-1]);}else if(i===0){setMes('');} }}
+            style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'#7A9BBF', fontSize:18, cursor:'pointer', flexShrink:0, padding:0 }}>
+            ‹
+          </button>
+
+          {/* Scroll de meses */}
+          <div style={{ flex:1, display:'flex', overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', gap:2, alignItems:'center', justifyContent:'center' }}>
+            <style>{`.mbar::-webkit-scrollbar{display:none}`}</style>
+            {[{ val:'', label:'Total' }, ...meses.map(m => {
+              const [y, mo] = m.split('-');
+              return { val:m, label: MONTHS_ES[parseInt(mo)-1].slice(0,3).toUpperCase()+' '+y.slice(2) };
+            })].map(({ val, label }) => (
+              <button key={val} onClick={() => setMes(val)}
+                style={{
+                  padding:'3px 10px', borderRadius:14, fontSize:11, fontWeight:700,
+                  whiteSpace:'nowrap', flexShrink:0, border:'none', cursor:'pointer',
+                  transition:'all 0.15s',
+                  background: mes===val ? 'rgba(56,189,248,0.18)' : 'transparent',
+                  color: mes===val ? '#38BDF8' : '#7A9BBF',
+                }}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Botón siguiente */}
+          <button
+            onClick={() => { const i=meses.indexOf(mes); if(mes===''&&meses.length){setMes(meses[0]);}else if(i<meses.length-1){setMes(meses[i+1]);} }}
+            style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'#7A9BBF', fontSize:18, cursor:'pointer', flexShrink:0, padding:0 }}>
+            ›
+          </button>
         </div>
 
-        {/* Tabs de sección */}
-        <div ref={tabsRef} style={{ display:'flex', overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', borderTop:'1px solid #1A2E45' }}>
+        {/* Fila 3: tabs de sección */}
+        <div ref={tabsRef} style={{ display:'flex', overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch' }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'8px 16px', fontSize:10, fontWeight:700, whiteSpace:'nowrap', border:'none', borderBottom: tab===t.id ? '2px solid #38BDF8' : '2px solid transparent', background: tab===t.id ? 'rgba(56,189,248,0.05)' : 'transparent', color: tab===t.id ? '#38BDF8' : '#7A9BBF', cursor:'pointer', flexShrink:0, transition:'color 0.15s, background 0.15s', letterSpacing:'0.02em', textTransform:'uppercase' }}>
-              <span style={{ fontSize:17 }}>{t.icon}</span>
+              style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'6px 14px', fontSize:10, fontWeight:700, whiteSpace:'nowrap', border:'none', borderBottom: tab===t.id ? '2px solid #38BDF8' : '2px solid transparent', background: tab===t.id ? 'rgba(56,189,248,0.05)' : 'transparent', color: tab===t.id ? '#38BDF8' : '#7A9BBF', cursor:'pointer', flexShrink:0, transition:'color 0.15s, background 0.15s', letterSpacing:'0.02em', textTransform:'uppercase' }}>
+              <span style={{ fontSize:15 }}>{t.icon}</span>
               {t.label}
             </button>
           ))}
@@ -1121,15 +1110,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity 
       </div>
 
       {/* Contenido */}
-      <div style={{ padding:'16px 20px 32px' }}>
-        {/* Label del período */}
-        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'#38BDF8', marginBottom:4 }}>
-          {['podio','ranking'].includes(tab) ? 'Tabla de posiciones' : tab.charAt(0).toUpperCase()+tab.slice(1)}
-        </div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(24px,6vw,36px)', textTransform:'uppercase', lineHeight:1, marginBottom:16, color:'#E8F0FE' }}>
-          {mesLabel}
-        </div>
-
+      <div style={{ padding:'12px 16px 32px' }}>
         {renderTab()}
       </div>
 
