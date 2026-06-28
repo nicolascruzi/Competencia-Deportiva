@@ -69,6 +69,10 @@ CREATE TABLE IF NOT EXISTS competencia_deportes (
 CREATE INDEX IF NOT EXISTS idx_comp_participantes_user ON competencia_participantes(user_id);
 CREATE INDEX IF NOT EXISTS idx_comp_deportes_comp      ON competencia_deportes(competencia_id);
 
+-- Fotos de actividades
+ALTER TABLE actividades ADD COLUMN IF NOT EXISTS foto_url TEXT;
+ALTER TABLE actividades ADD COLUMN IF NOT EXISTS foto_public_id TEXT;
+
 -- Deportes iniciales (los mismos del CSV actual)
 INSERT INTO deportes (nombre, icono, ponderador_default) VALUES
   ('Bicicleta MTB',    '🚵', 1.5),

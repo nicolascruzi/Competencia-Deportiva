@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
       SELECT
         a.id, a.user_id, u.nombre AS user_nombre,
         a.deporte_nombre, a.minutos, a.ponderador, a.puntos,
-        a.fecha, a.notas, a.created_at
+        a.fecha, a.notas, a.foto_url, a.created_at
       FROM actividades a
       JOIN users u ON u.id = a.user_id
       ${where}
@@ -74,7 +74,7 @@ router.post('/', async (req, res) => {
     const result = await pool.query(`
       INSERT INTO actividades (user_id, deporte_id, deporte_nombre, minutos, ponderador, fecha, notas)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, fecha, notas, created_at
+      RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, fecha, notas, foto_url, created_at
     `, [targetUserId, deporteId, deporte_nombre.trim(), parseFloat(minutos), parseFloat(ponderador), fecha, notas || null]);
 
     res.status(201).json(result.rows[0]);

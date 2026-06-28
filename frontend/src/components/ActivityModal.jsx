@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getDeportes, createActividad } from '../api/actividades';
+import { uploadFoto } from '../api/fotos';
 
 export default function ActivityModal({ open, onClose, onCreated }) {
   const [deportes, setDeportes] = useState([]);
   const [form, setForm]         = useState({ deporte_nombre: '', minutos: '', ponderador: '', fecha: '', notas: '' });
+  const [foto, setFoto]         = useState(null);       // File object
+  const [fotoPreview, setFotoPreview] = useState(null); // data URL para preview
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
+  const fileInputRef            = useRef(null);
 
   useEffect(() => { getDeportes().then(setDeportes).catch(() => {}); }, []);
 
@@ -14,6 +18,8 @@ export default function ActivityModal({ open, onClose, onCreated }) {
       const today = new Date().toISOString().slice(0, 10);
       setForm(f => ({ ...f, fecha: today, notas: '', minutos: '' }));
       setError('');
+      setFoto(null);
+      setFotoPreview(null);
     }
   }, [open]);
 
@@ -29,17 +35,38 @@ export default function ActivityModal({ open, onClose, onCreated }) {
     setForm(f => ({ ...f, deporte_nombre: nombre, ponderador: dep?.ponderador_default ?? f.ponderador }));
   }
 
+  function handleFotoChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFoto(file);
+    const reader = new FileReader();
+    reader.onload = ev => setFotoPreview(ev.target.result);
+    reader.readAsDataURL(file);
+  }
+
+  function clearFoto() {
+    setFoto(null);
+    setFotoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      await createActividad({
+      const actividad = await createActividad({
         deporte_nombre: form.deporte_nombre,
         minutos:        parseFloat(form.minutos),
         ponderador:     parseFloat(form.ponderador),
         fecha:          form.fecha,
         notas:          form.notas || null,
       });
+
+      // Si hay foto, subirla a Cloudinary con el id recién creado
+      if (foto && actividad.id) {
+        await uploadFoto(actividad.id, foto).catch(() => {});
+      }
+
       onCreated?.();
       onClose();
     } catch (err) {
@@ -52,7 +79,6 @@ export default function ActivityModal({ open, onClose, onCreated }) {
   if (!open) return null;
 
   return (
-    // Sheet modal — sube desde abajo en mobile
     <div className="fixed inset-0 z-50 flex flex-col justify-end"
          style={{ background: 'rgba(5,12,20,0.75)', backdropFilter: 'blur(6px)' }}
          onClick={e => e.target === e.currentTarget && onClose()}>
@@ -110,6 +136,36 @@ export default function ActivityModal({ open, onClose, onCreated }) {
           <Field label="Notas (opcional)">
             <Input type="text" placeholder="Descripción breve…"
               value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
+          </Field>
+
+          {/* Foto */}
+          <Field label="Foto (opcional)">
+            {fotoPreview ? (
+              <div className="relative rounded-2xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
+                <img src={fotoPreview} alt="preview" className="w-full h-full object-cover" />
+                <button type="button" onClick={clearFoto}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                  style={{ background: 'rgba(5,12,20,0.75)', color: '#F87171', border: '1px solid rgba(248,113,113,0.4)' }}>
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                className="w-full rounded-2xl flex flex-col items-center justify-center gap-2 py-6 border-2 border-dashed transition-colors"
+                style={{ borderColor: '#243D57', color: '#7A9BBF', background: 'transparent' }}>
+                <span className="text-3xl">📷</span>
+                <span className="text-sm font-semibold">Seleccionar foto o tomar una</span>
+                <span className="text-xs">Galería o cámara</span>
+              </button>
+            )}
+            {/* Input oculto — capture="environment" abre cámara trasera en iPhone */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFotoChange}
+              className="hidden"
+            />
           </Field>
 
           {/* Preview puntos */}
