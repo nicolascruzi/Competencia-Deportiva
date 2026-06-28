@@ -196,23 +196,27 @@ function Ranking({ acts, nombres, myId, onOpenProfile }) {
 
 // ─── CALENDARIO ───────────────────────────────────────────────────────────────
 
-function Calendario({ acts }) {
+function Calendario({ acts, mes, meses, onMes }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
-  const DOWS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const DOWS = ['L','M','X','J','V','S','D'];
 
-  // El mes lo determina el mes más frecuente/reciente de las acts recibidas
+  // Reset selección cuando cambia el mes
+  useEffect(() => { setSelectedDay(null); }, [mes]);
+
+  // Determinar qué mes mostrar en el grid.
+  // Si hay un mes seleccionado en la barra global, usarlo.
+  // Si es "acumulado" (mes=''), derivar del mes más reciente de las acts.
   const activeMes = (() => {
+    if (mes) return mes;
     if (!acts.length) return null;
-    const counts = {};
-    acts.forEach(a => { const m = a.fecha.slice(0,7); counts[m]=(counts[m]||0)+1; });
-    return Object.keys(counts).sort().pop();
+    return acts.map(a => a.fecha.slice(0,7)).sort().pop();
   })();
 
   const viewYear  = activeMes ? parseInt(activeMes.split('-')[0]) : new Date().getFullYear();
   const viewMonth = activeMes ? parseInt(activeMes.split('-')[1]) - 1 : new Date().getMonth();
 
-  // Agrupar actividades del mes visible por día
+  // Agrupar TODAS las actividades del mes visible por día (todos los participantes)
   const dayActivities = {};
   acts.forEach(a => {
     const d = new Date(a.fecha + 'T12:00:00');
@@ -223,175 +227,218 @@ function Calendario({ acts }) {
     }
   });
 
-  const firstDow    = new Date(viewYear, viewMonth, 1).getDay();
+  const firstDow    = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7; // lunes=0
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const today       = new Date();
-  const todayDate   = today.getFullYear()===viewYear && today.getMonth()===viewMonth ? today.getDate() : -1;
-
+  const todayDate   = today.getFullYear() === viewYear && today.getMonth() === viewMonth ? today.getDate() : -1;
   const emptyCells  = Array.from({ length: firstDow });
   const days        = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-  const selectedActs= selectedDay ? (dayActivities[selectedDay] || []) : [];
-  const sortedDays  = Object.keys(dayActivities).map(Number).sort((a, b) => a - b);
+  const selectedActs = selectedDay ? (dayActivities[selectedDay] || []) : [];
+  const sortedDays   = Object.keys(dayActivities).map(Number).sort((a, b) => a - b);
 
-  // Deportes únicos del mes para leyenda
-  const sportsInMonth = [...new Set(
-    Object.values(dayActivities).flat().map(a => a.deporte_nombre)
-  )].sort();
-
-  function toggleDay(day) {
-    setSelectedDay(prev => prev === day ? null : day);
+  // Navegación entre meses (usando meses disponibles del padre)
+  const mesIdx = meses.indexOf(activeMes);
+  function prevMes() {
+    if (!meses.length) return;
+    if (!mes) { onMes(meses[meses.length - 1]); return; }
+    if (mesIdx > 0) onMes(meses[mesIdx - 1]);
   }
+  function nextMes() {
+    if (!meses.length) return;
+    if (mesIdx < meses.length - 1) onMes(meses[mesIdx + 1]);
+    else if (mesIdx === meses.length - 1) onMes('');
+  }
+  const canPrev = mes ? mesIdx > 0 : false;
+  const canNext = mes ? true : false;
 
-  if (!acts.length) return <EmptyState icon="📅" title="Sin actividades" />;
+  if (!meses.length && !acts.length) return <EmptyState icon="📅" title="Sin actividades" />;
 
   return (
-    <div>
-      {/* Lightbox */}
+    <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+
+      {/* Lightbox foto */}
       {lightboxUrl && (
         <div onClick={() => setLightboxUrl(null)}
           style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
           <button onClick={() => setLightboxUrl(null)}
-            style={{ position:'absolute', top:16, right:16, color:'#7A9BBF', fontSize:22, background:'transparent', border:'none', cursor:'pointer', padding:'8px 12px' }}>✕</button>
+            style={{ position:'absolute', top:16, right:16, background:'transparent', border:'none', color:'#7A9BBF', fontSize:22, cursor:'pointer', padding:'8px 12px' }}>✕</button>
           <img src={lightboxUrl} alt="foto" onClick={e => e.stopPropagation()}
-            style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:16, objectFit:'contain' }} />
+            style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:12, objectFit:'contain' }} />
         </div>
       )}
 
-      {/* ── GRILLA ── */}
-      <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
-        <div style={{ minWidth:280 }}>
-          {/* Días de semana */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3, marginBottom:4 }}>
-            {DOWS.map(d => (
-              <div key={d} style={{ textAlign:'center', fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', color:'#7A9BBF', padding:'4px 0' }}>{d}</div>
-            ))}
+      {/* ── Cabecera del mes ── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <button onClick={prevMes} disabled={!canPrev}
+          style={{ width:32, height:32, borderRadius:8, border:'1px solid #243D57', background:'transparent', color: canPrev ? '#E8F0FE' : '#243D57', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: canPrev ? 'pointer' : 'default' }}>
+          ‹
+        </button>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', letterSpacing:'0.05em', color:'#E8F0FE', lineHeight:1 }}>
+            {MONTHS_ES[viewMonth]}
           </div>
-          {/* Celdas */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
-            {emptyCells.map((_, i) => <div key={'e'+i} style={{ aspectRatio:'1' }} />)}
-            {days.map(day => {
-              const dayActs = dayActivities[day] || [];
-              const hasActs = dayActs.length > 0;
-              const isToday = day === todayDate;
-              const isSel   = day === selectedDay;
-              const icons   = [...new Set(dayActs.map(a => sportIcon(a.deporte_nombre)))].slice(0, 4);
-              return (
-                <div key={day}
-                  onClick={() => hasActs && toggleDay(day)}
-                  style={{
-                    aspectRatio:'1', borderRadius:6,
-                    background: isSel ? '#132236' : hasActs ? '#1A2E45' : '#1A2E45',
-                    border: `1px solid ${isSel ? '#38BDF8' : isToday ? '#38BDF8' : hasActs ? '#243D57' : '#243D57'}`,
-                    boxShadow: isToday && !isSel ? '0 0 0 1px rgba(56,189,248,0.3)' : 'none',
-                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                    position:'relative', overflow:'hidden',
-                    cursor: hasActs ? 'pointer' : 'default',
-                    transition:'border-color 0.15s',
-                    opacity: hasActs ? 1 : 0.35,
-                  }}>
-                  {/* Número */}
-                  <span style={{
-                    fontFamily:"'JetBrains Mono', monospace", fontSize:9, fontWeight:600,
-                    color: isToday ? '#38BDF8' : '#7A9BBF',
-                    position:'absolute', top:3, left:4, lineHeight:1,
-                  }}>{day}</span>
-                  {/* Iconos de deportes */}
-                  {hasActs && (
-                    <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'center', gap:1, padding:'12px 2px 2px', width:'100%' }}>
-                      {icons.map((ic, ii) => (
-                        <span key={ii} style={{ fontSize:'clamp(10px,2.5vw,16px)', lineHeight:1, flexShrink:0 }}>{ic}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:10, color:'#7A9BBF', marginTop:2 }}>{viewYear}</div>
+        </div>
+        <button onClick={nextMes} disabled={!canNext}
+          style={{ width:32, height:32, borderRadius:8, border:'1px solid #243D57', background:'transparent', color: canNext ? '#E8F0FE' : '#243D57', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: canNext ? 'pointer' : 'default' }}>
+          ›
+        </button>
+      </div>
+
+      {/* ── Grid del calendario ── */}
+      <div>
+        {/* Días de semana */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:3 }}>
+          {DOWS.map(d => (
+            <div key={d} style={{ textAlign:'center', fontSize:10, fontWeight:700, color:'#4A6A8A', padding:'2px 0' }}>{d}</div>
+          ))}
+        </div>
+        {/* Celdas de días */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
+          {emptyCells.map((_, i) => <div key={'e'+i} style={{ aspectRatio:'1' }} />)}
+          {days.map(day => {
+            const dayActs = dayActivities[day] || [];
+            const hasActs = dayActs.length > 0;
+            const isToday = day === todayDate;
+            const isSel   = day === selectedDay;
+            // Agrupar por persona para mostrar un punto por participante
+            const participants = [...new Set(dayActs.map(a => a.nombre))];
+            const icons = [...new Set(dayActs.map(a => sportIcon(a.deporte_nombre)))].slice(0, 2);
+
+            return (
+              <div key={day}
+                onClick={() => hasActs && setSelectedDay(d => d === day ? null : day)}
+                style={{
+                  aspectRatio: '1',
+                  borderRadius: 6,
+                  background: isSel ? 'rgba(56,189,248,0.12)' : hasActs ? '#1A2E45' : 'transparent',
+                  border: `1px solid ${isSel ? '#38BDF8' : isToday ? 'rgba(56,189,248,0.5)' : hasActs ? '#243D57' : 'transparent'}`,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative', overflow: 'hidden',
+                  cursor: hasActs ? 'pointer' : 'default',
+                  transition: 'border-color 0.12s, background 0.12s',
+                }}>
+                {/* Número del día */}
+                <span style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 10, fontWeight: 600, lineHeight: 1,
+                  color: isToday ? '#38BDF8' : hasActs ? '#E8F0FE' : '#4A6A8A',
+                }}>{day}</span>
+                {/* Iconos de deporte (emoji) */}
+                {hasActs && (
+                  <div style={{ display:'flex', gap:1, marginTop:2, justifyContent:'center' }}>
+                    {icons.map((ic, ii) => (
+                      <span key={ii} style={{ fontSize: 10, lineHeight: 1 }}>{ic}</span>
+                    ))}
+                  </div>
+                )}
+                {/* Puntos de participantes (uno por persona) */}
+                {hasActs && participants.length > 0 && (
+                  <div style={{ display:'flex', gap:2, marginTop:3, justifyContent:'center', flexWrap:'wrap' }}>
+                    {participants.slice(0,4).map((n, ni) => (
+                      <span key={ni} style={{
+                        width: 5, height: 5, borderRadius: '50%',
+                        background: PERSON_COLORS[ni % PERSON_COLORS.length],
+                        display: 'block', flexShrink: 0,
+                      }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* ── DETALLE DEL DÍA SELECCIONADO ── */}
+      {/* ── Detalle del día seleccionado ── */}
       {selectedDay && selectedActs.length > 0 && (
-        <div style={{ background:'#1A2E45', border:'1px solid #38BDF8', borderRadius:8, padding:'12px 14px', marginTop:12 }}>
-          {/* Título */}
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.06em', color:'#38BDF8', marginBottom:8 }}>
-            {(() => {
-              const dow = new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('es', { weekday:'long' });
-              return `${dow.charAt(0).toUpperCase()+dow.slice(1)} ${selectedDay} de ${MONTHS_ES[viewMonth]} · ${Math.round(selectedActs.reduce((s,a)=>s+a.puntos,0))} pts`;
-            })()}
+        <div style={{ background:'#1A2E45', border:'1px solid #38BDF8', borderRadius:10, overflow:'hidden' }}>
+          {/* Header del día */}
+          <div style={{ padding:'10px 14px 8px', borderBottom:'1px solid #243D57', display:'flex', alignItems:'baseline', justifyContent:'space-between' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', color:'#38BDF8' }}>
+              {new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' }).replace(/^\w/, c => c.toUpperCase())}
+            </div>
+            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'#7A9BBF' }}>
+              {Math.round(selectedActs.reduce((s,a) => s + (parseFloat(a.puntos)||0), 0))} pts
+            </div>
           </div>
-          {/* Actividades */}
+          {/* Lista de actividades */}
           {selectedActs.map((a, i) => (
-            <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'5px 0', borderBottom: i < selectedActs.length-1 ? '1px solid rgba(36,61,87,0.6)' : 'none', fontSize:13 }}>
-              <span style={{ fontSize:18, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
+            <div key={i} style={{
+              display:'flex', alignItems:'center', gap:10, padding:'10px 14px',
+              borderBottom: i < selectedActs.length - 1 ? '1px solid rgba(36,61,87,0.5)' : 'none',
+            }}>
+              <span style={{ fontSize:20, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontWeight:600, color:'#E8F0FE' }}>{a.deporte_nombre}</div>
-                <div style={{ fontSize:11, color:'#7A9BBF' }}>{a.nombre}</div>
-                {a.notas && <div style={{ fontSize:11, color:'#4A7A9B', fontStyle:'italic', marginTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.notas}</div>}
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2, flexShrink:0 }}>
-                {a.foto_url && (
-                  <div onClick={() => setLightboxUrl(a.foto_url)}
-                    style={{ width:40, height:40, borderRadius:6, overflow:'hidden', cursor:'pointer', flexShrink:0, border:'1px solid #243D57' }}>
-                    <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                <div style={{ fontSize:13, fontWeight:600, color:'#E8F0FE' }}>{a.deporte_nombre}</div>
+                <div style={{ fontSize:11, color:'#7A9BBF', marginTop:1 }}>{a.nombre}</div>
+                {a.notas && (
+                  <div style={{ fontSize:11, color:'#4A7A9B', fontStyle:'italic', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {a.notas}
                   </div>
                 )}
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, color:'#38BDF8', textAlign:'right', lineHeight:1.5 }}>
-                  {Math.round(a.puntos)} pts<br />
-                  <span style={{ fontSize:10, color:'#7A9BBF' }}>{Math.round(parseFloat(a.minutos))} min</span>
+              </div>
+              {/* Foto thumbnail */}
+              {a.foto_url && (
+                <div onClick={() => setLightboxUrl(a.foto_url)}
+                  style={{ width:44, height:44, borderRadius:6, overflow:'hidden', cursor:'pointer', flexShrink:0, border:'1px solid #243D57' }}>
+                  <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                 </div>
+              )}
+              {/* Puntos + minutos */}
+              <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace" }}>
+                <div style={{ fontSize:13, fontWeight:700, color:'#38BDF8' }}>{Math.round(parseFloat(a.puntos)||0)} pts</div>
+                <div style={{ fontSize:10, color:'#7A9BBF', marginTop:1 }}>{Math.round(parseFloat(a.minutos))} min</div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* ── LEYENDA ── */}
-      {sportsInMonth.length > 0 && (
-        <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:14 }}>
-          {sportsInMonth.map(s => (
-            <div key={s} style={{ display:'flex', alignItems:'center', gap:4, fontSize:12, color:'#7A9BBF' }}>
-              <span>{sportIcon(s)}</span><span>{s}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── LOG MENSUAL ── */}
+      {/* ── Log mensual (lista cronológica) ── */}
       {sortedDays.length > 0 && (
-        <div style={{ marginTop:20, borderTop:'1px solid #243D57', paddingTop:16 }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.07em', color:'#7A9BBF', marginBottom:10 }}>
+        <div style={{ borderTop:'1px solid #243D57', paddingTop:12 }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#4A6A8A', marginBottom:10 }}>
             Actividades de {MONTHS_ES[viewMonth]}
           </div>
           {sortedDays.map(day => {
             const dayActs = dayActivities[day];
-            const dow = new Date(viewYear, viewMonth, day).toLocaleDateString('es', { weekday:'short' });
-            const dayLabel = `${dow.charAt(0).toUpperCase()+dow.slice(1)} ${day}`;
+            const dow = new Date(viewYear, viewMonth, day)
+              .toLocaleDateString('es', { weekday:'short' });
             return (
-              <div key={day} style={{ marginBottom:12 }}>
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'#7A9BBF', marginBottom:5, letterSpacing:'0.04em' }}>{dayLabel}</div>
+              <div key={day} style={{ marginBottom:10 }}>
+                <div style={{ fontSize:10, fontWeight:700, color:'#7A9BBF', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                  {dow.charAt(0).toUpperCase() + dow.slice(1)} {day}
+                </div>
                 {dayActs.map((a, i) => (
-                  <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'#132236', border:'1px solid #243D57', borderRadius:8, marginBottom:4, fontSize:13 }}>
+                  <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'#132236', border:'1px solid #243D57', borderRadius:8, marginBottom:3 }}>
                     <span style={{ fontSize:16, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontWeight:600, color:'#E8F0FE', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.deporte_nombre}</div>
+                      <div style={{ fontSize:13, fontWeight:600, color:'#E8F0FE', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.deporte_nombre}</div>
                       <div style={{ fontSize:11, color:'#7A9BBF' }}>{a.nombre}</div>
                     </div>
                     {a.foto_url && (
                       <div onClick={() => setLightboxUrl(a.foto_url)}
-                        style={{ width:36, height:36, borderRadius:6, overflow:'hidden', cursor:'pointer', flexShrink:0, border:'1px solid #243D57' }}>
+                        style={{ width:34, height:34, borderRadius:5, overflow:'hidden', cursor:'pointer', flexShrink:0, border:'1px solid #243D57' }}>
                         <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                       </div>
                     )}
-                    <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'#7A9BBF', flexShrink:0, textAlign:'right', lineHeight:1.5 }}>
-                      <div style={{ color:'#38BDF8' }}>{Math.round(a.puntos)} pts</div>
-                      <div>{Math.round(parseFloat(a.minutos))} min</div>
+                    <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:11 }}>
+                      <div style={{ color:'#38BDF8', fontWeight:600 }}>{Math.round(parseFloat(a.puntos)||0)} pts</div>
+                      <div style={{ color:'#7A9BBF' }}>{Math.round(parseFloat(a.minutos))} min</div>
                     </div>
                   </div>
                 ))}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Sin actividades en este mes */}
+      {sortedDays.length === 0 && (
+        <div style={{ textAlign:'center', padding:'24px 0', color:'#4A6A8A', fontSize:13 }}>
+          Sin actividades registradas en {MONTHS_ES[viewMonth]}
         </div>
       )}
     </div>
@@ -623,14 +670,17 @@ function Deportes({ acts }) {
 function Records({ acts }) {
   if (!acts.length) return <EmptyState icon="🔥" title="Sin datos" />;
 
+  const people = aggregateByPerson(acts);
+  if (!people.length) return <EmptyState icon="🔥" title="Sin datos" />;
+
   // Más puntos en un día
   const dayPts = {};
   acts.forEach(a => {
     const k = a.nombre + '|' + a.fecha.slice(0,10);
-    if (!dayPts[k]) dayPts[k] = { nombre:a.nombre, fecha:a.fecha.slice(0,10), pts:0 };
-    dayPts[k].pts += a.puntos;
+    if (!dayPts[k]) dayPts[k] = { nombre: a.nombre, pts: 0 };
+    dayPts[k].pts += (parseFloat(a.puntos) || 0);
   });
-  const bestDay = Object.values(dayPts).sort((a,b)=>b.pts-a.pts)[0];
+  const bestDay = Object.values(dayPts).sort((a,b) => b.pts - a.pts)[0];
 
   // Más minutos en una semana
   const weekMin = {};
@@ -639,90 +689,95 @@ function Records({ acts }) {
     d.setDate(d.getDate() - d.getDay());
     const wk = d.toISOString().slice(0,10);
     const k  = a.nombre + '|' + wk;
-    if (!weekMin[k]) weekMin[k] = { nombre:a.nombre, min:0 };
-    weekMin[k].min += parseFloat(a.minutos);
+    if (!weekMin[k]) weekMin[k] = { nombre: a.nombre, min: 0 };
+    weekMin[k].min += (parseFloat(a.minutos) || 0);
   });
-  const bestWeek = Object.values(weekMin).sort((a,b)=>b.min-a.min)[0];
+  const bestWeek = Object.values(weekMin).sort((a,b) => b.min - a.min)[0];
 
   // Más actividades
   const actCount = {};
-  acts.forEach(a => { actCount[a.nombre] = (actCount[a.nombre]||0)+1; });
-  const mostAct = Object.entries(actCount).sort((a,b)=>b[1]-a[1])[0];
+  acts.forEach(a => { actCount[a.nombre] = (actCount[a.nombre] || 0) + 1; });
+  const mostAct = Object.entries(actCount).sort((a,b) => b[1] - a[1])[0];
 
-  // Racha
+  // Racha de días consecutivos
   const personDays = {};
   acts.forEach(a => {
     if (!personDays[a.nombre]) personDays[a.nombre] = new Set();
     personDays[a.nombre].add(a.fecha.slice(0,10));
   });
-  let maxStreak = { nombre:'', streak:0 };
+  let maxStreak = { nombre: '', streak: 0 };
   Object.entries(personDays).forEach(([nombre, daysSet]) => {
-    const days = [...daysSet].sort(); let cur=1, best=1;
-    for (let i=1;i<days.length;i++) {
-      const diff = (new Date(days[i])-new Date(days[i-1]))/(86400000);
-      if (diff===1) { cur++; best=Math.max(best,cur); } else cur=1;
+    const days = [...daysSet].sort(); let cur = 1, best = 1;
+    for (let i = 1; i < days.length; i++) {
+      const diff = (new Date(days[i]) - new Date(days[i-1])) / 86400000;
+      if (diff === 1) { cur++; best = Math.max(best, cur); } else cur = 1;
     }
-    if (best>maxStreak.streak) maxStreak={nombre,streak:best};
+    if (best > maxStreak.streak) maxStreak = { nombre, streak: best };
   });
-
-  const recs = [
-    { icon:'⚡', label:'Más puntos en un día',      value:bestDay  ? Math.round(bestDay.pts)+' pts'  : '—', nombre:bestDay?.nombre||'' },
-    { icon:'🕐', label:'Más minutos en una semana', value:bestWeek ? Math.round(bestWeek.min)+' min' : '—', nombre:bestWeek?.nombre||'' },
-    { icon:'📌', label:'Más actividades',            value:mostAct  ? mostAct[1]+' sesiones'         : '—', nombre:mostAct?.[0]||'' },
-    { icon:'🔥', label:'Mayor racha',                value:maxStreak.streak+' días',                         nombre:maxStreak.nombre },
-  ];
 
   // Premios
-  const people  = aggregateByPerson(acts);
-  const topMin  = [...people].sort((a,b)=>b.minutos-a.minutos)[0];
-  let topSpec   = { nombre:'', sport:'', pct:0 };
+  const topMin  = people.length ? [...people].sort((a,b) => b.minutos - a.minutos)[0] : null;
+  const topAvg  = people.length ? [...people].sort((a,b) => (b.pts / (b.actividades||1)) - (a.pts / (a.actividades||1)))[0] : null;
+
+  let topSpec = { nombre: '', sport: '', pct: 0 };
   people.forEach(p => {
-    const pData=acts.filter(a=>a.nombre===p.nombre);
-    const sp={}; pData.forEach(a=>{sp[a.deporte_nombre]=(sp[a.deporte_nombre]||0)+a.puntos;});
-    const total=Object.values(sp).reduce((s,v)=>s+v,0);
-    Object.entries(sp).forEach(([s,pts])=>{ if(pts/total>topSpec.pct) topSpec={nombre:p.nombre,sport:s,pct:pts/total}; });
+    const pData = acts.filter(a => a.nombre === p.nombre);
+    const sp = {};
+    pData.forEach(a => { sp[a.deporte_nombre] = (sp[a.deporte_nombre] || 0) + (parseFloat(a.puntos) || 0); });
+    const total = Object.values(sp).reduce((s,v) => s + v, 0);
+    if (total > 0) {
+      Object.entries(sp).forEach(([s, pts]) => {
+        if (pts / total > topSpec.pct) topSpec = { nombre: p.nombre, sport: s, pct: pts / total };
+      });
+    }
   });
-  const topMulti = [...people].sort((a,b)=>[...b.deportes].length-[...a.deportes].length)[0];
-  const topAvg   = [...people].sort((a,b)=>(b.pts/b.actividades)-(a.pts/a.actividades))[0];
-  const wkPts    = {};
-  acts.forEach(a => { const d=new Date(a.fecha+'T12:00:00'); if(d.getDay()===0||d.getDay()===6){wkPts[a.nombre]=(wkPts[a.nombre]||0)+a.puntos;} });
-  const topWknd  = Object.entries(wkPts).sort((a,b)=>b[1]-a[1])[0];
+
+  const topMultiData = people.map(p => ({ nombre: p.nombre, nd: p.deportes instanceof Set ? p.deportes.size : 0 }))
+    .sort((a,b) => b.nd - a.nd)[0];
+
+  const wkPts = {};
+  acts.forEach(a => {
+    const dow = new Date(a.fecha + 'T12:00:00').getDay();
+    if (dow === 0 || dow === 6) wkPts[a.nombre] = (wkPts[a.nombre] || 0) + (parseFloat(a.puntos) || 0);
+  });
+  const topWknd = Object.entries(wkPts).sort((a,b) => b[1] - a[1])[0];
+
+  const recs = [
+    { label: 'Mejor día',          value: bestDay  ? Math.round(bestDay.pts) + ' pts'  : '—', sub: bestDay?.nombre  || '' },
+    { label: 'Mejor semana',       value: bestWeek ? Math.round(bestWeek.min) + ' min' : '—', sub: bestWeek?.nombre || '' },
+    { label: 'Más actividades',    value: mostAct  ? mostAct[1] + ' ses.'               : '—', sub: mostAct?.[0]    || '' },
+    { label: 'Racha más larga',    value: maxStreak.streak ? maxStreak.streak + ' días' : '—', sub: maxStreak.nombre       },
+  ];
 
   const awards = [
-    { trophy:'💪', title:'Máquina Incansable',    winner:topMin?.nombre,    detail:topMin?Math.round(topMin.minutos)+' min':'' },
-    { trophy:'🎯', title:'Especialista',           winner:topSpec.nombre,    detail:topSpec.sport+' · '+Math.round(topSpec.pct*100)+'%' },
-    { trophy:'🌈', title:'Multideportista',        winner:topMulti?.nombre,  detail:topMulti?[...topMulti.deportes].length+' deportes':'' },
-    { trophy:'⚡', title:'Sprinter',               winner:topAvg?.nombre,    detail:topAvg?Math.round(topAvg.pts/topAvg.actividades)+' pts/ses.':'' },
-    { trophy:'🏖️', title:'Rey Fin de Semana',      winner:topWknd?.[0],      detail:topWknd?Math.round(topWknd[1])+' pts':'' },
-    { trophy:'👑', title:'Líder',                  winner:people[0]?.nombre, detail:people[0]?Math.round(people[0].pts)+' pts':'' },
+    { title: 'Máquina',      winner: topMin?.nombre,        detail: topMin     ? Math.round(topMin.minutos) + ' min'                          : '' },
+    { title: 'Especialista', winner: topSpec.nombre || '—', detail: topSpec.sport ? topSpec.sport + ' · ' + Math.round(topSpec.pct * 100) + '%' : '' },
+    { title: 'Versátil',     winner: topMultiData?.nombre,  detail: topMultiData ? topMultiData.nd + ' deportes'                               : '' },
+    { title: 'Eficiente',    winner: topAvg?.nombre,        detail: topAvg     ? Math.round(topAvg.pts / (topAvg.actividades || 1)) + ' pts/ses.' : '' },
+    { title: 'Fin de semana',winner: topWknd?.[0] || '—',  detail: topWknd    ? Math.round(topWknd[1]) + ' pts'                               : '' },
+    { title: 'Líder',        winner: people[0]?.nombre,     detail: people[0]  ? Math.round(people[0].pts) + ' pts'                           : '' },
   ];
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
         {recs.map(r => (
-          <div key={r.label} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 12px', display:'flex', flexDirection:'column', gap:4, transition:'border-color 0.2s' }}>
-            <div style={{ fontSize:20 }}>{r.icon}</div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, color:'#38BDF8' }}>{r.value}</div>
-            <div style={{ fontWeight:600, fontSize:12, color:'#E8F0FE' }}>{r.nombre}</div>
-            <div style={{ fontSize:11, color:'#7A9BBF' }}>{r.label}</div>
+          <div key={r.label} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'#38BDF8', lineHeight:1 }}>{r.value}</div>
+            <div style={{ fontSize:12, fontWeight:600, color:'#E8F0FE', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.sub || '—'}</div>
+            <div style={{ fontSize:10, color:'#7A9BBF', marginTop:2, textTransform:'uppercase', letterSpacing:'0.05em' }}>{r.label}</div>
           </div>
         ))}
       </div>
 
-      <div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'0.1em', color:'#38BDF8', marginBottom:4 }}>Reconocimientos</div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:'clamp(22px,5vw,32px)', textTransform:'uppercase', lineHeight:1, marginBottom:14 }}>Premios especiales</div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-          {awards.map(a => (
-            <div key={a.title} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'14px 12px', textAlign:'center', transition:'transform 0.2s, border-color 0.2s' }}>
-              <div style={{ fontSize:26, marginBottom:5 }}>{a.trophy}</div>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:4, lineHeight:1.2, color:'#E8F0FE' }}>{a.title}</div>
-              <div style={{ fontSize:13, color:'#38BDF8', fontWeight:600 }}>{a.winner||'—'}</div>
-              <div style={{ fontSize:11, color:'#7A9BBF', marginTop:2, fontFamily:"'JetBrains Mono', monospace" }}>{a.detail}</div>
-            </div>
-          ))}
-        </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+        {awards.map(a => (
+          <div key={a.title} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px' }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'#4A6A8A', marginBottom:4 }}>{a.title}</div>
+            <div style={{ fontSize:14, fontWeight:700, color:'#38BDF8', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.winner || '—'}</div>
+            <div style={{ fontSize:11, color:'#7A9BBF', marginTop:2, fontFamily:"'JetBrains Mono', monospace" }}>{a.detail}</div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1014,7 +1069,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
     switch (tab) {
       case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
       case 'ranking':  return <Ranking  acts={acts} nombres={nombres} myId={user?.nombre} onOpenProfile={n => setProfile(n)} />;
-      case 'calendar': return <Calendario acts={acts} />;
+      case 'calendar': return <Calendario acts={acts} mes={mes} meses={meses} onMes={setMes} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
       case 'deportes': return <Deportes acts={acts} />;
