@@ -91,6 +91,15 @@ CREATE TABLE IF NOT EXISTS comentarios (
 );
 CREATE INDEX IF NOT EXISTS idx_comentarios_actividad ON comentarios(actividad_id);
 
+-- Likes en actividades
+CREATE TABLE IF NOT EXISTS likes (
+  actividad_id INTEGER NOT NULL REFERENCES actividades(id) ON DELETE CASCADE,
+  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (actividad_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_likes_actividad ON likes(actividad_id);
+
 -- Deportes iniciales (los mismos del CSV actual)
 INSERT INTO deportes (nombre, icono, ponderador_default) VALUES
   ('Bicicleta MTB',    '🚵', 1.5),

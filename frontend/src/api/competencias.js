@@ -12,3 +12,6 @@ export const getActividadesComp   = (id, mes) => apiFetch(`/competencias/${id}/a
 export const getComentarios    = (actividadId)           => apiFetch(`/comentarios/${actividadId}`);
 export const createComentario  = (actividadId, contenido) => apiFetch(`/comentarios/${actividadId}`, { method: 'POST', body: JSON.stringify({ contenido }) });
 export const deleteComentario  = (id)                    => apiFetch(`/comentarios/${id}`, { method: 'DELETE' });
+
+export const getLikes          = (actividadId)           => apiFetch(`/likes/${actividadId}`);
+export const toggleLike        = (actividadId)           => apiFetch(`/likes/${actividadId}`, { method: 'POST' });

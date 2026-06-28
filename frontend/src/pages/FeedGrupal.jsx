@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getActividadesComp, getComentarios, createComentario, deleteComentario } from '../api/competencias';
+import { getActividadesComp, getComentarios, createComentario, deleteComentario, getLikes, toggleLike } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 
 function timeAgo(isoStr) {
@@ -229,6 +229,59 @@ function ComentariosSection({ actividadId, user }) {
   );
 }
 
+// ─── Botón de like ────────────────────────────────────────────────────────────
+
+function LikeButton({ actividadId }) {
+  const [liked,  setLiked]  = useState(false);
+  const [total,  setTotal]  = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [busy,   setBusy]   = useState(false);
+
+  useEffect(() => {
+    getLikes(actividadId).then(d => {
+      setLiked(d.liked);
+      setTotal(d.total);
+      setLoaded(true);
+    });
+  }, [actividadId]);
+
+  async function handleToggle() {
+    if (busy) return;
+    // Optimistic
+    const nextLiked = !liked;
+    const nextTotal = nextLiked ? total + 1 : total - 1;
+    setLiked(nextLiked);
+    setTotal(nextTotal);
+    setBusy(true);
+    try {
+      const d = await toggleLike(actividadId);
+      setLiked(d.liked);
+      setTotal(d.total);
+    } catch {
+      setLiked(liked);
+      setTotal(total);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button onClick={handleToggle}
+      style={{ display:'flex', alignItems:'center', gap:5, background:'transparent', border:'none', cursor:'pointer', padding:'0', WebkitTapHighlightColor:'transparent', color: liked ? 'var(--t-accent)' : 'var(--t-muted)', transition:'color 0.15s' }}>
+      <svg width="18" height="18" viewBox="0 0 24 24"
+        fill={liked ? 'var(--t-accent)' : 'none'}
+        stroke={liked ? 'var(--t-accent)' : 'currentColor'}
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        style={{ transition:'fill 0.15s, stroke 0.15s', transform: busy ? 'scale(0.88)' : 'scale(1)', transition:'transform 0.1s' }}>
+        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+      </svg>
+      {loaded && total > 0 && (
+        <span style={{ fontSize:13, fontWeight:600, fontVariantNumeric:'tabular-nums' }}>{total}</span>
+      )}
+    </button>
+  );
+}
+
 // ─── FeedCard ─────────────────────────────────────────────────────────────────
 
 function FeedCard({ act, user, onLightbox }) {
@@ -279,8 +332,11 @@ function FeedCard({ act, user, onLightbox }) {
           </span>
           <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
         </div>
-        <div style={{ marginLeft:'auto', fontSize:12, color:'var(--t-muted2)' }}>
-          {new Date(act.fecha + 'T12:00:00').toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short' })}
+        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:12 }}>
+          <LikeButton actividadId={act.id} />
+          <span style={{ fontSize:12, color:'var(--t-muted2)' }}>
+            {new Date(act.fecha + 'T12:00:00').toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short' })}
+          </span>
         </div>
       </div>
 
