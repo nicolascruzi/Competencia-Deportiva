@@ -1069,7 +1069,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
     switch (tab) {
       case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
       case 'ranking':  return <Ranking  acts={acts} nombres={nombres} myId={user?.nombre} onOpenProfile={n => setProfile(n)} />;
-      case 'calendar': return <Calendario acts={acts} mes={mes} meses={meses} onMes={setMes} />;
+      case 'calendar': return <Calendario acts={acts.filter(a => a.nombre === user?.nombre)} mes={mes} meses={meses} onMes={setMes} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
       case 'deportes': return <Deportes acts={acts} />;
