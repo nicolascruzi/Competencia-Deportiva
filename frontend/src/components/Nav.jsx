@@ -124,7 +124,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
       }}>
         {/* Izquierda: botón + */}
         <button onClick={onNewActivity} aria-label="Registrar actividad"
-          style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-accent)', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+          style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-accent)', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
           <IconPlus />
         </button>
 
@@ -146,7 +146,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
         {/* Derecha: botón ajustes */}
         <div style={{ display:'flex', justifyContent:'flex-end' }}>
           <button onClick={() => { setSettingsOpen(o => !o); setPaletteOpen(false); }} aria-label="Configuración"
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'1px solid var(--t-dim)', background: settingsOpen ? 'rgba(var(--t-accent-r),0.08)' : 'transparent', color: settingsOpen ? 'var(--t-accent)' : 'var(--t-muted)', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'background 0.15s, color 0.15s' }}>
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: settingsOpen ? 'var(--t-accent)' : 'var(--t-muted)', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'color 0.15s' }}>
             <IconSettings />
           </button>
         </div>
