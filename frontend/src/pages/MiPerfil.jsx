@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getActividades } from '../api/actividades';
+import { updatePerfil, uploadFotoPerfil } from '../api/perfil';
 import { useAuth } from '../context/AuthContext';
 import Configuracion from './Configuracion';
 
@@ -12,18 +13,122 @@ const IconSettings = () => (
     <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
   </svg>
 );
-
 const IconChevron = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 18l6-6-6-6"/>
   </svg>
 );
+const IconCamera = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+);
+const IconEdit = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+);
+const IconCheck = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+const IconXSmall = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
+
+function calcEdad(fechaNac) {
+  if (!fechaNac) return null;
+  const hoy = new Date();
+  const nac = new Date(fechaNac + 'T00:00:00');
+  let edad  = hoy.getFullYear() - nac.getFullYear();
+  const m   = hoy.getMonth() - nac.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+  return edad;
+}
+
+function EditField({ label, displayValue, onSave, type = 'text', options, rawValue }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft]     = useState(rawValue ?? '');
+  const [saving, setSaving]   = useState(false);
+
+  function startEdit() { setDraft(rawValue ?? ''); setEditing(true); }
+  function cancel()    { setEditing(false); }
+
+  async function save() {
+    setSaving(true);
+    try { await onSave(draft); setEditing(false); }
+    catch { /* errors logged in parent */ }
+    finally { setSaving(false); }
+  }
+
+  if (!editing) {
+    return (
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'11px 0', borderBottom:'1px solid var(--t-dim)' }}>
+        <div>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:2 }}>{label}</div>
+          <div style={{ fontSize:15, fontWeight:600, color: displayValue ? 'var(--t-text)' : 'rgba(var(--t-muted-r,128,128,128),0.5)' }}>
+            {displayValue || '—'}
+          </div>
+        </div>
+        <button onClick={startEdit}
+          style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 10px', borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:12, fontWeight:600, flexShrink:0 }}>
+          <IconEdit /> Editar
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding:'11px 0', borderBottom:'1px solid var(--t-dim)' }}>
+      <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-accent)', marginBottom:8 }}>{label}</div>
+      {options ? (
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10 }}>
+          {options.map(opt => (
+            <button key={opt.value} onClick={() => setDraft(opt.value)}
+              style={{ padding:'7px 16px', borderRadius:20, border:'1.5px solid', fontSize:13, fontWeight:600, cursor:'pointer',
+                background: draft === opt.value ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
+                borderColor: draft === opt.value ? 'var(--t-accent)' : 'var(--t-dim)',
+                color: draft === opt.value ? 'var(--t-accent)' : 'var(--t-muted)',
+              }}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <input
+          type={type}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          autoFocus
+          style={{ width:'100%', padding:'9px 12px', borderRadius:10, border:'1.5px solid var(--t-accent)', background:'var(--t-surface)', color:'var(--t-text)', fontSize:15, outline:'none', boxSizing:'border-box', marginBottom:10 }}
+        />
+      )}
+      <div style={{ display:'flex', gap:8 }}>
+        <button onClick={save} disabled={saving}
+          style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 16px', borderRadius:8, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontSize:13, fontWeight:700, cursor:'pointer', opacity: saving ? 0.65 : 1 }}>
+          <IconCheck /> {saving ? 'Guardando…' : 'Guardar'}
+        </button>
+        <button onClick={cancel}
+          style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+          <IconXSmall /> Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function MiPerfil({ onNewActivity }) {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [acts, setActs]             = useState([]);
   const [loading, setLoading]       = useState(true);
   const [showConfig, setShowConfig] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     getActividades().then(setActs).finally(() => setLoading(false));
@@ -48,10 +153,36 @@ export default function MiPerfil({ onNewActivity }) {
   const sports = Object.entries(sportMap).sort((a,b) => b[1].min - a[1].min);
   const maxMin = sports[0]?.[1]?.min || 1;
 
+  async function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const data = await uploadFotoPerfil(file);
+      updateUser({ foto_perfil_url: data.foto_perfil_url });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = '';
+    }
+  }
+
+  async function saveField(field, value) {
+    const data = await updatePerfil({ [field]: value || null });
+    updateUser(data);
+  }
+
+  const edad = calcEdad(user?.fecha_nacimiento);
+  const sexoLabel = user?.sexo === 'M' ? 'Masculino' : user?.sexo === 'F' ? 'Femenino' : user?.sexo === 'X' ? 'Otro' : null;
+  const fechaNacDisplay = user?.fecha_nacimiento
+    ? new Date(user.fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' })
+      + (edad !== null ? ` · ${edad} años` : '')
+    : null;
+
   if (showConfig) {
     return (
       <>
-        {/* Sub-header configuración */}
         <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px 10px', borderBottom:'1px solid var(--t-dim)', background:'var(--t-nav-bg)' }}>
           <button onClick={() => setShowConfig(false)}
             style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', flexShrink:0 }}>
@@ -73,9 +204,30 @@ export default function MiPerfil({ onNewActivity }) {
       {/* ── HERO ── */}
       <div style={{ padding:'24px 20px 20px', borderBottom:'1px solid var(--t-dim)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20 }}>
-          <div style={{ width:56, height:56, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'2px solid rgba(var(--t-accent-r),0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, color:'var(--t-accent)', flexShrink:0 }}>
-            {user?.nombre?.charAt(0).toUpperCase()}
+
+          {/* Avatar con cámara */}
+          <div style={{ position:'relative', flexShrink:0 }}>
+            <div style={{ width:66, height:66, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'2px solid rgba(var(--t-accent-r),0.3)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+              {user?.foto_perfil_url ? (
+                <img src={user.foto_perfil_url} alt="perfil" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+              ) : (
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:30, color:'var(--t-accent)' }}>
+                  {user?.nombre?.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              style={{ position:'absolute', bottom:1, right:1, width:22, height:22, borderRadius:'50%', background:'var(--t-accent)', border:'2px solid var(--t-ground)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t-ground)', cursor:'pointer' }}>
+              {uploadingPhoto
+                ? <div style={{ width:10, height:10, border:'1.5px solid rgba(255,255,255,0.35)', borderTopColor:'var(--t-ground)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+                : <IconCamera />
+              }
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display:'none' }} />
           </div>
+
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
               {user?.nombre}
@@ -100,6 +252,49 @@ export default function MiPerfil({ onNewActivity }) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* ── DATOS PERSONALES ── */}
+      <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--t-dim)' }}>
+        <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:4 }}>
+          Datos personales
+        </div>
+
+        <EditField
+          label="Sexo"
+          displayValue={sexoLabel}
+          rawValue={user?.sexo ?? ''}
+          options={[
+            { label:'Masculino', value:'M' },
+            { label:'Femenino',  value:'F' },
+            { label:'Otro',      value:'X' },
+          ]}
+          onSave={v => saveField('sexo', v)}
+        />
+
+        <EditField
+          label="Fecha de nacimiento"
+          displayValue={fechaNacDisplay}
+          rawValue={user?.fecha_nacimiento ?? ''}
+          type="date"
+          onSave={v => saveField('fecha_nacimiento', v)}
+        />
+
+        <EditField
+          label="Peso"
+          displayValue={user?.peso_kg ? `${user.peso_kg} kg` : null}
+          rawValue={user?.peso_kg ?? ''}
+          type="number"
+          onSave={v => saveField('peso_kg', v ? parseFloat(v) : null)}
+        />
+
+        <EditField
+          label="Estatura"
+          displayValue={user?.estatura_cm ? `${user.estatura_cm} cm` : null}
+          rawValue={user?.estatura_cm ?? ''}
+          type="number"
+          onSave={v => saveField('estatura_cm', v ? parseInt(v) : null)}
+        />
       </div>
 
       {/* ── ESTE MES ── */}
@@ -159,8 +354,6 @@ export default function MiPerfil({ onNewActivity }) {
 
       {/* ── OPCIONES ── */}
       <div style={{ padding:'12px 20px', display:'flex', flexDirection:'column', gap:8 }}>
-
-        {/* Botón Configuración */}
         <button onClick={() => setShowConfig(true)}
           style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'14px 16px', borderRadius:14, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-text)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
           <span style={{ color:'var(--t-accent)' }}><IconSettings /></span>
@@ -170,13 +363,11 @@ export default function MiPerfil({ onNewActivity }) {
           <span style={{ color:'var(--t-muted)' }}><IconChevron /></span>
         </button>
 
-        {/* Nueva actividad */}
         <button onClick={onNewActivity}
           style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
           + Registrar actividad
         </button>
 
-        {/* Cerrar sesión */}
         <button onClick={logout}
           style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
           Cerrar sesión
