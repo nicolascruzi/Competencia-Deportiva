@@ -119,18 +119,27 @@ export default function Nav({ onNewActivity, showTabs, tab, onTab }) {
       }} />
 
       {/* ── DRAWER ───────────────────────────────────────────────────── */}
+      {/*
+        El drawer se oculta moviéndolo hacia arriba fuera de la pantalla.
+        Usamos clip en el header para que no se filtre visualmente.
+        Cuando está cerrado: opacity 0 + pointer-events none + translateY que
+        lo manda lejos hacia arriba (valor fijo grande, independiente de su altura).
+      */}
       <div ref={drawerRef} style={{
         position: 'fixed',
         top: 'calc(env(safe-area-inset-top) + 52px)',
         left: 0, right: 0, zIndex: 50,
         background: '#0D1B2A',
-        borderBottom: '1px solid #243D57',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-        transform: drawerOpen ? 'translateY(0)' : 'translateY(-105%)',
-        transition: 'transform 0.26s cubic-bezier(0.22,1,0.36,1)',
+        borderBottom: drawerOpen ? '1px solid #243D57' : 'none',
+        boxShadow: drawerOpen ? '0 8px 32px rgba(0,0,0,0.6)' : 'none',
+        opacity: drawerOpen ? 1 : 0,
+        pointerEvents: drawerOpen ? 'all' : 'none',
+        transform: drawerOpen ? 'translateY(0)' : 'translateY(-20px)',
+        transition: 'opacity 0.22s, transform 0.22s cubic-bezier(0.22,1,0.36,1)',
         paddingBottom: 8,
         maxHeight: 'calc(100dvh - env(safe-area-inset-top) - 52px)',
         overflowY: 'auto',
+        visibility: drawerOpen ? 'visible' : 'hidden',
       }}>
 
         {/* Usuario */}

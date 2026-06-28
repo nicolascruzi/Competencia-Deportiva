@@ -2,14 +2,60 @@ import { useEffect, useRef, useState } from 'react';
 import { getDeportes, createActividad } from '../api/actividades';
 import { uploadFoto } from '../api/fotos';
 
+const S = {
+  input: {
+    width: '100%', background: '#1A2E45', border: '1px solid #243D57',
+    color: '#E8F0FE', padding: '9px 12px', borderRadius: '10px',
+    fontSize: '16px', outline: 'none', boxSizing: 'border-box',
+  },
+};
+
+function Input({ style, ...props }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <input {...props}
+      style={{ ...S.input, ...style, borderColor: focused ? '#38BDF8' : '#243D57' }}
+      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
+  );
+}
+
+function Select({ children, style, ...props }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <select {...props}
+      style={{ ...S.input, ...style, borderColor: focused ? '#38BDF8' : '#243D57', appearance: 'none', cursor: 'pointer' }}
+      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
+      {children}
+    </select>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#7A9BBF' }}>
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const IconCamera = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+);
+
 export default function ActivityModal({ open, onClose, onCreated }) {
-  const [deportes, setDeportes] = useState([]);
-  const [form, setForm]         = useState({ deporte_nombre: '', minutos: '', ponderador: '', fecha: '', notas: '' });
-  const [foto, setFoto]         = useState(null);       // File object
-  const [fotoPreview, setFotoPreview] = useState(null); // data URL para preview
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
-  const fileInputRef            = useRef(null);
+  const [deportes, setDeportes]     = useState([]);
+  const [form, setForm]             = useState({ deporte_nombre: '', minutos: '', ponderador: '', fecha: '', notas: '' });
+  const [foto, setFoto]             = useState(null);
+  const [fotoPreview, setFotoPreview] = useState(null);
+  const [error, setError]           = useState('');
+  const [loading, setLoading]       = useState(false);
+  const fileInputRef                = useRef(null);
 
   useEffect(() => { getDeportes().then(setDeportes).catch(() => {}); }, []);
 
@@ -61,12 +107,9 @@ export default function ActivityModal({ open, onClose, onCreated }) {
         fecha:          form.fecha,
         notas:          form.notas || null,
       });
-
-      // Si hay foto, subirla a Cloudinary con el id recién creado
       if (foto && actividad.id) {
         await uploadFoto(actividad.id, foto).catch(() => {});
       }
-
       onCreated?.();
       onClose();
     } catch (err) {
@@ -78,46 +121,53 @@ export default function ActivityModal({ open, onClose, onCreated }) {
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end"
-         style={{ background: 'rgba(5,12,20,0.75)', backdropFilter: 'blur(6px)' }}
-         onClick={e => e.target === e.currentTarget && onClose()}>
+  const pts = form.minutos && form.ponderador
+    ? Math.round(parseFloat(form.minutos) * parseFloat(form.ponderador))
+    : null;
 
-      <div className="w-full rounded-t-3xl flex flex-col"
-           style={{ background: '#132236', border: '1px solid #243D57', borderBottom: 'none', maxHeight: '92dvh', overflowY: 'auto' }}>
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position:'fixed', inset:0, zIndex:200, display:'flex', flexDirection:'column', justifyContent:'flex-end', background:'rgba(5,12,20,0.72)', backdropFilter:'blur(5px)', WebkitBackdropFilter:'blur(5px)' }}>
+
+      <div style={{ background:'#132236', borderRadius:'20px 20px 0 0', border:'1px solid #243D57', borderBottom:'none', maxHeight:'92dvh', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
 
         {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: '#243D57' }} />
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 6px' }}>
+          <div style={{ width:36, height:3, borderRadius:2, background:'#243D57' }} />
         </div>
 
-        <div className="px-5 pb-2 pt-3 flex items-center justify-between">
-          <div className="font-bold text-2xl uppercase tracking-wide"
-               style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+        {/* Cabecera */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px 10px' }}>
+          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, textTransform:'uppercase', letterSpacing:'0.04em', color:'#E8F0FE' }}>
             Nueva actividad
-          </div>
-          <button onClick={onClose} className="text-xl px-2 py-1" style={{ color: '#7A9BBF' }}>✕</button>
+          </span>
+          <button onClick={onClose}
+            style={{ width:30, height:30, borderRadius:8, border:'1px solid #243D57', background:'transparent', color:'#7A9BBF', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            ✕
+          </button>
         </div>
 
         {error && (
-          <div className="mx-5 mb-3 rounded-xl px-4 py-3 text-sm"
-               style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#F87171' }}>
+          <div style={{ margin:'0 16px 10px', padding:'9px 12px', borderRadius:10, background:'rgba(248,113,113,0.1)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', fontSize:13 }}>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="px-5 pb-6 flex flex-col gap-4"
-              style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
+        <form onSubmit={handleSubmit}
+          style={{ padding:'0 16px', paddingBottom:`calc(16px + env(safe-area-inset-bottom))`, display:'flex', flexDirection:'column', gap:12 }}>
 
+          {/* Deporte */}
           <Field label="Deporte">
             <Select value={form.deporte_nombre} onChange={e => onDeporteChange(e.target.value)}>
               {deportes.map(d => (
-                <option key={d.id} value={d.nombre}>{d.icono} {d.nombre}</option>
+                <option key={d.id} value={d.nombre}>{d.nombre}</option>
               ))}
             </Select>
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Minutos + Ponderador en la misma fila */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
             <Field label="Minutos">
               <Input type="number" inputMode="numeric" min="1" required placeholder="60"
                 value={form.minutos} onChange={e => setForm(f => ({ ...f, minutos: e.target.value }))} />
@@ -128,11 +178,13 @@ export default function ActivityModal({ open, onClose, onCreated }) {
             </Field>
           </div>
 
+          {/* Fecha */}
           <Field label="Fecha">
             <Input type="date" required
               value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
           </Field>
 
+          {/* Notas */}
           <Field label="Notas (opcional)">
             <Input type="text" placeholder="Descripción breve…"
               value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
@@ -141,86 +193,47 @@ export default function ActivityModal({ open, onClose, onCreated }) {
           {/* Foto */}
           <Field label="Foto (opcional)">
             {fotoPreview ? (
-              <div className="relative rounded-2xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
-                <img src={fotoPreview} alt="preview" className="w-full h-full object-cover" />
+              <div style={{ position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'16/9' }}>
+                <img src={fotoPreview} alt="preview" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
                 <button type="button" onClick={clearFoto}
-                  className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                  style={{ background: 'rgba(5,12,20,0.75)', color: '#F87171', border: '1px solid rgba(248,113,113,0.4)' }}>
+                  style={{ position:'absolute', top:8, right:8, width:28, height:28, borderRadius:6, background:'rgba(5,12,20,0.8)', border:'1px solid rgba(248,113,113,0.4)', color:'#F87171', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
                   ✕
                 </button>
               </div>
             ) : (
               <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="w-full rounded-2xl flex flex-col items-center justify-center gap-2 py-6 border-2 border-dashed transition-colors"
-                style={{ borderColor: '#243D57', color: '#7A9BBF', background: 'transparent' }}>
-                <span className="text-3xl">📷</span>
-                <span className="text-sm font-semibold">Seleccionar foto o tomar una</span>
-                <span className="text-xs">Galería o cámara</span>
+                style={{ width:'100%', padding:'12px 16px', borderRadius:10, border:'1px dashed #243D57', background:'transparent', color:'#7A9BBF', cursor:'pointer', display:'flex', alignItems:'center', gap:10, transition:'border-color 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor='#38BDF8'}
+                onMouseLeave={e => e.currentTarget.style.borderColor='#243D57'}>
+                <span style={{ color:'#4A6A8A', flexShrink:0 }}><IconCamera /></span>
+                <div style={{ textAlign:'left' }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:'#7A9BBF' }}>Agregar foto</div>
+                  <div style={{ fontSize:11, color:'#4A6A8A', marginTop:1 }}>Galería o cámara</div>
+                </div>
               </button>
             )}
-            {/* Input oculto — capture="environment" abre cámara trasera en iPhone */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFotoChange}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept="image/*"
+              onChange={handleFotoChange} style={{ display:'none' }} />
           </Field>
 
           {/* Preview puntos */}
-          {form.minutos && form.ponderador && (
-            <div className="rounded-xl px-4 py-3 text-center"
-                 style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)' }}>
-              <span className="text-sm" style={{ color: '#7A9BBF' }}>Puntos estimados: </span>
-              <span className="font-bold text-lg" style={{ fontFamily: "'JetBrains Mono', monospace", color: '#38BDF8' }}>
-                {Math.round(parseFloat(form.minutos || 0) * parseFloat(form.ponderador || 0))}
+          {pts !== null && (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderRadius:10, background:'rgba(56,189,248,0.07)', border:'1px solid rgba(56,189,248,0.18)' }}>
+              <span style={{ fontSize:12, color:'#7A9BBF', fontWeight:600 }}>Puntos estimados</span>
+              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'#38BDF8' }}>
+                {pts}
               </span>
             </div>
           )}
 
+          {/* Submit */}
           <button type="submit" disabled={loading}
-            className="w-full py-4 rounded-2xl font-bold text-lg uppercase tracking-wide transition-opacity mt-1"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", background: '#38BDF8', color: '#0D1B2A', opacity: loading ? 0.7 : 1 }}>
+            style={{ width:'100%', padding:'12px', borderRadius:12, border:'none', cursor: loading ? 'default' : 'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.06em', background:'#38BDF8', color:'#0D1B2A', opacity: loading ? 0.7 : 1, marginTop:2 }}>
             {loading ? 'Guardando…' : 'Guardar actividad'}
           </button>
+
         </form>
       </div>
-    </div>
-  );
-}
-
-const inputStyle = {
-  width: '100%', background: '#1A2E45', border: '1px solid #243D57',
-  color: '#E8F0FE', padding: '12px 14px', borderRadius: '12px',
-  fontSize: '16px', outline: 'none',
-};
-
-function Input(props) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <input {...props}
-      style={{ ...inputStyle, borderColor: focused ? '#38BDF8' : '#243D57' }}
-      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
-  );
-}
-
-function Select({ children, ...props }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <select {...props}
-      style={{ ...inputStyle, borderColor: focused ? '#38BDF8' : '#243D57', appearance: 'none', cursor: 'pointer' }}
-      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
-      {children}
-    </select>
-  );
-}
-
-function Field({ label, children }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#7A9BBF' }}>{label}</label>
-      {children}
     </div>
   );
 }

@@ -247,7 +247,7 @@ router.get('/:id/actividades', authMiddleware, async (req, res) => {
     const pondMap = {};
     ponders.forEach(p => { pondMap[p.deporte_nombre] = parseFloat(p.ponderador); });
 
-    const mesFilter = mes ? `AND TO_CHAR(a.fecha,'YYYY-MM') = $2` : '';
+    const mesFilter = mes ? `WHERE TO_CHAR(a.fecha,'YYYY-MM') = $2` : '';
     const params = mes ? [id, mes] : [id];
 
     const { rows } = await pool.query(
