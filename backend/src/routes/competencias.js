@@ -228,4 +228,51 @@ router.get('/:id/meses', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /competencias/:id/actividades — todas las actividades de participantes (para gráficos)
+router.get('/:id/actividades', auth, async (req, res) => {
+  const { id } = req.params;
+  const { mes } = req.query; // YYYY-MM opcional
+  try {
+    const { rows: [part] } = await pool.query(
+      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
+      [id, req.user.id]
+    );
+    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+
+    // Ponderadores de la competencia
+    const { rows: ponders } = await pool.query(
+      'SELECT deporte_nombre, ponderador FROM competencia_deportes WHERE competencia_id=$1',
+      [id]
+    );
+    const pondMap = {};
+    ponders.forEach(p => { pondMap[p.deporte_nombre] = parseFloat(p.ponderador); });
+
+    const mesFilter = mes ? `AND TO_CHAR(a.fecha,'YYYY-MM') = $2` : '';
+    const params = mes ? [id, mes] : [id];
+
+    const { rows } = await pool.query(
+      `SELECT a.id, u.id AS user_id, u.nombre, a.deporte_nombre, a.minutos,
+              a.ponderador AS ponderador_original, a.fecha, a.notas
+       FROM actividades a
+       JOIN competencia_participantes cp ON cp.user_id=a.user_id AND cp.competencia_id=$1
+       JOIN users u ON u.id=a.user_id
+       ${mesFilter}
+       ORDER BY a.fecha ASC, a.created_at ASC`,
+      params
+    );
+
+    // Aplicar ponderadores de la competencia al calcular puntos
+    const actividades = rows.map(r => ({
+      ...r,
+      ponderador: pondMap[r.deporte_nombre] ?? parseFloat(r.ponderador_original),
+      puntos: parseFloat(r.minutos) * (pondMap[r.deporte_nombre] ?? parseFloat(r.ponderador_original)),
+    }));
+
+    res.json(actividades);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener actividades' });
+  }
+});
+
 module.exports = router;
