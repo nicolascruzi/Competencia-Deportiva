@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const BG = '#0D1B2A';
@@ -57,6 +57,7 @@ export default function Nav({ onNewActivity, showTabs, tab, onTab }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef = useRef(null);
   const location  = useLocation();
+  const navigate  = useNavigate();
 
   useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
 
@@ -194,7 +195,7 @@ export default function Nav({ onNewActivity, showTabs, tab, onTab }) {
             </div>
             {COMP_TABS.map(t => (
               <button key={t.id}
-                onClick={() => { onTab(t.id); setDrawerOpen(false); }}
+                onClick={() => { onTab(t.id); setDrawerOpen(false); navigate('/'); }}
                 style={{
                   display:'flex', alignItems:'center', gap:12, padding:'11px 20px',
                   width:'100%', fontSize:14, fontWeight:600, textAlign:'left',
