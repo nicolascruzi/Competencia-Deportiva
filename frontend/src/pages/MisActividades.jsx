@@ -83,61 +83,21 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
         <div onClick={e => e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
           style={{ width:'100%', maxWidth:420, background:'var(--t-surface)', border:'1px solid var(--t-surface2)', borderRadius:20, overflow:'hidden', maxHeight:'calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom))', display:'flex', flexDirection:'column' }}>
 
-          {/* ── FOTO ── */}
-          {actividad.foto_url ? (
-            <div style={{ position:'relative', flexShrink:0, cursor:'pointer' }}
-              onClick={() => setLightbox(true)}>
-              <img src={actividad.foto_url} alt={actividad.deporte_nombre}
-                style={{ width:'100%', aspectRatio:'16/9', objectFit:'cover', display:'block' }} />
-              <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(5,12,20,0.85) 0%, transparent 50%)' }} />
-              {/* Nombre sobre foto */}
-              <div style={{ position:'absolute', bottom:12, left:14, right:80 }}>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
-                  {actividad.deporte_nombre}
-                </div>
-              </div>
-              {/* Botones sobre foto */}
-              <button onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                style={{ position:'absolute', top:10, right:10, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(255,255,255,0.15)', color:'var(--t-text)', borderRadius:8, padding:'5px 9px', fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
-                <IconCamera /><span>Cambiar</span>
-              </button>
-              <button onClick={e => { e.stopPropagation(); handleDeleteFoto(); }}
-                style={{ position:'absolute', top:10, left:10, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', borderRadius:8, padding:'5px 9px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
-                Quitar
-              </button>
-              <div style={{ position:'absolute', bottom:12, right:12, fontSize:10, color:'rgba(232,240,254,0.45)' }}>
-                Toca para ampliar
-              </div>
-            </div>
-          ) : (
-            <div style={{ padding:'14px 14px 0' }}>
-              <button onClick={() => fileInputRef.current?.click()}
-                style={{ width:'100%', padding:'14px', borderRadius:12, border:'1.5px dashed var(--t-dim)', background:'rgba(26,46,69,0.25)', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer' }}>
-                {uploading
-                  ? <><div style={{ width:18, height:18, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /><span style={{ fontSize:13 }}>Subiendo…</span></>
-                  : <><IconCamera /><span style={{ fontSize:13, fontWeight:600 }}>Agregar foto</span></>}
-              </button>
-            </div>
-          )}
-
-          {/* ── BODY (scrollable si es largo) ── */}
+          {/* ── BODY (scrollable) ── */}
           <div style={{ padding:'14px', display:'flex', flexDirection:'column', gap:12, overflowY:'auto', flex:1 }}>
 
-            {/* Encabezado: X cerrar + nombre (solo si no hay foto) */}
+            {/* 1. Título + botón cerrar */}
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
-              {!actividad.foto_url && (
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1, flex:1 }}>
-                  {actividad.deporte_nombre}
-                </div>
-              )}
-              {actividad.foto_url && <div style={{ flex:1 }} />}
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1, flex:1 }}>
+                {actividad.deporte_nombre}
+              </div>
               <button onClick={onClose}
                 style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
                 ✕
               </button>
             </div>
 
-            {/* Fecha y hora */}
+            {/* 2. Fecha y hora */}
             <div style={{ display:'flex', flexWrap:'wrap', gap:12 }}>
               <div style={{ display:'flex', alignItems:'center', gap:5, color:'var(--t-muted)', fontSize:13 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -154,6 +114,34 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
                 </div>
               )}
             </div>
+
+            {/* 3. Foto */}
+            {actividad.foto_url ? (
+              <div style={{ position:'relative', flexShrink:0, cursor:'pointer', borderRadius:12, overflow:'hidden' }}
+                onClick={() => setLightbox(true)}>
+                <img src={actividad.foto_url} alt={actividad.deporte_nombre}
+                  style={{ width:'100%', aspectRatio:'16/9', objectFit:'cover', display:'block' }} />
+                <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(5,12,20,0.5) 0%, transparent 60%)' }} />
+                <button onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                  style={{ position:'absolute', top:8, right:8, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(255,255,255,0.15)', color:'var(--t-text)', borderRadius:8, padding:'5px 9px', fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+                  <IconCamera /><span>Cambiar</span>
+                </button>
+                <button onClick={e => { e.stopPropagation(); handleDeleteFoto(); }}
+                  style={{ position:'absolute', top:8, left:8, background:'rgba(13,27,42,0.85)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', borderRadius:8, padding:'5px 9px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+                  Quitar
+                </button>
+                <div style={{ position:'absolute', bottom:8, right:10, fontSize:10, color:'rgba(232,240,254,0.45)' }}>
+                  Toca para ampliar
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => fileInputRef.current?.click()}
+                style={{ width:'100%', padding:'14px', borderRadius:12, border:'1.5px dashed var(--t-dim)', background:'rgba(26,46,69,0.25)', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer' }}>
+                {uploading
+                  ? <><div style={{ width:18, height:18, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /><span style={{ fontSize:13 }}>Subiendo…</span></>
+                  : <><IconCamera /><span style={{ fontSize:13, fontWeight:600 }}>Agregar foto</span></>}
+              </button>
+            )}
 
             {/* Métricas */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>

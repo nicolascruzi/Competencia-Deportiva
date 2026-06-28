@@ -5,54 +5,66 @@ const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Ago
 
 export default function Ranking() {
   const [ranking, setRanking] = useState([]);
-  const [meses, setMeses]     = useState([]);
-  const [mes, setMes]         = useState('');
-  const [loading, setLoading] = useState(true);
+  const [opciones, setOpciones] = useState([]); // [{ val, label, labelCorto, year }]
+  const [idx, setIdx]           = useState(0);
+  const [loading, setLoading]   = useState(true);
 
+  // Construye la lista de opciones: meses desc + Acumulado al final
   useEffect(() => {
-    getMeses().then(m => {
-      setMeses(m);
-      if (m.length) setMes(m[0]);
+    getMeses().then(meses => {
+      // meses viene ordenado desc (el más reciente primero)
+      const items = meses.map(m => {
+        const [y, mo] = m.split('-');
+        return {
+          val: m,
+          label: MONTHS_ES[parseInt(mo) - 1],
+          year: y,
+        };
+      });
+      // Acumulado va DESPUÉS del mes presente (posición 1)
+      items.splice(1, 0, { val: '', label: 'Acumulado', year: 'total' });
+      setOpciones(items);
+      setIdx(0); // empieza en el mes más reciente
     });
   }, []);
 
+  const opcion = opciones[idx] ?? { val: '', label: 'Acumulado', year: 'total' };
+
   useEffect(() => {
     setLoading(true);
-    getRanking(mes).then(setRanking).finally(() => setLoading(false));
-  }, [mes]);
+    getRanking(opcion.val).then(setRanking).finally(() => setLoading(false));
+  }, [opcion.val]);
 
-  const maxPts   = ranking[0]?.puntos || 1;
-  const mesLabel = mes
-    ? MONTHS_ES[parseInt(mes.split('-')[1]) - 1] + ' ' + mes.split('-')[0]
-    : 'Acumulado total';
+  const maxPts = ranking[0]?.puntos || 1;
+
+  function prev() { setIdx(i => Math.max(0, i - 1)); }
+  function next() { setIdx(i => Math.min(opciones.length - 1, i + 1)); }
 
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:0 }}>
       {/* Header sticky */}
-      <div style={{ position:'sticky', top:'52px', zIndex:10, background:'var(--t-ground)', padding:'20px 18px 14px', borderBottom:'1px solid var(--t-dim)' }}>
-        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', marginBottom:4 }}>
+      <div style={{ position:'sticky', top:'52px', zIndex:10, background:'var(--t-ground)', borderBottom:'1px solid var(--t-dim)' }}>
+        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', padding:'16px 20px 0' }}>
           Tabla de posiciones
         </div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(26px,7vw,34px)', textTransform:'uppercase', lineHeight:1, color:'var(--t-text)', marginBottom:14 }}>
-          {mesLabel}
-        </div>
-        {/* Selector de mes */}
-        <div style={{ display:'flex', gap:6, overflowX:'auto', scrollbarWidth:'none', paddingBottom:2 }}>
-          {[{ val: '', label: 'Acumulado' }, ...meses.map(m => {
-            const [y, mo] = m.split('-');
-            return { val: m, label: MONTHS_ES[parseInt(mo) - 1].slice(0, 3) + ' ' + y };
-          })].map(({ val, label }) => (
-            <button key={val} onClick={() => setMes(val)} style={{
-              padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-              whiteSpace: 'nowrap', flexShrink: 0, border: '1.5px solid', cursor: 'pointer',
-              transition: 'all .15s',
-              background:  mes === val ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
-              borderColor: mes === val ? 'var(--t-accent)' : 'var(--t-dim)',
-              color:       mes === val ? 'var(--t-accent)' : 'var(--t-muted)',
-            }}>
-              {label}
-            </button>
-          ))}
+        {/* Navegación de mes estilo calendario */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 12px 14px' }}>
+          <button onClick={prev} disabled={idx === 0}
+            style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: idx === 0 ? 'var(--t-dim)' : 'var(--t-muted)', cursor: idx === 0 ? 'default' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
+              {opcion.label}
+            </div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>
+              {opcion.year === 'total' ? 'todos los tiempos' : opcion.year}
+            </div>
+          </div>
+          <button onClick={next} disabled={idx === opciones.length - 1}
+            style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: idx === opciones.length - 1 ? 'var(--t-dim)' : 'var(--t-muted)', cursor: idx === opciones.length - 1 ? 'default' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
         </div>
       </div>
 
