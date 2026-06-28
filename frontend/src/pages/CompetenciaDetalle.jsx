@@ -211,18 +211,30 @@ function Ranking({ acts, nombres, myId, onOpenProfile }) {
 function Calendario({ acts }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [mesCal, setMesCal] = useState(null); // null = "aún no inicializado"
   const DOWS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
   // Calcular meses únicos con actividades, ordenados
   const mesesDisponibles = [...new Set(acts.map(a => a.fecha.slice(0, 7)))].sort();
 
-  // Mes visible: el más reciente por defecto
-  const defaultMes = mesesDisponibles[mesesDisponibles.length - 1] || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-  const [mesCal, setMesCal] = useState(defaultMes);
+  // Inicializar (o actualizar) mesCal cuando llegan los datos
+  useEffect(() => {
+    if (mesesDisponibles.length > 0) {
+      setMesCal(prev => {
+        // Si ya hay un mes válido dentro de los disponibles, mantenerlo
+        if (prev && mesesDisponibles.includes(prev)) return prev;
+        // Si no, ir al más reciente
+        return mesesDisponibles[mesesDisponibles.length - 1];
+      });
+    }
+  }, [mesesDisponibles.join(',')]);
 
-  // Resetear día seleccionado al cambiar mes
-  const viewYear  = parseInt(mesCal.split('-')[0]);
-  const viewMonth = parseInt(mesCal.split('-')[1]) - 1;
+  const activeMes = mesCal && mesesDisponibles.includes(mesCal)
+    ? mesCal
+    : mesesDisponibles[mesesDisponibles.length - 1] || null;
+
+  const viewYear  = activeMes ? parseInt(activeMes.split('-')[0]) : new Date().getFullYear();
+  const viewMonth = activeMes ? parseInt(activeMes.split('-')[1]) - 1 : new Date().getMonth();
 
   // Agrupar actividades del mes visible por día
   const dayActivities = {};
@@ -255,13 +267,12 @@ function Calendario({ acts }) {
   }
 
   // Navegar entre meses con flechas
+  const calIdx = mesesDisponibles.indexOf(activeMes);
   function prevMes() {
-    const idx = mesesDisponibles.indexOf(mesCal);
-    if (idx > 0) { setMesCal(mesesDisponibles[idx - 1]); setSelectedDay(null); }
+    if (calIdx > 0) { setMesCal(mesesDisponibles[calIdx - 1]); setSelectedDay(null); }
   }
   function nextMes() {
-    const idx = mesesDisponibles.indexOf(mesCal);
-    if (idx < mesesDisponibles.length - 1) { setMesCal(mesesDisponibles[idx + 1]); setSelectedDay(null); }
+    if (calIdx < mesesDisponibles.length - 1) { setMesCal(mesesDisponibles[calIdx + 1]); setSelectedDay(null); }
   }
 
   if (!acts.length) return <EmptyState icon="📅" title="Sin actividades" />;
@@ -281,8 +292,8 @@ function Calendario({ acts }) {
 
       {/* ── NAVEGADOR DE MES ── */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-        <button onClick={prevMes} disabled={mesesDisponibles.indexOf(mesCal) === 0}
-          style={{ width:36, height:36, borderRadius:8, border:'1px solid #243D57', background:'#132236', color: mesesDisponibles.indexOf(mesCal) === 0 ? '#243D57' : '#E8F0FE', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: mesesDisponibles.indexOf(mesCal) === 0 ? 'default' : 'pointer' }}>
+        <button onClick={prevMes} disabled={calIdx <= 0}
+          style={{ width:36, height:36, borderRadius:8, border:'1px solid #243D57', background:'#132236', color: calIdx <= 0 ? '#243D57' : '#E8F0FE', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: calIdx <= 0 ? 'default' : 'pointer' }}>
           ‹
         </button>
         <div style={{ textAlign:'center' }}>
@@ -291,8 +302,8 @@ function Calendario({ acts }) {
           </div>
           <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'#7A9BBF', marginTop:2 }}>{viewYear}</div>
         </div>
-        <button onClick={nextMes} disabled={mesesDisponibles.indexOf(mesCal) === mesesDisponibles.length - 1}
-          style={{ width:36, height:36, borderRadius:8, border:'1px solid #243D57', background:'#132236', color: mesesDisponibles.indexOf(mesCal) === mesesDisponibles.length - 1 ? '#243D57' : '#E8F0FE', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: mesesDisponibles.indexOf(mesCal) === mesesDisponibles.length - 1 ? 'default' : 'pointer' }}>
+        <button onClick={nextMes} disabled={calIdx >= mesesDisponibles.length - 1}
+          style={{ width:36, height:36, borderRadius:8, border:'1px solid #243D57', background:'#132236', color: calIdx >= mesesDisponibles.length - 1 ? '#243D57' : '#E8F0FE', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: calIdx >= mesesDisponibles.length - 1 ? 'default' : 'pointer' }}>
           ›
         </button>
       </div>

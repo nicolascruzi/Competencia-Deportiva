@@ -10,15 +10,17 @@ const SPORT_ICONS = {
 };
 const icon = s => SPORT_ICONS[s] || '🏅';
 
-// ─── Panel de detalle (bottom sheet) ──────────────────────────────────────────
+const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ─── Panel de detalle (bottom sheet) ─────────────────────────────────────────
 
 function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDeleted }) {
-  const fileInputRef  = useRef(null);
+  const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [lightbox, setLightbox]   = useState(false);
-
-  // Cierra con swipe hacia abajo
   const startY = useRef(null);
+
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
   function onTouchEnd(e) {
     if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 80) onClose();
@@ -42,12 +44,8 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
 
   async function handleDeleteFoto() {
     if (!confirm('¿Eliminar la foto?')) return;
-    try {
-      await deleteFoto(actividad.id);
-      onFotoDeleted(actividad.id);
-    } catch (err) {
-      alert('Error: ' + err.message);
-    }
+    try { await deleteFoto(actividad.id); onFotoDeleted(actividad.id); }
+    catch (err) { alert('Error: ' + err.message); }
   }
 
   async function handleDeleteActividad() {
@@ -57,130 +55,110 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
   }
 
   const fecha = new Date(actividad.fecha + 'T12:00:00');
-  const fechaLabel = fecha.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const fechaLabel = fecha.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
   return (
     <>
-      {/* Lightbox de foto */}
+      {/* Lightbox */}
       {lightbox && actividad.foto_url && (
         <div onClick={() => setLightbox(false)}
-          style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(5,12,20,0.96)', backdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <button onClick={() => setLightbox(false)}
-            style={{ position:'absolute', top:16, right:16, color:'#7A9BBF', fontSize:22, background:'transparent', border:'none', cursor:'pointer', padding:'6px 10px' }}>
-            ✕
-          </button>
-          <img src={actividad.foto_url} alt={actividad.deporte_nombre}
-            onClick={e => e.stopPropagation()}
+            style={{ position:'absolute', top:20, right:20, width:36, height:36, borderRadius:'50%', background:'rgba(36,61,87,0.9)', border:'none', color:'#E8F0FE', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+          <img src={actividad.foto_url} alt={actividad.deporte_nombre} onClick={e => e.stopPropagation()}
             style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:16, objectFit:'contain' }} />
         </div>
       )}
 
-      {/* Overlay fondo */}
-      <div onClick={onClose}
-        style={{ position:'fixed', inset:0, zIndex:100, background:'rgba(5,12,20,0.6)', backdropFilter:'blur(4px)' }} />
+      {/* Overlay */}
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:100, background:'rgba(5,12,20,0.65)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)' }} />
 
-      {/* Panel */}
-      <div
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-        style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:101, background:'#132236', border:'1px solid #243D57', borderBottom:'none', borderRadius:'24px 24px 0 0', maxHeight:'92dvh', overflowY:'auto', paddingBottom:'calc(1.5rem + env(safe-area-inset-bottom))' }}>
+      {/* Sheet */}
+      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+        style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:101, background:'#0F1D2E', border:'1px solid #243D57', borderBottom:'none', borderRadius:'20px 20px 0 0', maxHeight:'93dvh', overflowY:'auto', paddingBottom:'calc(24px + env(safe-area-inset-bottom))' }}>
 
         {/* Handle */}
-        <div style={{ display:'flex', justifyContent:'center', paddingTop:12, paddingBottom:4 }}>
-          <div style={{ width:40, height:4, borderRadius:4, background:'#243D57' }} />
+        <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 8px' }}>
+          <div style={{ width:36, height:4, borderRadius:4, background:'#243D57' }} />
         </div>
 
-        {/* Foto principal */}
+        {/* Foto */}
         {actividad.foto_url ? (
-          <div style={{ position:'relative', margin:'8px 16px 0', borderRadius:16, overflow:'hidden', cursor:'pointer' }}
-               onClick={() => setLightbox(true)}>
+          <div onClick={() => setLightbox(true)} style={{ position:'relative', margin:'0 16px 16px', borderRadius:14, overflow:'hidden', cursor:'pointer' }}>
             <img src={actividad.foto_url} alt={actividad.deporte_nombre}
               style={{ width:'100%', aspectRatio:'4/3', objectFit:'cover', display:'block' }} />
-            {/* Gradiente inferior */}
-            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(13,27,42,0.7) 0%, transparent 55%)' }} />
-            {/* Hint de toque */}
-            <div style={{ position:'absolute', bottom:10, left:0, right:0, textAlign:'center', fontSize:11, color:'rgba(232,240,254,0.7)', fontFamily:"'JetBrains Mono', monospace" }}>
-              Toca para ver en grande
+            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(5,12,20,0.75) 0%, transparent 50%)' }} />
+            <div style={{ position:'absolute', bottom:10, left:0, right:0, textAlign:'center', fontSize:11, color:'rgba(232,240,254,0.6)', letterSpacing:'0.04em' }}>
+              Toca para ampliar
             </div>
-            {/* Botón cambiar foto */}
             <button onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
-              style={{ position:'absolute', top:10, right:10, background:'rgba(13,27,42,0.75)', border:'1px solid #243D57', color:'#E8F0FE', borderRadius:8, padding:'5px 10px', fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+              style={{ position:'absolute', top:10, right:10, background:'rgba(13,27,42,0.8)', border:'1px solid rgba(255,255,255,0.15)', color:'#E8F0FE', borderRadius:8, padding:'6px 11px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
               📷 Cambiar
             </button>
-            {/* Botón borrar foto */}
             <button onClick={e => { e.stopPropagation(); handleDeleteFoto(); }}
-              style={{ position:'absolute', top:10, left:10, background:'rgba(13,27,42,0.75)', border:'1px solid rgba(248,113,113,0.4)', color:'#F87171', borderRadius:8, padding:'5px 10px', fontSize:12, cursor:'pointer' }}>
+              style={{ position:'absolute', top:10, left:10, background:'rgba(13,27,42,0.8)', border:'1px solid rgba(248,113,113,0.35)', color:'#F87171', borderRadius:8, padding:'6px 11px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
               ✕ Quitar
             </button>
           </div>
         ) : (
-          /* Sin foto — botón grande para agregar */
-          <div style={{ margin:'8px 16px 0' }}>
+          <div style={{ margin:'0 16px 16px' }}>
             <button onClick={() => fileInputRef.current?.click()}
-              style={{ width:'100%', aspectRatio:'16/9', borderRadius:16, border:'2px dashed #243D57', background:'transparent', color:'#7A9BBF', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer' }}>
-              {uploading ? (
-                <>
-                  <div style={{ width:24, height:24, border:'2px solid #243D57', borderTopColor:'#38BDF8', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
-                  <span style={{ fontSize:13 }}>Subiendo…</span>
-                </>
-              ) : (
-                <>
-                  <span style={{ fontSize:36 }}>📷</span>
-                  <span style={{ fontSize:14, fontWeight:600 }}>Agregar foto</span>
-                  <span style={{ fontSize:12 }}>Galería o cámara</span>
-                </>
-              )}
+              style={{ width:'100%', aspectRatio:'16/9', borderRadius:14, border:'1.5px dashed #243D57', background:'rgba(26,46,69,0.3)', color:'#7A9BBF', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer' }}>
+              {uploading
+                ? <><div style={{ width:24, height:24, border:'2px solid #243D57', borderTopColor:'#38BDF8', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /><span style={{ fontSize:13 }}>Subiendo…</span></>
+                : <><span style={{ fontSize:34 }}>📷</span><span style={{ fontSize:14, fontWeight:600 }}>Agregar foto</span><span style={{ fontSize:12, marginTop:2 }}>Galería o cámara</span></>}
             </button>
           </div>
         )}
 
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFotoChange} style={{ display:'none' }} />
 
-        {/* Datos de la actividad */}
-        <div style={{ padding:'16px 16px 0' }}>
-          {/* Deporte + puntos */}
-          <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-            <span style={{ fontSize:40 }}>{icon(actividad.deporte_nombre)}</span>
-            <div style={{ flex:1 }}>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:28, textTransform:'uppercase', lineHeight:1 }}>
+        {/* Info principal */}
+        <div style={{ padding:'0 20px' }}>
+
+          {/* Deporte + fecha + puntos */}
+          <div style={{ display:'flex', alignItems:'flex-start', gap:14, marginBottom:18 }}>
+            <span style={{ fontSize:44, lineHeight:1, flexShrink:0 }}>{icon(actividad.deporte_nombre)}</span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'#E8F0FE' }}>
                 {actividad.deporte_nombre}
               </div>
-              <div style={{ fontSize:12, color:'#7A9BBF', marginTop:2 }}>
+              <div style={{ fontSize:12, color:'#7A9BBF', marginTop:4, lineHeight:1.4 }}>
                 {fechaLabel.charAt(0).toUpperCase() + fechaLabel.slice(1)}
               </div>
             </div>
-            <div style={{ textAlign:'right' }}>
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:28, color:'#38BDF8', lineHeight:1 }}>
+            <div style={{ textAlign:'right', flexShrink:0 }}>
+              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:30, color:'#38BDF8', lineHeight:1 }}>
                 {Math.round(parseFloat(actividad.puntos))}
               </div>
-              <div style={{ fontSize:11, color:'#7A9BBF' }}>puntos</div>
+              <div style={{ fontSize:10, color:'#7A9BBF', marginTop:3, textTransform:'uppercase', letterSpacing:'0.08em' }}>puntos</div>
             </div>
           </div>
 
-          {/* Stats */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12 }}>
+          {/* Stats grid */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
             {[
-              { label:'Minutos',    value:Math.round(parseFloat(actividad.minutos)) },
-              { label:'Ponderador', value:'×' + parseFloat(actividad.ponderador).toFixed(1) },
+              { label:'Minutos', value: Math.round(parseFloat(actividad.minutos)) + ' min' },
+              { label:'Ponderador', value: '×' + parseFloat(actividad.ponderador).toFixed(1) },
             ].map(({ label, value }) => (
-              <div key={label} style={{ background:'#1A2E45', border:'1px solid #243D57', borderRadius:12, padding:'10px 14px' }}>
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:20, color:'#E8F0FE' }}>{value}</div>
-                <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>{label}</div>
+              <div key={label} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 14px' }}>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:22, color:'#E8F0FE', lineHeight:1 }}>{value}</div>
+                <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>{label}</div>
               </div>
             ))}
           </div>
 
           {/* Notas */}
           {actividad.notas && (
-            <div style={{ background:'#1A2E45', border:'1px solid #243D57', borderRadius:12, padding:'10px 14px', marginBottom:12 }}>
-              <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Notas</div>
-              <div style={{ fontSize:14, color:'#E8F0FE', lineHeight:1.5 }}>{actividad.notas}</div>
+            <div style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 14px', marginBottom:14 }}>
+              <div style={{ fontSize:10, color:'#7A9BBF', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:6 }}>Notas</div>
+              <div style={{ fontSize:14, color:'#E8F0FE', lineHeight:1.6 }}>{actividad.notas}</div>
             </div>
           )}
 
-          {/* Botón eliminar actividad */}
+          {/* Eliminar */}
           <button onClick={handleDeleteActividad}
-            style={{ width:'100%', padding:'14px', borderRadius:16, border:'1px solid rgba(248,113,113,0.3)', background:'rgba(248,113,113,0.08)', color:'#F87171', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer' }}>
+            style={{ width:'100%', padding:'14px', borderRadius:14, border:'1px solid rgba(248,113,113,0.25)', background:'rgba(248,113,113,0.06)', color:'#F87171', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer', marginTop:4 }}>
             Eliminar actividad
           </button>
         </div>
@@ -191,45 +169,56 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
   );
 }
 
-// ─── Tarjeta compacta en la lista ─────────────────────────────────────────────
+// ─── Tarjeta de actividad ─────────────────────────────────────────────────────
 
 function ActividadCard({ a, onClick }) {
   return (
     <div onClick={onClick}
-      style={{ background:'#132236', border:'1px solid #243D57', borderRadius:16, overflow:'hidden', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'transform 0.1s' }}
-      onTouchStart={e => e.currentTarget.style.transform='scale(0.98)'}
-      onTouchEnd={e => e.currentTarget.style.transform='scale(1)'}>
+      style={{ background:'#0F1D2E', border:'1px solid #1E3450', borderRadius:14, overflow:'hidden', cursor:'pointer', WebkitTapHighlightColor:'transparent', display:'flex', alignItems:'stretch', transition:'border-color 0.15s' }}
+      onTouchStart={e => { e.currentTarget.style.borderColor='#38BDF8'; e.currentTarget.style.transform='scale(0.985)'; }}
+      onTouchEnd={e => { e.currentTarget.style.borderColor='#1E3450'; e.currentTarget.style.transform='scale(1)'; }}>
 
-      {/* Miniatura de foto si existe */}
+      {/* Foto lateral (si existe) */}
       {a.foto_url && (
-        <div style={{ position:'relative', height:120, overflow:'hidden' }}>
-          <img src={a.foto_url} alt={a.deporte_nombre}
-            style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
-          <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(13,27,42,0.65) 0%, transparent 60%)' }} />
+        <div style={{ width:72, flexShrink:0, position:'relative', overflow:'hidden' }}>
+          <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+          <div style={{ position:'absolute', inset:0, background:'linear-gradient(90deg, transparent 60%, rgba(15,29,46,0.4) 100%)' }} />
         </div>
       )}
 
-      {/* Info */}
-      <div style={{ padding:'12px 14px', display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:28, flexShrink:0 }}>{icon(a.deporte_nombre)}</span>
+      {/* Contenido */}
+      <div style={{ flex:1, minWidth:0, padding:'12px 14px', display:'flex', alignItems:'center', gap:12 }}>
+        {/* Icono (solo si no hay foto) */}
+        {!a.foto_url && (
+          <span style={{ fontSize:28, flexShrink:0, lineHeight:1 }}>{icon(a.deporte_nombre)}</span>
+        )}
+
+        {/* Info */}
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontWeight:600, fontSize:15 }}>{a.deporte_nombre}</div>
-          {a.notas && (
-            <div style={{ fontSize:11, color:'#7A9BBF', marginTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.notas}</div>
-          )}
-          <div style={{ fontSize:11, color:'#7A9BBF', marginTop:2, fontFamily:"'JetBrains Mono', monospace" }}>
-            {Math.round(parseFloat(a.minutos))} min
-            {a.foto_url && <span style={{ marginLeft:8, color:'#38BDF8' }}>📷</span>}
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.02em', color:'#E8F0FE', lineHeight:1 }}>
+            {a.deporte_nombre}
           </div>
+          <div style={{ fontSize:12, color:'#7A9BBF', marginTop:4, fontFamily:"'JetBrains Mono', monospace" }}>
+            {Math.round(parseFloat(a.minutos))} min
+            {a.foto_url && <span style={{ marginLeft:8, color:'rgba(56,189,248,0.7)' }}>📷</span>}
+          </div>
+          {a.notas && (
+            <div style={{ fontSize:11, color:'#4A7A9B', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontStyle:'italic' }}>
+              {a.notas}
+            </div>
+          )}
         </div>
+
+        {/* Puntos */}
         <div style={{ textAlign:'right', flexShrink:0 }}>
-          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'#38BDF8', lineHeight:1 }}>
+          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:'#38BDF8', lineHeight:1 }}>
             {Math.round(parseFloat(a.puntos))}
           </div>
-          <div style={{ fontSize:10, color:'#7A9BBF', marginTop:1 }}>pts</div>
+          <div style={{ fontSize:10, color:'#7A9BBF', marginTop:3, textTransform:'uppercase', letterSpacing:'0.05em' }}>pts</div>
         </div>
-        {/* Indicador de que es tappable */}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#243D57" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+
+        {/* Chevron */}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2A4A6A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
           <path d="M9 18l6-6-6-6"/>
         </svg>
       </div>
@@ -237,12 +226,12 @@ function ActividadCard({ a, onClick }) {
   );
 }
 
-// ─── Página principal ──────────────────────────────────────────────────────────
+// ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function MisActividades({ onNewActivity }) {
-  const [actividades, setActividades]   = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [detalle, setDetalle]           = useState(null); // actividad seleccionada
+  const [actividades, setActividades] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [detalle, setDetalle]         = useState(null);
 
   async function load() {
     setLoading(true);
@@ -267,94 +256,127 @@ export default function MisActividades({ onNewActivity }) {
     setDetalle(prev => prev?.id === id ? { ...prev, foto_url: null } : prev);
   }
 
-  const groupedByDate = actividades.reduce((acc, a) => {
+  // Agrupar por mes → fecha
+  const grouped = {}; // { 'YYYY-MM': { 'YYYY-MM-DD': [act, ...] } }
+  actividades.forEach(a => {
+    const mes   = a.fecha.slice(0, 7);
     const fecha = a.fecha.slice(0, 10);
-    if (!acc[fecha]) acc[fecha] = [];
-    acc[fecha].push(a);
-    return acc;
-  }, {});
-  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
+    if (!grouped[mes]) grouped[mes] = {};
+    if (!grouped[mes][fecha]) grouped[mes][fecha] = [];
+    grouped[mes][fecha].push(a);
+  });
+  const sortedMeses = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
-  const now       = new Date();
-  const mesActual = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const actsMes   = actividades.filter(a => a.fecha.slice(0,7) === mesActual);
-  const ptosMes   = actsMes.reduce((s, a) => s + parseFloat(a.puntos), 0);
-  const minsMes   = actsMes.reduce((s, a) => s + parseFloat(a.minutos), 0);
+  // Stats del mes actual
+  const now      = new Date();
+  const mesKey   = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const actsMes  = actividades.filter(a => a.fecha.slice(0,7) === mesKey);
+  const ptosMes  = actsMes.reduce((s, a) => s + parseFloat(a.puntos), 0);
+  const minsMes  = actsMes.reduce((s, a) => s + parseFloat(a.minutos), 0);
+  const totalActs = actividades.length;
 
   return (
-    <div className="flex flex-col">
-      {/* Header */}
-      <div className="px-4 pt-5 pb-4" style={{ background: '#0D1B2A' }}>
-        <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#38BDF8' }}>
+    <div style={{ display:'flex', flexDirection:'column', minHeight:0 }}>
+
+      {/* ── HEADER ── */}
+      <div style={{ padding:'22px 20px 18px', background:'linear-gradient(180deg, #0A1520 0%, #0D1B2A 100%)', borderBottom:'1px solid #1A2E45' }}>
+        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'#38BDF8', marginBottom:6 }}>
           Historial
         </div>
-        <div className="font-bold uppercase leading-none"
-             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(26px,7vw,38px)' }}>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(28px,8vw,40px)', textTransform:'uppercase', lineHeight:1, color:'#E8F0FE' }}>
           Mis actividades
         </div>
 
+        {/* KPIs del mes actual */}
         {actsMes.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 mt-4">
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginTop:16 }}>
             {[
-              { label:'Este mes', value:actsMes.length,                             unit:'act.' },
-              { label:'Minutos',  value:Math.round(minsMes).toLocaleString('es'),   unit:'min' },
-              { label:'Puntos',   value:Math.round(ptosMes).toLocaleString('es'),   unit:'pts', accent:true },
+              { label:'Este mes',  value: actsMes.length,                           unit:'actividades', accent:false },
+              { label:'Minutos',   value: Math.round(minsMes).toLocaleString('es'), unit:'min',         accent:false },
+              { label:'Puntos',    value: Math.round(ptosMes).toLocaleString('es'), unit:'pts',         accent:true  },
             ].map(({ label, value, unit, accent }) => (
-              <div key={label} className="rounded-xl p-3" style={{ background:'#132236', border:'1px solid #243D57' }}>
-                <div className="font-bold text-xl leading-tight"
-                     style={{ fontFamily:"'JetBrains Mono', monospace", color: accent ? '#38BDF8' : '#E8F0FE' }}>
+              <div key={label} style={{ background:'#132236', border:'1px solid #243D57', borderRadius:12, padding:'12px 12px 10px', position:'relative', overflow:'hidden' }}>
+                <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background: accent ? '#38BDF8' : '#243D57', opacity: accent ? 0.8 : 0.4 }} />
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:'clamp(16px,4.5vw,22px)', color: accent ? '#38BDF8' : '#E8F0FE', lineHeight:1 }}>
                   {value}
                 </div>
-                <div className="text-xs mt-0.5" style={{ color:'#7A9BBF' }}>{unit}</div>
-                <div className="text-xs mt-0.5" style={{ color:'#7A9BBF', fontSize:'10px' }}>{label}</div>
+                <div style={{ fontSize:10, color:'#7A9BBF', marginTop:4, textTransform:'uppercase', letterSpacing:'0.06em' }}>{unit}</div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Lista */}
-      <div className="px-4 pb-6 flex flex-col gap-5">
+      {/* ── LISTA ── */}
+      <div style={{ padding:'0 0 40px' }}>
         {loading ? (
-          <div className="flex items-center justify-center gap-3 py-24 text-sm" style={{ color:'#7A9BBF' }}>
-            <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor:'#243D57', borderTopColor:'#38BDF8' }} />
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, padding:'80px 20px', color:'#7A9BBF', fontSize:14 }}>
+            <div style={{ width:20, height:20, border:'2px solid #243D57', borderTopColor:'#38BDF8', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
             Cargando…
           </div>
         ) : actividades.length === 0 ? (
-          <div className="text-center py-24" style={{ color:'#7A9BBF' }}>
-            <div className="text-5xl mb-4">🏅</div>
-            <div className="font-bold text-xl uppercase mb-2" style={{ fontFamily:"'Barlow Condensed', sans-serif", color:'#E8F0FE' }}>
+          <div style={{ textAlign:'center', padding:'80px 24px', color:'#7A9BBF' }}>
+            <div style={{ fontSize:52, marginBottom:16 }}>🏅</div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, textTransform:'uppercase', color:'#E8F0FE', marginBottom:8 }}>
               Sin actividades
             </div>
-            <div className="text-sm mb-6">Registrá tu primera actividad.</div>
+            <div style={{ fontSize:14, lineHeight:1.6, marginBottom:24 }}>
+              Registrá tu primera actividad para empezar a acumular puntos.
+            </div>
             <button onClick={onNewActivity}
-              className="px-6 py-3 rounded-2xl font-bold text-base uppercase tracking-wide"
-              style={{ fontFamily:"'Barlow Condensed', sans-serif", background:'#38BDF8', color:'#0D1B2A' }}>
+              style={{ padding:'13px 28px', borderRadius:14, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', background:'#38BDF8', color:'#0D1B2A', border:'none', cursor:'pointer' }}>
               + Nueva actividad
             </button>
           </div>
         ) : (
-          sortedDates.map(fecha => {
-            const acts     = groupedByDate[fecha];
-            const date     = new Date(fecha + 'T12:00:00');
-            const label    = date.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' });
-            const totalPts = acts.reduce((s, a) => s + parseFloat(a.puntos), 0);
+          sortedMeses.map(mes => {
+            const [y, m] = mes.split('-');
+            const mesLabel = `${MONTHS_ES[parseInt(m)-1]} ${y}`;
+            const fechas = Object.keys(grouped[mes]).sort((a, b) => b.localeCompare(a));
+            const ptsMes = Object.values(grouped[mes]).flat().reduce((s, a) => s + parseFloat(a.puntos), 0);
 
             return (
-              <div key={fecha}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-semibold uppercase tracking-wider"
-                       style={{ color:'#7A9BBF', fontFamily:"'JetBrains Mono', monospace" }}>
-                    {label.charAt(0).toUpperCase() + label.slice(1)}
+              <div key={mes}>
+                {/* Separador de mes */}
+                <div style={{ display:'flex', alignItems:'center', gap:12, padding:'20px 20px 10px' }}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', letterSpacing:'0.07em', color:'#7A9BBF', flexShrink:0 }}>
+                    {mesLabel}
                   </div>
-                  <div className="text-xs font-semibold" style={{ color:'#38BDF8', fontFamily:"'JetBrains Mono', monospace" }}>
-                    {Math.round(totalPts)} pts
+                  <div style={{ flex:1, height:1, background:'#1A2E45' }} />
+                  <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, fontWeight:700, color:'#38BDF8', flexShrink:0 }}>
+                    {Math.round(ptsMes)} pts
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  {acts.map(a => (
-                    <ActividadCard key={a.id} a={a} onClick={() => setDetalle(a)} />
-                  ))}
+
+                {/* Días del mes */}
+                <div style={{ display:'flex', flexDirection:'column', gap:16, padding:'0 20px' }}>
+                  {fechas.map(fecha => {
+                    const acts = grouped[mes][fecha];
+                    const date = new Date(fecha + 'T12:00:00');
+                    const dow  = date.toLocaleDateString('es', { weekday:'long' });
+                    const day  = date.getDate();
+                    const ptsDia = acts.reduce((s, a) => s + parseFloat(a.puntos), 0);
+
+                    return (
+                      <div key={fecha}>
+                        {/* Header del día */}
+                        <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:8 }}>
+                          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:700, color:'#4A7A9B', textTransform:'capitalize' }}>
+                            {dow} {day}
+                          </span>
+                          <span style={{ fontSize:10, color:'#7A9BBF', fontFamily:"'JetBrains Mono', monospace" }}>
+                            · {Math.round(ptsDia)} pts
+                          </span>
+                        </div>
+                        {/* Tarjetas */}
+                        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                          {acts.map(a => (
+                            <ActividadCard key={a.id} a={a} onClick={() => setDetalle(a)} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -362,7 +384,8 @@ export default function MisActividades({ onNewActivity }) {
         )}
       </div>
 
-      {/* Panel de detalle */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
       {detalle && (
         <DetallePanel
           actividad={detalle}
