@@ -45,7 +45,7 @@ export default function Nav({ onNewActivity }) {
 
       {/* ── HEADER ── */}
       <header style={{
-        position: 'sticky', top: 0, zIndex: 50,
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
         height: 52,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 16px',

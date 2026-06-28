@@ -91,8 +91,8 @@ function AppShell() {
     <>
       <Nav onNewActivity={() => setActModalOpen(true)} />
 
-      {/* Contenido con padding inferior para el bottom tab bar */}
-      <div style={{ paddingBottom:'calc(58px + env(safe-area-inset-bottom))' }}>
+      {/* Contenido: padding superior = header fijo, padding inferior = bottom tab bar */}
+      <div style={{ paddingTop:'calc(env(safe-area-inset-top) + 52px)', paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
         {renderContent()}
       </div>
 
