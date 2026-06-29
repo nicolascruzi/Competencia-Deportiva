@@ -1,4 +1,4 @@
-import { useEffect, useState, Component } from 'react';
+import { useCallback, useEffect, useRef, useState, Component } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -66,23 +66,23 @@ function SinCompetencia({ onOpen }) {
 
 const TAB_ORDER = ['ranking', 'calendario', 'feed', 'actividades', 'perfil'];
 
-// Wrapper por tab que implementa pull-to-refresh
-function PullToRefreshTab({ id, active, onRefresh, children }) {
+// Wrapper por tab: detecta el gesto y notifica al padre via onPull/onRelease
+function PullToRefreshTab({ active, onRefresh, onPullChange, children }) {
   const { containerRef, pullY, refreshing } = usePullToRefresh(onRefresh, active);
+
+  // Notificar al padre cada vez que cambia el estado del arrastre
+  useEffect(() => {
+    onPullChange?.({ pullY, refreshing });
+  }, [pullY, refreshing]);
 
   return (
     <div
       ref={containerRef}
       style={{
-        position: 'relative',
         overflowY: 'auto',
-        // desplaza el contenido hacia abajo mientras se arrastra
-        transform: pullY > 0 ? `translateY(${pullY}px)` : 'none',
-        transition: refreshing || pullY > 0 ? 'none' : 'transform 0.3s cubic-bezier(0.22,1,0.36,1)',
         WebkitOverflowScrolling: 'touch',
       }}
     >
-      <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} />
       {children}
     </div>
   );
@@ -103,6 +103,8 @@ function AppShell() {
   const [toast, setToast]                     = useState(null); // { actividad, ptsAntes, ptsDespues }
   const [evolucionSignal, setEvolucionSignal] = useState(0);
   const [showOnboarding, setShowOnboarding]   = useState(false);
+  const [ptrState, setPtrState]               = useState({ pullY: 0, refreshing: false });
+  const onPullChange = useCallback((s) => setPtrState(s), []);
   // Estado de mes compartido entre Ranking y Calendario
   const _now = new Date();
   const [navYear,  setNavYear]  = useState(_now.getFullYear());
@@ -215,6 +217,9 @@ function AppShell() {
         onAdminPonderadores={() => setAdminSheetOpen(true)}
       />
 
+      {/* Indicador PTR fijo debajo de la navbar */}
+      <PullToRefreshIndicator pullY={ptrState.pullY} refreshing={ptrState.refreshing} />
+
       {/* Viewport */}
       <div style={{ paddingTop:'calc(env(safe-area-inset-top) + 52px)',
                     paddingBottom:'calc(80px + env(safe-area-inset-bottom))',
@@ -232,9 +237,9 @@ function AppShell() {
               visibility: Math.abs(i - activeIdx) > 1 ? 'hidden' : 'visible',
             }}>
               <PullToRefreshTab
-                id={id}
                 active={isActive}
                 onRefresh={() => setRefreshKey(k => k + 1)}
+                onPullChange={isActive ? onPullChange : undefined}
               >
                 {tabContent[id]}
               </PullToRefreshTab>

@@ -1,59 +1,56 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const THRESHOLD  = 72;  // px de arrastre para disparar refresh
-const MAX_PULL   = 100; // px máximo de arrastre visual
+const THRESHOLD = 56;   // px de arrastre real para disparar (corto, como Instagram)
+const RESIST    = 0.5;  // resistencia: el círculo recorre la mitad del dedo
 
 export function usePullToRefresh(onRefresh, enabled = true) {
-  const [pullY, setPullY]           = useState(0);
+  const [pullY, setPullY]           = useState(0);   // 0..THRESHOLD (visual)
   const [refreshing, setRefreshing] = useState(false);
-  const startY       = useRef(null);
-  const pullYRef     = useRef(0);   // valor actual sin stale closure
-  const pulling      = useRef(false);
-  const refreshingRef= useRef(false);
-  const containerRef = useRef(null);
 
-  // Mantener refs sincronizadas con state
-  useEffect(() => { pullYRef.current = pullY; }, [pullY]);
+  const startY        = useRef(null);
+  const pullYRef      = useRef(0);
+  const refreshingRef = useRef(false);
+  const activeGesture = useRef(false);
+  const containerRef  = useRef(null);
+
+  useEffect(() => { pullYRef.current      = pullY;      }, [pullY]);
   useEffect(() => { refreshingRef.current = refreshing; }, [refreshing]);
 
-  const handleRefresh = useCallback(onRefresh, []);
+  const handleRefresh = useCallback(onRefresh, [onRefresh]);
 
   useEffect(() => {
     if (!enabled) return;
     const el = containerRef.current;
     if (!el) return;
 
-    function isAtTop() {
-      return el.scrollTop <= 0;
-    }
-
     function onTouchStart(e) {
       if (refreshingRef.current) return;
-      if (!isAtTop()) return;
-      startY.current  = e.touches[0].clientY;
-      pulling.current = false;
+      if (el.scrollTop > 0) return;
+      startY.current    = e.touches[0].clientY;
+      activeGesture.current = false;
     }
 
     function onTouchMove(e) {
-      if (refreshingRef.current) return;
-      if (startY.current === null) return;
+      if (refreshingRef.current || startY.current === null) return;
       const dy = e.touches[0].clientY - startY.current;
-      if (dy <= 0) { pulling.current = false; return; }
-      if (!isAtTop()) { startY.current = null; setPullY(0); return; }
-      pulling.current = true;
-      const visual = Math.min(MAX_PULL, dy * 0.45);
+      if (dy <= 0) { activeGesture.current = false; return; }
+      if (el.scrollTop > 0) { startY.current = null; return; }
+
+      activeGesture.current = true;
+      // Resistencia tipo Instagram: el círculo se mueve menos que el dedo
+      const visual = Math.min(THRESHOLD, dy * RESIST);
       setPullY(visual);
-      if (dy > 8) e.preventDefault();
+      e.preventDefault(); // evitar bounce nativo
     }
 
     function onTouchEnd() {
-      if (!pulling.current) { startY.current = null; return; }
-      const current   = pullYRef.current;
-      pulling.current = false;
-      startY.current  = null;
-      if (current >= THRESHOLD) {
+      if (!activeGesture.current) { startY.current = null; return; }
+      activeGesture.current = false;
+      startY.current = null;
+
+      if (pullYRef.current >= THRESHOLD * 0.85) {
+        // Disparar refresh — fijar círculo y hacer girar
         setRefreshing(true);
-        setPullY(THRESHOLD * 0.65);
         Promise.resolve(handleRefresh()).finally(() => {
           setRefreshing(false);
           setPullY(0);
@@ -66,11 +63,13 @@ export function usePullToRefresh(onRefresh, enabled = true) {
     el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('touchmove',  onTouchMove,  { passive: false });
     el.addEventListener('touchend',   onTouchEnd,   { passive: true });
+    el.addEventListener('touchcancel',onTouchEnd,   { passive: true });
 
     return () => {
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchmove',  onTouchMove);
       el.removeEventListener('touchend',   onTouchEnd);
+      el.removeEventListener('touchcancel',onTouchEnd);
     };
   }, [enabled, handleRefresh]);
 
