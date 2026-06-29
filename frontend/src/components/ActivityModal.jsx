@@ -62,7 +62,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
 
   // Mapa de ponderadores de la competencia activa: { deporte_nombre → ponderador }
   const compPondMap = competenciaActiva?.deportes
-    ? Object.fromEntries(competenciaActiva.deportes.map(d => [d.deporte_nombre, parseFloat(d.ponderador)]))
+    ? Object.fromEntries((competenciaActiva.deportes).filter(Boolean).map(d => [d.deporte_nombre, parseFloat(d.ponderador)]))
     : null;
 
   // Devuelve el ponderador correcto para un deporte dado el contexto

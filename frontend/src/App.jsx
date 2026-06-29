@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Component } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -15,6 +15,24 @@ import ActivityModal from './components/ActivityModal';
 import CrearCompetenciaModal from './components/CrearCompetenciaModal';
 import { getCompetencia } from './api/competencias';
 import { useLoading } from './context/LoadingContext';
+
+class ErrorBoundary extends Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  render() {
+    if (this.state.err) return (
+      <div style={{ padding:32, color:'#ff6b6b', fontFamily:'monospace', fontSize:13 }}>
+        <b>Error:</b> {this.state.err.message}
+        <br/><br/>
+        <button onClick={() => { localStorage.removeItem('lastCompetenciaId'); window.location.reload(); }}
+          style={{ background:'#333', color:'#fff', border:'none', padding:'8px 16px', borderRadius:8, cursor:'pointer' }}>
+          Limpiar y recargar
+        </button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
 
 // tabs: 'ranking' | 'calendario' | 'actividades' | 'feed' | 'perfil'
 
@@ -202,7 +220,9 @@ export default function App() {
       <LoadingProvider>
         <AuthProvider>
           <BrowserRouter>
-            <AppShell />
+            <ErrorBoundary>
+              <AppShell />
+            </ErrorBoundary>
           </BrowserRouter>
         </AuthProvider>
       </LoadingProvider>
