@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getActividades, deleteActividad } from '../api/actividades';
 import { uploadFoto, deleteFoto } from '../api/fotos';
+import { useLoading } from '../context/LoadingContext';
 
 const IconCamera = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -20,6 +21,7 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
   const [uploading, setUploading] = useState(false);
   const [lightbox, setLightbox]   = useState(false);
   const startY = useRef(null);
+  const { withLoading } = useLoading();
 
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
   function onTouchEnd(e) {
@@ -32,7 +34,7 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
     if (!file) return;
     setUploading(true);
     try {
-      const { foto_url } = await uploadFoto(actividad.id, file);
+      const { foto_url } = await withLoading(() => uploadFoto(actividad.id, file));
       onFotoUploaded(actividad.id, foto_url);
     } catch (err) {
       alert('Error al subir la foto: ' + err.message);
@@ -44,13 +46,13 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
 
   async function handleDeleteFoto() {
     if (!confirm('¿Eliminar la foto?')) return;
-    try { await deleteFoto(actividad.id); onFotoDeleted(actividad.id); }
+    try { await withLoading(() => deleteFoto(actividad.id)); onFotoDeleted(actividad.id); }
     catch (err) { alert('Error: ' + err.message); }
   }
 
   async function handleDeleteActividad() {
     if (!confirm('¿Eliminar esta actividad?')) return;
-    await onDelete(actividad.id);
+    await withLoading(() => onDelete(actividad.id));
     onClose();
   }
 

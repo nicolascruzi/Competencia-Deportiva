@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LoadingProvider } from './context/LoadingContext';
 import Login from './pages/Login';
 import CompetenciaDetalle from './pages/CompetenciaDetalle';
 import MisActividades from './pages/MisActividades';
@@ -13,6 +14,7 @@ import BottomTabBar from './components/BottomTabBar';
 import ActivityModal from './components/ActivityModal';
 import CrearCompetenciaModal from './components/CrearCompetenciaModal';
 import { getCompetencia } from './api/competencias';
+import { useLoading } from './context/LoadingContext';
 
 // tabs: 'ranking' | 'calendario' | 'actividades' | 'feed' | 'perfil'
 
@@ -43,6 +45,7 @@ const TAB_ORDER = ['ranking', 'calendario', 'feed', 'actividades', 'perfil'];
 
 function AppShell() {
   const { user, loading } = useAuth();
+  const { withLoading } = useLoading();
   const [actModalOpen, setActModalOpen]       = useState(false);
   const [crearOpen, setCrearOpen]             = useState(false);
   const [refreshKey, setRefreshKey]           = useState(0);
@@ -50,9 +53,23 @@ function AppShell() {
   const [mainTab, setMainTab]                 = useState('ranking');
   const [compTab, setCompTab]                 = useState('ranking');
   const [forceOpenSelector, setForceOpenSelector] = useState(0);
-  const [adminSheetOpen, setAdminSheetOpen] = useState(false);
+  const [adminSheetOpen, setAdminSheetOpen]   = useState(false);
+  const [restoringComp, setRestoringComp]     = useState(true);
 
-  if (loading) {
+  // Restaurar última competencia cuando el usuario está listo
+  useEffect(() => {
+    if (loading) return;
+    if (!user) { setRestoringComp(false); return; }
+    const savedId = localStorage.getItem('lastCompetenciaId');
+    if (!savedId) { setRestoringComp(false); return; }
+    withLoading(() =>
+      getCompetencia(savedId)
+        .then(detalle => setCompetenciaActiva(detalle))
+        .catch(() => localStorage.removeItem('lastCompetenciaId'))
+    ).finally(() => setRestoringComp(false));
+  }, [loading, user?.id]);
+
+  if (loading || restoringComp) {
     return (
       <div style={{ minHeight:'100dvh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, background:'var(--t-ground)' }}>
         <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -71,12 +88,11 @@ function AppShell() {
   if (!user) return <Login />;
 
   async function handleSelectCompetencia(c) {
-    // Carga el detalle completo (incluye `deportes`) para que ActivityModal
-    // pueda leer los ponderadores de la competencia
-    setCompetenciaActiva(c); // optimista, sin deportes todavía
+    localStorage.setItem('lastCompetenciaId', c.id);
+    setCompetenciaActiva(c);
     setCompTab('ranking');
     try {
-      const detalle = await getCompetencia(c.id);
+      const detalle = await withLoading(() => getCompetencia(c.id));
       setCompetenciaActiva(detalle);
     } catch { /* si falla, queda sin deportes — ponderador libre */ }
   }
@@ -104,7 +120,7 @@ function AppShell() {
           competencia={competenciaActiva}
           tab={compTab}
           onTab={setCompTab}
-          onBack={() => setCompetenciaActiva(null)}
+          onBack={() => { localStorage.removeItem('lastCompetenciaId'); setCompetenciaActiva(null); }}
           onNewActivity={() => setActModalOpen(true)}
           adminSheetOpen={adminSheetOpen}
           onAdminSheetClose={() => setAdminSheetOpen(false)}
@@ -175,11 +191,13 @@ function AppShell() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppShell />
-        </BrowserRouter>
-      </AuthProvider>
+      <LoadingProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppShell />
+          </BrowserRouter>
+        </AuthProvider>
+      </LoadingProvider>
     </ThemeProvider>
   );
 }

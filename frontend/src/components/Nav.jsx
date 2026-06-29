@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { getCompetencias } from '../api/competencias';
-import UnirseCompetenciaModal from './UnirseCompetenciaModal';
 
 const PALETTE_ORDER = ['tierra', 'ciruela', 'noche'];
 
@@ -49,7 +48,6 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
   const [selectorOpen, setSelectorOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen]   = useState(false);
   const [paletteOpen, setPaletteOpen]     = useState(false);
-  const [unirseOpen, setUnirseOpen]       = useState(false);
   const [competencias, setCompetencias]   = useState([]);
   const [loadingComps, setLoadingComps]   = useState(false);
 
@@ -105,7 +103,6 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
   function onTitleClick()    { if (!didLongPress.current) openSelector(); }
 
   const anyOpen = selectorOpen || settingsOpen;
-  const titleText = competenciaActiva ? competenciaActiva.nombre : 'Pura Racha';
 
   return (
     <>
@@ -138,7 +135,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
           onClick={onTitleClick}
           style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'transparent', border:'none', cursor:'pointer', padding:'4px 0', WebkitTapHighlightColor:'transparent', minWidth:0 }}>
           <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--t-accent)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'calc(100vw - 120px)' }}>
-            {titleText}
+            Pura Racha
           </span>
           <span style={{ color:'var(--t-muted)', flexShrink:0, marginTop:1 }}><IconChevron /></span>
         </button>
@@ -220,15 +217,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
               <span style={{ width:20, height:20, borderRadius:6, background:'rgba(var(--t-accent-r),0.12)', border:'1px solid rgba(var(--t-accent-r),0.25)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t-accent)', flexShrink:0 }}>
                 <IconPlus />
               </span>
-              <span style={{ fontSize:14, fontWeight:600, color:'var(--t-accent)' }}>Nueva competencia</span>
-            </button>
-            <button
-              onClick={() => { setSelectorOpen(false); setUnirseOpen(true); }}
-              style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'11px 18px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-              <span style={{ width:20, height:20, borderRadius:6, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t-muted)', flexShrink:0, fontSize:11, fontWeight:700 }}>
-                #
-              </span>
-              <span style={{ fontSize:14, fontWeight:600, color:'var(--t-muted)' }}>Unirse con PIN</span>
+              <span style={{ fontSize:14, fontWeight:600, color:'var(--t-accent)' }}>Crear / Unirse</span>
             </button>
           </div>
         </div>
@@ -332,12 +321,6 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
         </div>
       </div>
 
-      {/* ── MODAL UNIRSE ── */}
-      <UnirseCompetenciaModal
-        open={unirseOpen}
-        onClose={() => setUnirseOpen(false)}
-        onJoined={comp => { setUnirseOpen(false); onSelectCompetencia(comp); }}
-      />
     </>
   );
 }

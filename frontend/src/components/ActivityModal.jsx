@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getDeportes, createActividad } from '../api/actividades';
 import { uploadFoto } from '../api/fotos';
+import { useLoading } from '../context/LoadingContext';
 
 const S = {
   input: {
@@ -57,6 +58,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   const [error, setError]           = useState('');
   const [loading, setLoading]       = useState(false);
   const fileInputRef                = useRef(null);
+  const { withLoading } = useLoading();
 
   // Mapa de ponderadores de la competencia activa: { deporte_nombre → ponderador }
   const compPondMap = competenciaActiva?.deportes
@@ -112,16 +114,18 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const actividad = await createActividad({
-        deporte_nombre: form.deporte_nombre,
-        minutos:        parseFloat(form.minutos),
-        ponderador:     parseFloat(form.ponderador),
-        fecha:          form.fecha,
-        notas:          form.notas || null,
+      await withLoading(async () => {
+        const actividad = await createActividad({
+          deporte_nombre: form.deporte_nombre,
+          minutos:        parseFloat(form.minutos),
+          ponderador:     parseFloat(form.ponderador),
+          fecha:          form.fecha,
+          notas:          form.notas || null,
+        });
+        if (foto && actividad.id) {
+          await uploadFoto(actividad.id, foto).catch(() => {});
+        }
       });
-      if (foto && actividad.id) {
-        await uploadFoto(actividad.id, foto).catch(() => {});
-      }
       onCreated?.();
       onClose();
     } catch (err) {

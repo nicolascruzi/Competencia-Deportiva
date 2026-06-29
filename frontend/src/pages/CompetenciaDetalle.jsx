@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { getRankingComp, getActividadesComp, updatePonderadores } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
+import { useLoading } from '../context/LoadingContext';
 import { getDeportes as getAllDeportes } from '../api/actividades';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
@@ -1240,17 +1241,18 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved }) {
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
   const startY = useRef(null);
+  const { withLoading } = useLoading();
 
   useEffect(() => {
-    // Carga todos los deportes y precarga con los ponderadores actuales de la comp
-    getAllDeportes().then(deps => {
-      setDeportes(deps);
-      const map = {};
-      deps.forEach(d => { map[d.nombre] = d.ponderador_default; });
-      // Sobreescribir con los ponderadores actuales de la competencia
-      (competencia.deportes || []).forEach(cd => { map[cd.deporte_nombre] = cd.ponderador; });
-      setPonders(map);
-    });
+    withLoading(() =>
+      getAllDeportes().then(deps => {
+        setDeportes(deps);
+        const map = {};
+        deps.forEach(d => { map[d.nombre] = d.ponderador_default; });
+        (competencia.deportes || []).forEach(cd => { map[cd.deporte_nombre] = cd.ponderador; });
+        setPonders(map);
+      })
+    );
   }, []);
 
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
@@ -1265,7 +1267,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved }) {
       const ponderadores = Object.entries(ponders).map(([deporte_nombre, ponderador]) => ({
         deporte_nombre, ponderador: parseFloat(ponderador),
       }));
-      await updatePonderadores(competencia.id, ponderadores);
+      await withLoading(() => updatePonderadores(competencia.id, ponderadores));
       onSaved(ponderadores);
       onClose();
     } catch (err) {
@@ -1341,6 +1343,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved }) {
 
 export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved }) {
   const { user } = useAuth();
+  const { withLoading } = useLoading();
   const now = new Date();
 
   // Navegación idéntica al Calendario: year + month (0-11), month=-1 = Acumulado
@@ -1362,15 +1365,15 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   // Cargar actividades + ranking (que incluye participantes con 0 pts) cuando cambia mes
   useEffect(() => {
     setLoading(true);
-    Promise.all([
-      getActividadesComp(competencia.id, mes || undefined),
-      getRankingComp(competencia.id, mes || undefined),
-    ])
-      .then(([actsData, rankData]) => {
+    withLoading(() =>
+      Promise.all([
+        getActividadesComp(competencia.id, mes || undefined),
+        getRankingComp(competencia.id, mes || undefined),
+      ]).then(([actsData, rankData]) => {
         setActs(actsData);
         setRankingData(rankData);
       })
-      .finally(() => setLoading(false));
+    ).finally(() => setLoading(false));
   }, [competencia.id, mes]);
 
   // Navegación: prev/next idéntico al Calendario pero con Acumulado al final
@@ -1425,19 +1428,13 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       {/* ── SUBHEADER ───────────────────────────────────────────── */}
       <div style={{ position:'relative', zIndex:10, background:'var(--t-ground)' }}>
 
-        {/* Fila 1: nombre competencia + tab activo (estilo Feed) + acciones */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 14px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
-          <button onClick={onBack}
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', flexShrink:0 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-              {competencia.nombre}
-            </div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', lineHeight:1.1, color:'var(--t-text)', marginTop:1 }}>
-              {tab === 'ranking' ? 'Ranking' : tab === 'podio' ? 'Podio' : tab === 'calendar' ? 'Calendario' : tab === 'evolucion' ? 'Evolución' : tab === 'carrera' ? 'Carrera' : tab === 'deportes' ? 'Deportes' : tab === 'records' ? 'Récords' : tab === 'comparar' ? 'Comparar' : tab === 'insights' ? 'Insights' : 'Competencia'}
-            </div>
+        {/* Fila 1: nombre competencia + tab activo */}
+        <div style={{ padding:'8px 20px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            {competencia.nombre}
+          </div>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)', marginTop:2 }}>
+            {tab === 'ranking' ? 'Ranking' : tab === 'podio' ? 'Podio' : tab === 'calendar' ? 'Calendario' : tab === 'evolucion' ? 'Evolución' : tab === 'carrera' ? 'Carrera' : tab === 'deportes' ? 'Deportes' : tab === 'records' ? 'Récords' : tab === 'comparar' ? 'Comparar' : tab === 'insights' ? 'Insights' : 'Competencia'}
           </div>
         </div>
 
