@@ -11,6 +11,8 @@ const fotosRoutes        = require('./routes/fotos');
 const perfilRoutes       = require('./routes/perfil');
 const comentariosRoutes  = require('./routes/comentarios');
 const likesRoutes        = require('./routes/likes');
+const stravaRoutes       = require('./routes/strava');
+const configRoutes       = require('./routes/config');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +30,8 @@ app.use('/fotos',        fotosRoutes);
 app.use('/perfil',       perfilRoutes);
 app.use('/comentarios',  comentariosRoutes);
 app.use('/likes',        likesRoutes);
+app.use('/strava',       stravaRoutes);
+app.use('/config',       configRoutes);
 
 // Health check
 app.get('/health', async (req, res) => {
