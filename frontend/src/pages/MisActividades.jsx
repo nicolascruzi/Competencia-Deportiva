@@ -185,95 +185,72 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
   );
 }
 
-// ─── Fila de actividad estilo feed ───────────────────────────────────────────
+// ─── Card de actividad estilo feed ───────────────────────────────────────────
 
-const SPORT_ICONS_MA = {
-  'Bicicleta MTB':'🚵','Bicicleta Rodillo':'🚴','Ciclismo':'🚴','Escalada':'🧗',
-  'Fútbol':'⚽','Natación':'🏊','Paddle':'🏓','Running':'🏃','Senderismo':'🥾',
-  'Ski':'⛷️','Snowboard':'🏂','Tenis':'🎾','Triatlón':'🏅','Trote':'🏃',
-  'Yoga':'🧘','Crossfit':'🏋️','Gimnasio':'💪',
-};
-const sportIconMA = s => SPORT_ICONS_MA[s] || '🏅';
+function timeAgoMA(str) {
+  if (!str) return '';
+  const diff = (Date.now() - new Date(str)) / 1000;
+  if (diff < 3600)  return `${Math.floor(diff/60)}m`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h`;
+  if (diff < 604800)return `${Math.floor(diff/86400)}d`;
+  return new Date(str).toLocaleDateString('es', { day:'numeric', month:'short' });
+}
 
 function ActividadCard({ a, onClick }) {
-  const horas = Math.floor(parseFloat(a.minutos) / 60);
-  const mins  = Math.round(parseFloat(a.minutos) % 60);
-  const durLabel = horas > 0 ? `${horas}h ${mins}m` : `${mins} min`;
-  const horaLabel = a.created_at
-    ? new Date(a.created_at).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })
-    : null;
-  const ponderador = parseFloat(a.ponderador);
+  const fechaLabel = new Date(a.fecha + 'T12:00:00').toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short' });
 
   return (
-    <div onClick={onClick} style={{ borderBottom:'1px solid var(--t-surface2)', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+    <div onClick={onClick} style={{ background:'var(--t-surface)', borderBottom:'1px solid var(--t-surface2)', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
 
-      {/* Foto full-bleed (si existe) */}
-      {a.foto_url && (
-        <div style={{ position:'relative', overflow:'hidden' }}>
-          <img src={a.foto_url} alt={a.deporte_nombre}
-            style={{ width:'100%', aspectRatio:'4/3', objectFit:'cover', display:'block' }} />
-          {/* Gradiente + deporte encima de la foto */}
-          <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(5,10,18,0.82) 0%, rgba(5,10,18,0.15) 55%, transparent 100%)' }} />
-          <div style={{ position:'absolute', bottom:12, left:14, right:14, display:'flex', alignItems:'flex-end', justifyContent:'space-between' }}>
-            <div>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'#fff', lineHeight:1, letterSpacing:'0.02em' }}>
-                {sportIconMA(a.deporte_nombre)} {a.deporte_nombre}
-              </div>
-              {horaLabel && <div style={{ fontSize:11, color:'rgba(255,255,255,0.6)', marginTop:2 }}>{horaLabel}</div>}
-            </div>
-            <div style={{ textAlign:'right' }}>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, color:'var(--t-accent)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
-                {Math.round(parseFloat(a.puntos))}
-              </div>
-              <div style={{ fontSize:9, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</div>
-            </div>
+      {/* Header — igual al feed */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px 10px' }}>
+        <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-accent)', flexShrink:0 }}>
+          🏃
+        </div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1 }}>
+            {a.deporte_nombre}
+          </div>
+          <div style={{ fontSize:12, color:'var(--t-muted2)', marginTop:2 }}>
+            {fechaLabel}
           </div>
         </div>
+        <div style={{ fontSize:12, color:'var(--t-muted2)', flexShrink:0 }}>
+          {timeAgoMA(a.created_at || a.fecha)}
+        </div>
+      </div>
+
+      {/* Foto borde a borde */}
+      {a.foto_url && (
+        <img src={a.foto_url} alt={a.deporte_nombre}
+          style={{ width:'100%', aspectRatio:'4/3', objectFit:'cover', display:'block' }} />
       )}
 
-      {/* Info (sin foto: todo aquí; con foto: métricas extra) */}
-      <div style={{ padding: a.foto_url ? '10px 14px 12px' : '12px 14px' }}>
-        {!a.foto_url && (
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
-              {sportIconMA(a.deporte_nombre)} {a.deporte_nombre}
-            </div>
-            <div style={{ textAlign:'right' }}>
-              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>
-                {Math.round(parseFloat(a.puntos))}
-              </span>
-              <span style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginLeft:3 }}>pts</span>
-            </div>
-          </div>
-        )}
-
-        {/* Métricas en fila */}
-        <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span style={{ fontSize:12, color:'var(--t-muted)', fontVariantNumeric:'tabular-nums' }}>{durLabel}</span>
-          </div>
-          {ponderador > 0 && (
-            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              <span style={{ fontSize:12, color:'var(--t-muted)' }}>×{ponderador.toFixed(1)}</span>
-            </div>
-          )}
-          {!a.foto_url && horaLabel && (
-            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <span style={{ fontSize:12, color:'var(--t-muted)' }}>{horaLabel}</span>
-            </div>
-          )}
+      {/* Stats: pts · min · fecha */}
+      <div style={{ display:'flex', alignItems:'center', gap:0, padding:'10px 14px 4px' }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
+          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:'var(--t-accent)', lineHeight:1 }}>
+            {Math.round(parseFloat(a.puntos))}
+          </span>
+          <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</span>
         </div>
-
-        {/* Notas */}
-        {a.notas && (
-          <div style={{ marginTop:6, fontSize:12, color:'var(--t-muted2)', fontStyle:'italic', lineHeight:1.5, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
-            "{a.notas}"
-          </div>
-        )}
+        <div style={{ width:1, height:16, background:'var(--t-surface2)', margin:'0 12px' }} />
+        <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
+          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:16, color:'var(--t-muted)', lineHeight:1 }}>
+            {Math.round(parseFloat(a.minutos))}
+          </span>
+          <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
+        </div>
+        <div style={{ marginLeft:'auto', fontSize:12, color:'var(--t-muted2)' }}>
+          ×{parseFloat(a.ponderador).toFixed(1)}
+        </div>
       </div>
+
+      {/* Notas */}
+      {a.notas
+        ? <div style={{ padding:'4px 14px 10px', fontSize:14, color:'var(--t-muted)', lineHeight:1.5 }}>{a.notas}</div>
+        : <div style={{ height:8 }} />
+      }
     </div>
   );
 }
@@ -720,7 +697,7 @@ export default function MisActividades({ onNewActivity }) {
   const [actividades, setActividades] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [detalle, setDetalle]         = useState(null);
-  const [subtab, setSubtab]           = useState('objetivos');
+  const [subtab, setSubtab]           = useState('historial');
 
   async function load() {
     setLoading(true);
@@ -779,7 +756,7 @@ export default function MisActividades({ onNewActivity }) {
 
         {/* Subtabs */}
         <div style={{ display:'flex', padding:'0 16px', gap:4 }}>
-          {[{ id:'objetivos', label:'Objetivos' }, { id:'historial', label:'Historial' }, { id:'evolucion', label:'Evolución' }].map(t => (
+          {[{ id:'historial', label:'Historial' }, { id:'objetivos', label:'Objetivos' }, { id:'evolucion', label:'Evolución' }].map(t => (
             <button key={t.id} onClick={() => setSubtab(t.id)}
               style={{ padding:'7px 16px', borderRadius:'10px 10px 0 0', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', transition:'all 0.15s',
                 background: subtab === t.id ? 'var(--t-surface)' : 'transparent',
