@@ -1500,10 +1500,11 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   const [loading, setLoading]       = useState(true);
   const [profile, setProfile]       = useState(null);
   const [compConDeportes, setCompConDeportes] = useState(competencia);
+  const [rankingRefreshKey, setRankingRefreshKey] = useState(0);
 
   const isAdmin = user?.id === competencia.creador_id;
 
-  // Cargar actividades + ranking (que incluye participantes con 0 pts) cuando cambia mes
+  // Cargar actividades + ranking (que incluye participantes con 0 pts) cuando cambia mes o ponderadores
   useEffect(() => {
     setLoading(true);
     withLoading(() =>
@@ -1515,7 +1516,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
         setRankingData((Array.isArray(rankData) ? rankData : []).filter(Boolean));
       })
     ).finally(() => setLoading(false));
-  }, [competencia.id, mes]);
+  }, [competencia.id, mes, rankingRefreshKey]);
 
   // Navegación: prev/next idéntico al Calendario pero con Acumulado al final
   function prev() {
@@ -1623,6 +1624,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
               ...prev,
               deportes: ponderadores.map(p => ({ deporte_nombre: p.deporte_nombre, ponderador: p.ponderador })),
             }));
+            setRankingRefreshKey(k => k + 1);
             onAdminSaved?.(ponderadores.map(p => ({ deporte_nombre: p.deporte_nombre, ponderador: p.ponderador })));
           }}
         />,

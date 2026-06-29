@@ -23,7 +23,7 @@ function PinDisplay({ nombre, pin, onClose }) {
   const btnBase = { width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 };
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', flexDirection:'column', justifyContent:'flex-end', background:'rgba(5,12,20,0.85)', backdropFilter:'blur(8px)' }}>
+    <div style={{ position:'fixed', inset:0, zIndex:70, display:'flex', flexDirection:'column', justifyContent:'flex-end', paddingBottom:'calc(60px + env(safe-area-inset-bottom))', background:'rgba(5,12,20,0.85)', backdropFilter:'blur(8px)' }}>
       <div style={{ width:'100%', borderRadius:'20px 20px 0 0', background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderBottom:'none' }}>
         <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px' }}>
           <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
@@ -181,10 +181,10 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
   const isCentered = paso === 'elegir' || paso === 'unirse';
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', flexDirection:'column', justifyContent: isCentered ? 'center' : 'flex-end', padding: isCentered ? '0 16px' : 0, background:'rgba(5,12,20,0.75)', backdropFilter:'blur(6px)' }}
+    <div style={{ position:'fixed', inset:0, zIndex:70, display:'flex', flexDirection:'column', justifyContent: isCentered ? 'center' : 'flex-end', padding: isCentered ? '0 16px' : 0, paddingBottom: isCentered ? 0 : 'calc(60px + env(safe-area-inset-bottom))', background:'rgba(5,12,20,0.75)', backdropFilter:'blur(6px)' }}
          onClick={e => e.target === e.currentTarget && onClose()}>
 
-      <div style={{ width:'100%', borderRadius: isCentered ? 20 : '20px 20px 0 0', background:'var(--t-surface)', border:'1px solid var(--t-dim)', maxHeight:'92dvh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ width:'100%', borderRadius: isCentered ? 20 : '20px 20px 0 0', background:'var(--t-surface)', border:'1px solid var(--t-dim)', maxHeight:'calc(92dvh - env(safe-area-inset-bottom))', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
         {/* Handle */}
         <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px', flexShrink:0 }}>
