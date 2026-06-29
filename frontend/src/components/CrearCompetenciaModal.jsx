@@ -184,7 +184,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
     <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', flexDirection:'column', justifyContent: isCentered ? 'center' : 'flex-end', padding: isCentered ? '0 16px' : 0, background:'rgba(5,12,20,0.75)', backdropFilter:'blur(6px)' }}
          onClick={e => e.target === e.currentTarget && onClose()}>
 
-      <div style={{ width:'100%', borderRadius: isCentered ? 20 : '20px 20px 0 0', background:'var(--t-surface)', border:'1px solid var(--t-dim)', maxHeight:'92dvh', display:'flex', flexDirection:'column', overflow: paso === 'crear' ? 'hidden' : 'visible' }}>
+      <div style={{ width:'100%', borderRadius: isCentered ? 20 : '20px 20px 0 0', background:'var(--t-surface)', border:'1px solid var(--t-dim)', maxHeight:'92dvh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
         {/* Handle */}
         <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px', flexShrink:0 }}>
@@ -234,7 +234,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
 
         {/* ── PASO: crear ── */}
         {paso === 'crear' && (
-          <form onSubmit={handleCrear} style={{ overflowY:'auto', flex:1, padding:'0 18px', paddingBottom:'calc(1.5rem + env(safe-area-inset-bottom))', display:'flex', flexDirection:'column', gap:16 }}>
+          <form onSubmit={handleCrear} style={{ overflowY:'auto', flex:1, minHeight:0, padding:'0 18px', paddingBottom:'calc(1.5rem + env(safe-area-inset-bottom))', display:'flex', flexDirection:'column', gap:16 }}>
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Nombre de la competencia</label>
               <input

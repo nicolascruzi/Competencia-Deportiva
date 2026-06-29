@@ -40,41 +40,20 @@ function calcEdad(fechaNac) {
   return isNaN(edad) ? null : edad;
 }
 
-function EditField({ label, displayValue, onSave, type = 'text', options, rawValue }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft]     = useState(rawValue ?? '');
-  const [saving, setSaving]   = useState(false);
-
-  function startEdit() { setDraft(rawValue ?? ''); setEditing(true); }
-  function cancel()    { setEditing(false); }
+function EditField({ label, onSave, onCancel, type = 'text', options, rawValue }) {
+  const [draft, setDraft]   = useState(rawValue ?? '');
+  const [saving, setSaving] = useState(false);
 
   async function save() {
     setSaving(true);
-    try { await onSave(draft); setEditing(false); }
+    try { await onSave(draft); }
     catch { /* errors logged in parent */ }
     finally { setSaving(false); }
   }
 
-  if (!editing) {
-    return (
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--t-dim)' }}>
-        <div>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:2 }}>{label}</div>
-          <div style={{ fontSize:14, fontWeight:600, color: displayValue ? 'var(--t-text)' : 'rgba(var(--t-muted-r,128,128,128),0.5)' }}>
-            {displayValue || '—'}
-          </div>
-        </div>
-        <button onClick={startEdit}
-          style={{ display:'flex', alignItems:'center', padding:'4px', borderRadius:8, border:'none', background:'transparent', color:'var(--t-dim2)', cursor:'pointer', flexShrink:0, opacity:0.5 }}>
-          <IconEdit />
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ padding:'8px 0', borderBottom:'1px solid var(--t-dim)' }}>
-      <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-accent)', marginBottom:8 }}>{label}</div>
+    <div style={{ background:'var(--t-surface2)', border:'1.5px solid var(--t-accent)', borderRadius:12, padding:'12px 14px' }}>
+      <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-accent)', marginBottom:10 }}>{label}</div>
       {options ? (
         <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10 }}>
           {options.map(opt => (
@@ -102,7 +81,7 @@ function EditField({ label, displayValue, onSave, type = 'text', options, rawVal
           style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 16px', borderRadius:8, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontSize:13, fontWeight:700, cursor:'pointer', opacity: saving ? 0.65 : 1 }}>
           <IconCheck /> {saving ? 'Guardando…' : 'Guardar'}
         </button>
-        <button onClick={cancel}
+        <button onClick={onCancel}
           style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:13, fontWeight:600, cursor:'pointer' }}>
           <IconXSmall /> Cancelar
         </button>
@@ -112,11 +91,29 @@ function EditField({ label, displayValue, onSave, type = 'text', options, rawVal
 }
 
 
+function PersonalCell({ label, value, onEdit }) {
+  return (
+    <div
+      onClick={onEdit}
+      style={{ background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 12px', cursor:'pointer', display:'flex', flexDirection:'column', gap:4, position:'relative' }}
+    >
+      <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>{label}</div>
+      <div style={{ fontSize:14, fontWeight:600, color: value ? 'var(--t-text)' : 'var(--t-dim)', lineHeight:1.2 }}>
+        {value || '—'}
+      </div>
+      <div style={{ position:'absolute', top:8, right:8, opacity:0.35, color:'var(--t-muted)' }}>
+        <IconEdit />
+      </div>
+    </div>
+  );
+}
+
 export default function MiPerfil() {
   const { user, logout, updateUser } = useAuth();
   const [acts, setActs]             = useState([]);
   const [loading, setLoading]       = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [editingField, setEditingField]     = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -230,46 +227,50 @@ export default function MiPerfil() {
       </div>
 
       {/* ── DATOS PERSONALES ── */}
-      <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--t-dim)' }}>
-        <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:4 }}>
+      <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--t-dim)' }}>
+        <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:10 }}>
           Datos personales
         </div>
-
-        <EditField
-          label="Sexo"
-          displayValue={sexoLabel}
-          rawValue={user?.sexo ?? ''}
-          options={[
-            { label:'Masculino', value:'M' },
-            { label:'Femenino',  value:'F' },
-            { label:'Otro',      value:'X' },
-          ]}
-          onSave={v => saveField('sexo', v)}
-        />
-
-        <EditField
-          label="Fecha de nacimiento"
-          displayValue={fechaNacDisplay}
-          rawValue={user?.fecha_nacimiento ?? ''}
-          type="date"
-          onSave={v => saveField('fecha_nacimiento', v)}
-        />
-
-        <EditField
-          label="Peso"
-          displayValue={user?.peso_kg ? `${user.peso_kg} kg` : null}
-          rawValue={user?.peso_kg ?? ''}
-          type="number"
-          onSave={v => saveField('peso_kg', v ? parseFloat(v) : null)}
-        />
-
-        <EditField
-          label="Estatura"
-          displayValue={user?.estatura_cm ? `${user.estatura_cm} cm` : null}
-          rawValue={user?.estatura_cm ?? ''}
-          type="number"
-          onSave={v => saveField('estatura_cm', v ? parseInt(v) : null)}
-        />
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+          <PersonalCell label="Sexo" value={sexoLabel} onEdit={() => setEditingField('sexo')} />
+          <PersonalCell label="Nacimiento" value={fechaNacDisplay} onEdit={() => setEditingField('fecha_nacimiento')} />
+          <PersonalCell label="Peso" value={user?.peso_kg ? `${user.peso_kg} kg` : null} onEdit={() => setEditingField('peso_kg')} />
+          <PersonalCell label="Estatura" value={user?.estatura_cm ? `${user.estatura_cm} cm` : null} onEdit={() => setEditingField('estatura_cm')} />
+        </div>
+        {editingField && (
+          <div style={{ marginTop:12 }}>
+            <EditField
+              label={
+                editingField === 'sexo' ? 'Sexo' :
+                editingField === 'fecha_nacimiento' ? 'Fecha de nacimiento' :
+                editingField === 'peso_kg' ? 'Peso' : 'Estatura'
+              }
+              displayValue={null}
+              rawValue={
+                editingField === 'sexo' ? (user?.sexo ?? '') :
+                editingField === 'fecha_nacimiento' ? (user?.fecha_nacimiento ?? '') :
+                editingField === 'peso_kg' ? (user?.peso_kg ?? '') :
+                (user?.estatura_cm ?? '')
+              }
+              type={
+                editingField === 'sexo' ? 'text' :
+                editingField === 'fecha_nacimiento' ? 'date' : 'number'
+              }
+              options={editingField === 'sexo' ? [
+                { label:'Masculino', value:'M' },
+                { label:'Femenino',  value:'F' },
+                { label:'Otro',      value:'X' },
+              ] : undefined}
+              onSave={async v => {
+                if (editingField === 'peso_kg') await saveField('peso_kg', v ? parseFloat(v) : null);
+                else if (editingField === 'estatura_cm') await saveField('estatura_cm', v ? parseInt(v) : null);
+                else await saveField(editingField, v);
+                setEditingField(null);
+              }}
+              onCancel={() => setEditingField(null)}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── ESTE MES ── */}
