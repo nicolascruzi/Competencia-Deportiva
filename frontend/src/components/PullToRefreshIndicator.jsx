@@ -1,22 +1,21 @@
 const THRESHOLD = 56;
-const SIZE = 34;
-const R    = 13;
-const CIRC = 2 * Math.PI * R;
+const SIZE = 36;
 
 export default function PullToRefreshIndicator({ pullY, refreshing, closing }) {
   const visible = pullY > 2 || refreshing || closing;
   if (!visible) return null;
 
-  const progress = (refreshing || closing) ? 1 : Math.min(1, pullY / THRESHOLD);
-  const space = (refreshing || closing) ? THRESHOLD : pullY;
-  const centerOffset = (space - SIZE) / 2;
+  const progress    = (refreshing || closing) ? 1 : Math.min(1, pullY / THRESHOLD);
+  const space       = (refreshing || closing) ? THRESHOLD : pullY;
+  const centerOffset = Math.max(0, (space - SIZE) / 2);
+
+  // Cuánto del borde naranja se muestra (0 → 1 durante el pull; 1 cuando gira)
+  const arcFraction = refreshing ? 1 : Math.max(0.08, progress * 0.85);
 
   return (
     <>
       <style>{`
-        @keyframes ptr-spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes ptr-spin { to { transform: rotate(360deg); } }
       `}</style>
       <div style={{
         position: 'fixed',
@@ -27,50 +26,39 @@ export default function PullToRefreshIndicator({ pullY, refreshing, closing }) {
         justifyContent: 'center',
         zIndex: 45,
         pointerEvents: 'none',
-        // El círculo sube/baja para quedar centrado en el espacio abierto
-        transform: `translateY(${Math.max(0, centerOffset)}px)`,
-        // Durante closing el indicador sube con el contenido
-        transition: closing ? 'transform 0.38s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease' : 'none',
+        transform: `translateY(${centerOffset}px)`,
+        transition: closing
+          ? 'transform 0.38s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease'
+          : 'none',
         opacity: closing ? 0 : 1,
       }}>
+        {/* Círculo contenedor */}
         <div style={{
           width: SIZE,
           height: SIZE,
           borderRadius: '50%',
           background: 'var(--t-surface)',
           border: '1px solid var(--t-dim)',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          // Escala de 0.5 a 1 mientras aparece
-          transform: `scale(${Math.min(1, 0.5 + progress * 0.5)})`,
-          transition: 'none',
+          transform: `scale(${Math.min(1, 0.45 + progress * 0.55)})`,
         }}>
-          <svg
-            width={SIZE - 8}
-            height={SIZE - 8}
-            viewBox="0 0 26 26"
-            style={(refreshing || closing) ? {
-              animation: 'ptr-spin 0.75s linear infinite',
-              transformOrigin: '13px 13px',
-            } : {
-              transform: `rotate(${progress * 300}deg)`,
-              transformOrigin: '13px 13px',
-              transition: 'none',
-            }}
-          >
-            {/* Track gris tenue */}
-            <circle cx="13" cy="13" r={R} fill="none"
-              stroke="var(--t-dim)" strokeWidth="2.2" />
-            {/* Arco naranja que crece */}
-            <circle cx="13" cy="13" r={R} fill="none"
-              stroke="var(--t-accent)" strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeDasharray={`${CIRC * (refreshing ? 0.25 : Math.max(0.08, progress * 0.8))} ${CIRC}`}
-              strokeDashoffset={CIRC * 0.25}
-            />
-          </svg>
+          {/* Spinner — idéntico al del LoadingContext pero más pequeño */}
+          <div style={{
+            width: SIZE - 12,
+            height: SIZE - 12,
+            borderRadius: '50%',
+            border: `2.5px solid var(--t-dim)`,
+            borderTopColor: 'var(--t-accent)',
+            // Durante el pull: ángulo proporcional al arco. Al soltar: gira libre.
+            animation: (refreshing || closing) ? 'ptr-spin 0.7s linear infinite' : 'none',
+            transform: (refreshing || closing)
+              ? undefined
+              : `rotate(${arcFraction * 360 * 2}deg)`,
+            transition: 'none',
+          }} />
         </div>
       </div>
     </>
