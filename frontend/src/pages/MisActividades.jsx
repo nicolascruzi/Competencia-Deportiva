@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getActividades, deleteActividad } from '../api/actividades';
+import { getActividades, deleteActividad, getDeportes } from '../api/actividades';
 import { uploadFoto, deleteFoto } from '../api/fotos';
 import { useLoading } from '../context/LoadingContext';
 
@@ -444,6 +444,219 @@ function Evolucion({ actividades }) {
   );
 }
 
+// ─── Objetivos semanales ──────────────────────────────────────────────────────
+
+const STORAGE_KEY = 'nanao_objetivos';
+
+function getWeekRange(date) {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=dom
+  const diffToMon = (day === 0 ? -6 : 1 - day);
+  const mon = new Date(d); mon.setDate(d.getDate() + diffToMon); mon.setHours(0,0,0,0);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23,59,59,999);
+  return { mon, sun };
+}
+
+function formatWeekLabel(mon, sun) {
+  const fmt = d => d.toLocaleDateString('es', { day:'numeric', month:'short' });
+  return `${fmt(mon)} – ${fmt(sun)}`;
+}
+
+function Objetivos({ actividades }) {
+  const [deportes, setDeportes]     = useState([]);
+  const [objetivos, setObjetivos]   = useState(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+  });
+  const [editando, setEditando]     = useState(null); // { deporte, sesiones } | 'nuevo'
+  const [form, setForm]             = useState({ deporte:'', sesiones:3 });
+
+  useEffect(() => { getDeportes().then(setDeportes).catch(() => {}); }, []);
+  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(objetivos)); }, [objetivos]);
+
+  // Semana actual y 3 semanas anteriores
+  const now   = new Date();
+  const weeks = Array.from({ length: 4 }, (_, i) => {
+    const d = new Date(now); d.setDate(now.getDate() - i * 7);
+    return getWeekRange(d);
+  }).reverse(); // más antigua primero
+
+  function sesionesEnSemana(deporte, { mon, sun }) {
+    return actividades.filter(a => {
+      const f = new Date(a.fecha + 'T12:00:00');
+      return (deporte === '__all__' || a.deporte_nombre === deporte) && f >= mon && f <= sun;
+    }).length;
+  }
+
+  function guardar() {
+    const dep = form.deporte;
+    const ses = Math.max(1, parseInt(form.sesiones) || 1);
+    if (!dep) return;
+    setObjetivos(prev => {
+      const exists = prev.find(o => o.deporte === dep);
+      if (exists) return prev.map(o => o.deporte === dep ? { ...o, sesiones: ses } : o);
+      return [...prev, { deporte: dep, sesiones: ses }];
+    });
+    setEditando(null);
+  }
+
+  function eliminar(deporte) {
+    setObjetivos(prev => prev.filter(o => o.deporte !== deporte));
+  }
+
+  const deportesDisponibles = deportes.filter(d => !objetivos.find(o => o.deporte === d.nombre) || editando?.deporte === d.nombre);
+  const semanaActual = weeks[weeks.length - 1];
+
+  const ringStyle = (pct) => {
+    const r = 20, c = 2 * Math.PI * r;
+    const filled = Math.min(1, pct) * c;
+    return { r, c, filled, stroke: pct >= 1 ? '#34c759' : 'var(--t-accent)' };
+  };
+
+  return (
+    <div style={{ padding:'16px 16px 40px', display:'flex', flexDirection:'column', gap:16 }}>
+
+      {/* Objetivos activos */}
+      {objetivos.length === 0 && !editando && (
+        <div style={{ textAlign:'center', padding:'32px 0 8px', color:'var(--t-muted)', fontSize:13 }}>
+          Todavía no tenés objetivos. Creá uno abajo.
+        </div>
+      )}
+
+      {objetivos.map(obj => {
+        const sesHoy = sesionesEnSemana(obj.deporte, semanaActual);
+        const pct    = sesHoy / obj.sesiones;
+        const cumple = pct >= 1;
+        const ring   = ringStyle(pct);
+
+        // Historial últimas 4 semanas
+        const hist = weeks.map(w => ({
+          label: formatWeekLabel(w.mon, w.sun),
+          ses: sesionesEnSemana(obj.deporte, w),
+          isCurrent: w.mon.getTime() === semanaActual.mon.getTime(),
+        }));
+
+        return (
+          <div key={obj.deporte} style={{ background:'var(--t-surface)', border:`1px solid ${cumple ? 'rgba(52,199,89,0.3)' : 'var(--t-dim)'}`, borderRadius:16, overflow:'hidden' }}>
+
+            {/* Header objetivo */}
+            <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 14px 12px' }}>
+              {/* Ring */}
+              <div style={{ flexShrink:0, position:'relative', width:52, height:52 }}>
+                <svg width="52" height="52" style={{ transform:'rotate(-90deg)' }}>
+                  <circle cx="26" cy="26" r={ring.r} fill="none" stroke="var(--t-surface2)" strokeWidth="4" />
+                  <circle cx="26" cy="26" r={ring.r} fill="none" stroke={ring.stroke} strokeWidth="4"
+                    strokeDasharray={`${ring.c}`} strokeDashoffset={ring.c - ring.filled}
+                    strokeLinecap="round" style={{ transition:'stroke-dashoffset 0.5s ease' }} />
+                </svg>
+                <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column' }}>
+                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:14, lineHeight:1, color: cumple ? '#34c759' : 'var(--t-text)' }}>{sesHoy}</span>
+                  <span style={{ fontSize:8, color:'var(--t-muted)', lineHeight:1 }}>/{obj.sesiones}</span>
+                </div>
+              </div>
+
+              {/* Info */}
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, color:'var(--t-text)', lineHeight:1 }}>
+                  {obj.deporte}
+                </div>
+                <div style={{ fontSize:11, color: cumple ? '#34c759' : 'var(--t-muted)', marginTop:3 }}>
+                  {cumple ? '✓ Meta cumplida esta semana' : `${obj.sesiones - sesHoy} sesión${obj.sesiones - sesHoy !== 1 ? 'es' : ''} para completar`}
+                </div>
+              </div>
+
+              {/* Editar / borrar */}
+              <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                <button onClick={() => { setForm({ deporte: obj.deporte, sesiones: obj.sesiones }); setEditando(obj); }}
+                  style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13 }}>
+                  ✎
+                </button>
+                <button onClick={() => eliminar(obj.deporte)}
+                  style={{ width:28, height:28, borderRadius:8, border:'1px solid rgba(248,113,113,0.2)', background:'transparent', color:'#F87171', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13 }}>
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Historial 4 semanas */}
+            <div style={{ borderTop:'1px solid var(--t-surface2)', padding:'10px 14px 12px', display:'flex', flexDirection:'column', gap:6 }}>
+              <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:2 }}>Últimas 4 semanas</div>
+              {hist.map((w, wi) => {
+                const wPct = Math.min(1, w.ses / obj.sesiones);
+                const wOk  = w.ses >= obj.sesiones;
+                return (
+                  <div key={wi} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ fontSize:10, color: w.isCurrent ? 'var(--t-text)' : 'var(--t-muted)', fontWeight: w.isCurrent ? 700 : 400, whiteSpace:'nowrap', width:100, flexShrink:0 }}>
+                      {w.isCurrent ? 'Esta semana' : w.label}
+                    </div>
+                    <div style={{ flex:1, height:5, background:'var(--t-surface2)', borderRadius:3, overflow:'hidden' }}>
+                      <div style={{ height:'100%', width:(wPct*100)+'%', background: wOk ? '#34c759' : 'var(--t-accent)', borderRadius:3, opacity: w.isCurrent ? 1 : 0.6, transition:'width 0.4s ease' }} />
+                    </div>
+                    <div style={{ fontSize:10, color: wOk ? '#34c759' : 'var(--t-muted)', fontVariantNumeric:'tabular-nums', width:28, textAlign:'right', flexShrink:0, fontWeight:600 }}>
+                      {w.ses}/{obj.sesiones}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Formulario nuevo / editar */}
+      {editando !== null ? (
+        <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-accent)', borderRadius:16, padding:'16px 14px' }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', marginBottom:12 }}>
+            {editando === 'nuevo' ? 'Nuevo objetivo' : `Editar · ${editando.deporte}`}
+          </div>
+
+          {/* Deporte */}
+          {editando === 'nuevo' && (
+            <div style={{ marginBottom:10 }}>
+              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginBottom:5 }}>Deporte</div>
+              <select value={form.deporte} onChange={e => setForm(f => ({ ...f, deporte: e.target.value }))}
+                style={{ width:'100%', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'9px 12px', borderRadius:9, fontSize:14, appearance:'none' }}>
+                <option value="">Seleccioná un deporte</option>
+                {deportesDisponibles.map(d => <option key={d.id} value={d.nombre}>{d.nombre}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Sesiones por semana */}
+          <div style={{ marginBottom:14 }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginBottom:8 }}>
+              Sesiones por semana
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+              <button onClick={() => setForm(f => ({ ...f, sesiones: Math.max(1, f.sesiones - 1) }))}
+                style={{ width:36, height:36, borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>−</button>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:32, color:'var(--t-accent)', minWidth:32, textAlign:'center', lineHeight:1 }}>{form.sesiones}</span>
+              <button onClick={() => setForm(f => ({ ...f, sesiones: Math.min(14, f.sesiones + 1) }))}
+                style={{ width:36, height:36, borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>+</button>
+              <span style={{ fontSize:12, color:'var(--t-muted)' }}>sesiones / semana</span>
+            </div>
+          </div>
+
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={guardar}
+              style={{ flex:1, padding:'11px', borderRadius:10, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', cursor:'pointer' }}>
+              Guardar
+            </button>
+            <button onClick={() => setEditando(null)}
+              style={{ padding:'11px 16px', borderRadius:10, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, cursor:'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => { setForm({ deporte:'', sesiones:3 }); setEditando('nuevo'); }}
+          style={{ width:'100%', padding:'13px', borderRadius:14, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+          + Agregar objetivo
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function MisActividades({ onNewActivity }) {
@@ -509,7 +722,7 @@ export default function MisActividades({ onNewActivity }) {
 
         {/* Subtabs */}
         <div style={{ display:'flex', padding:'0 16px', gap:4 }}>
-          {[{ id:'evolucion', label:'Evolución' }, { id:'historial', label:'Historial' }].map(t => (
+          {[{ id:'evolucion', label:'Evolución' }, { id:'historial', label:'Historial' }, { id:'objetivos', label:'Objetivos' }].map(t => (
             <button key={t.id} onClick={() => setSubtab(t.id)}
               style={{ padding:'7px 16px', borderRadius:'10px 10px 0 0', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', transition:'all 0.15s',
                 background: subtab === t.id ? 'var(--t-surface)' : 'transparent',
@@ -531,6 +744,8 @@ export default function MisActividades({ onNewActivity }) {
           </div>
         ) : subtab === 'evolucion' ? (
           <Evolucion actividades={actividades} />
+        ) : subtab === 'objetivos' ? (
+          <Objetivos actividades={actividades} />
         ) : actividades.length === 0 ? (
           <div style={{ textAlign:'center', padding:'80px 24px', color:'var(--t-muted)' }}>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, textTransform:'uppercase', color:'var(--t-text)', marginBottom:8 }}>
