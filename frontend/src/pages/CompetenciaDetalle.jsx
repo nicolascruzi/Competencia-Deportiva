@@ -1422,8 +1422,8 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
     <>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* ── SUBHEADER STICKY ───────────────────────────────────────────── */}
-      <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 52px)', zIndex:10, background:'var(--t-ground)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
+      {/* ── SUBHEADER ───────────────────────────────────────────── */}
+      <div style={{ position:'relative', zIndex:10, background:'var(--t-ground)' }}>
 
         {/* Fila 1: nombre competencia + tab activo (estilo Feed) + acciones */}
         <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 14px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
