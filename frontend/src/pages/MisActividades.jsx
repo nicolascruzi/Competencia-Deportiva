@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getActividades, deleteActividad } from '../api/actividades';
 import { uploadFoto, deleteFoto } from '../api/fotos';
@@ -221,12 +221,236 @@ function ActividadCard({ a, onClick }) {
   );
 }
 
+// ─── Evolución de puntos ──────────────────────────────────────────────────────
+
+function Evolucion({ actividades }) {
+  const canvasRef = useRef(null);
+
+  // Agrupar por mes y acumular puntos
+  const meses = [...new Set(actividades.map(a => a.fecha.slice(0,7)))].sort();
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !meses.length) return;
+    const ctx = canvas.getContext('2d');
+
+    // Puntos acumulados por mes
+    let acum = 0;
+    const data = meses.map(mes => {
+      const pts = actividades
+        .filter(a => a.fecha.slice(0,7) === mes)
+        .reduce((s, a) => s + parseFloat(a.puntos), 0);
+      acum += pts;
+      return { mes, pts, acum };
+    });
+
+    const W = canvas.parentElement?.offsetWidth || 300;
+    const H = 220;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.scale(dpr, dpr);
+
+    const pad = { top:20, right:20, bottom:36, left:50 };
+    const w = W - pad.left - pad.right;
+    const h = H - pad.top - pad.bottom;
+    const maxVal = Math.max(...data.map(d => d.acum)) || 1;
+    const n = data.length;
+
+    // Área rellena bajo la curva
+    const accentR = getComputedStyle(document.documentElement).getPropertyValue('--t-accent-r').trim() || '79,142,247';
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + h);
+    grad.addColorStop(0, `rgba(${accentR},0.22)`);
+    grad.addColorStop(1, `rgba(${accentR},0.0)`);
+
+    const xOf = i => pad.left + (i / Math.max(n - 1, 1)) * w;
+    const yOf = v => pad.top + h * (1 - v / maxVal);
+
+    // Gridlines
+    [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+      const y = pad.top + h * (1 - t);
+      ctx.strokeStyle = 'rgba(50,65,90,0.7)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + w, y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(120,145,180,0.7)';
+      ctx.font = `10px JetBrains Mono, monospace`;
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.round(maxVal * t).toLocaleString('es'), pad.left - 6, y + 4);
+    });
+
+    // Área
+    ctx.beginPath();
+    data.forEach((d, i) => {
+      const x = xOf(i), y = yOf(d.acum);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(xOf(n - 1), pad.top + h);
+    ctx.lineTo(xOf(0), pad.top + h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Línea principal
+    ctx.beginPath();
+    ctx.strokeStyle = `rgb(${accentR})`;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    data.forEach((d, i) => {
+      const x = xOf(i), y = yOf(d.acum);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Puntos + etiquetas de mes
+    const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    data.forEach((d, i) => {
+      const x = xOf(i), y = yOf(d.acum);
+      // Punto
+      ctx.beginPath();
+      ctx.arc(x, y, i === n - 1 ? 5 : 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgb(${accentR})`;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, i === n - 1 ? 2.5 : 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'var(--t-ground, #0e0f11)';
+      ctx.fill();
+      // Etiqueta mes (solo si hay espacio)
+      const showLabel = n <= 8 || i % Math.ceil(n / 6) === 0 || i === n - 1;
+      if (showLabel) {
+        const [yy, mm] = d.mes.split('-');
+        ctx.fillStyle = 'rgba(120,145,180,0.8)';
+        ctx.font = `9px Inter, sans-serif`;
+        ctx.textAlign = i === 0 ? 'left' : i === n - 1 ? 'right' : 'center';
+        ctx.fillText(`${MONTHS_SHORT[parseInt(mm) - 1]} ${yy.slice(2)}`, x, H - 8);
+      }
+    });
+  }, [actividades, meses]);
+
+  useEffect(() => { draw(); }, [draw]);
+  useEffect(() => {
+    const ro = new ResizeObserver(draw);
+    if (canvasRef.current?.parentElement) ro.observe(canvasRef.current.parentElement);
+    return () => ro.disconnect();
+  }, [draw]);
+
+  if (!actividades.length) return (
+    <div style={{ textAlign:'center', padding:'60px 24px', color:'var(--t-muted)', fontSize:14 }}>
+      Sin actividades registradas.
+    </div>
+  );
+
+  // Stats resumen
+  const totalPts  = actividades.reduce((s, a) => s + parseFloat(a.puntos), 0);
+  const totalMin  = actividades.reduce((s, a) => s + parseFloat(a.minutos), 0);
+  const totalActs = actividades.length;
+  const mejorMes  = (() => {
+    const byMes = {};
+    actividades.forEach(a => {
+      const m = a.fecha.slice(0,7);
+      byMes[m] = (byMes[m] || 0) + parseFloat(a.puntos);
+    });
+    const best = Object.entries(byMes).sort((a,b) => b[1]-a[1])[0];
+    if (!best) return null;
+    const [y, m] = best[0].split('-');
+    const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    return { label: `${MONTHS_ES[parseInt(m)-1]} ${y}`, pts: Math.round(best[1]) };
+  })();
+
+  const statStyle = { display:'flex', flexDirection:'column', alignItems:'center', gap:2, flex:1 };
+  const valStyle  = { fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, lineHeight:1, fontVariantNumeric:'tabular-nums' };
+  const lblStyle  = { fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em' };
+
+  return (
+    <div style={{ padding:'16px 16px 32px', display:'flex', flexDirection:'column', gap:20 }}>
+
+      {/* Stats resumen */}
+      <div style={{ display:'flex', gap:0, background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, overflow:'hidden' }}>
+        <div style={{ ...statStyle, padding:'14px 8px', borderRight:'1px solid var(--t-dim)' }}>
+          <span style={{ ...valStyle, color:'var(--t-accent)' }}>{Math.round(totalPts).toLocaleString('es')}</span>
+          <span style={lblStyle}>Pts totales</span>
+        </div>
+        <div style={{ ...statStyle, padding:'14px 8px', borderRight:'1px solid var(--t-dim)' }}>
+          <span style={{ ...valStyle, color:'var(--t-text)' }}>{totalActs}</span>
+          <span style={lblStyle}>Actividades</span>
+        </div>
+        <div style={{ ...statStyle, padding:'14px 8px' }}>
+          <span style={{ ...valStyle, color:'var(--t-text)' }}>{Math.round(totalMin / 60)}h</span>
+          <span style={lblStyle}>Horas</span>
+        </div>
+      </div>
+
+      {/* Gráfico */}
+      <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'16px 12px 8px' }}>
+        <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:10 }}>
+          Puntos acumulados
+        </div>
+        <canvas ref={canvasRef} style={{ display:'block', width:'100%' }} />
+      </div>
+
+      {/* Mejor mes */}
+      {mejorMes && (
+        <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div>
+            <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:4 }}>Mejor mes</div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:18, color:'var(--t-text)' }}>{mejorMes.label}</div>
+          </div>
+          <div style={{ textAlign:'right' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, color:'var(--t-accent)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>{mejorMes.pts.toLocaleString('es')}</div>
+            <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabla mensual */}
+      <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, overflow:'hidden' }}>
+        <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', padding:'12px 16px 8px', borderBottom:'1px solid var(--t-dim)' }}>
+          Por mes
+        </div>
+        {[...meses].reverse().map(mes => {
+          const actsDelMes = actividades.filter(a => a.fecha.slice(0,7) === mes);
+          const pts  = Math.round(actsDelMes.reduce((s, a) => s + parseFloat(a.puntos), 0));
+          const mins = Math.round(actsDelMes.reduce((s, a) => s + parseFloat(a.minutos), 0));
+          const [y, m] = mes.split('-');
+          const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+          const maxPtsMes = Math.max(...meses.map(mm => actividades.filter(a=>a.fecha.slice(0,7)===mm).reduce((s,a)=>s+parseFloat(a.puntos),0)));
+          const pct = Math.round((pts / (maxPtsMes || 1)) * 100);
+          return (
+            <div key={mes} style={{ padding:'10px 16px', borderBottom:'1px solid var(--t-surface2)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, color:'var(--t-text)' }}>
+                  {MONTHS_ES[parseInt(m)-1]} {y}
+                </span>
+                <div style={{ textAlign:'right' }}>
+                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{pts.toLocaleString('es')}</span>
+                  <span style={{ fontSize:9, color:'var(--t-muted)', marginLeft:3, textTransform:'uppercase' }}>pts</span>
+                </div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div style={{ flex:1, height:3, background:'var(--t-surface2)', borderRadius:2, overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.7 }} />
+                </div>
+                <span style={{ fontSize:10, color:'var(--t-muted)', whiteSpace:'nowrap' }}>{actsDelMes.length} ses · {mins} min</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function MisActividades({ onNewActivity }) {
   const [actividades, setActividades] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [detalle, setDetalle]         = useState(null);
+  const [subtab, setSubtab]           = useState('evolucion');
 
   async function load() {
     setLoading(true);
@@ -273,41 +497,40 @@ export default function MisActividades({ onNewActivity }) {
     <div style={{ display:'flex', flexDirection:'column', minHeight:0 }}>
 
       {/* ── HEADER ── */}
-      <div style={{ padding:'20px 20px 16px', background:'linear-gradient(180deg, var(--t-ground) 0%, var(--t-ground) 100%)', borderBottom:'1px solid var(--t-surface2)' }}>
-        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', marginBottom:5 }}>
-          Historial
-        </div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(26px,7vw,36px)', textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
-          Mis actividades
+      <div style={{ background:'var(--t-ground)', borderBottom:'1px solid var(--t-surface2)' }}>
+        <div style={{ padding:'20px 20px 14px' }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', marginBottom:5 }}>
+            Personal
+          </div>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(26px,7vw,36px)', textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
+            Mis actividades
+          </div>
         </div>
 
-        {/* KPIs del mes actual */}
-        {actsMes.length > 0 && (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginTop:14 }}>
-            {[
-              { label:'Este mes',  value: actsMes.length,                           unit:'actividades', accent:false },
-              { label:'Minutos',   value: Math.round(minsMes).toLocaleString('es'), unit:'min',         accent:false },
-              { label:'Puntos',    value: Math.round(ptosMes).toLocaleString('es'), unit:'pts',         accent:true  },
-            ].map(({ label, value, unit, accent }) => (
-              <div key={label} style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 10px 8px', position:'relative', overflow:'hidden' }}>
-                <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background: accent ? 'var(--t-accent)' : 'var(--t-dim)', opacity: accent ? 0.8 : 0.4 }} />
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:'clamp(15px,4vw,20px)', color: accent ? 'var(--t-accent)' : 'var(--t-text)', lineHeight:1 }}>
-                  {value}
-                </div>
-                <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:3, textTransform:'uppercase', letterSpacing:'0.06em' }}>{unit}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Subtabs */}
+        <div style={{ display:'flex', padding:'0 16px', gap:4 }}>
+          {[{ id:'evolucion', label:'Evolución' }, { id:'historial', label:'Historial' }].map(t => (
+            <button key={t.id} onClick={() => setSubtab(t.id)}
+              style={{ padding:'7px 16px', borderRadius:'10px 10px 0 0', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', transition:'all 0.15s',
+                background: subtab === t.id ? 'var(--t-surface)' : 'transparent',
+                color: subtab === t.id ? 'var(--t-accent)' : 'var(--t-muted)',
+                borderBottom: subtab === t.id ? '2px solid var(--t-accent)' : '2px solid transparent',
+              }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ── LISTA ── */}
+      {/* ── CONTENIDO ── */}
       <div style={{ padding:'0 0 40px' }}>
         {loading ? (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, padding:'80px 20px', color:'var(--t-muted)', fontSize:14 }}>
             <div style={{ width:20, height:20, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
             Cargando…
           </div>
+        ) : subtab === 'evolucion' ? (
+          <Evolucion actividades={actividades} />
         ) : actividades.length === 0 ? (
           <div style={{ textAlign:'center', padding:'80px 24px', color:'var(--t-muted)' }}>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, textTransform:'uppercase', color:'var(--t-text)', marginBottom:8 }}>
