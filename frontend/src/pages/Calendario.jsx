@@ -265,7 +265,7 @@ export default function Calendario({ competenciaActiva, navYear, navMonth, onNav
   const [detalle, setDetalle] = useState(null);
 
   useEffect(() => {
-    getActividades().then(data => setActs((data || []).filter(Boolean))).finally(() => setLoading(false));
+    getActividades().then(data => setActs((Array.isArray(data) ? data : []).filter(Boolean))).finally(() => setLoading(false));
   }, []);
 
   // Mapa fecha → actividades

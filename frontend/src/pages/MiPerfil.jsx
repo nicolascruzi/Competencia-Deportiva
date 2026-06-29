@@ -120,7 +120,7 @@ export default function MiPerfil() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    getActividades().then(setActs).finally(() => setLoading(false));
+    getActividades().then(data => setActs((Array.isArray(data) ? data : []).filter(Boolean))).finally(() => setLoading(false));
   }, []);
 
   const totalPts  = acts.reduce((s, a) => s + parseFloat(a.puntos), 0);

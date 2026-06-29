@@ -371,7 +371,8 @@ export default function FeedGrupal({ competencia }) {
     setLoading(true);
     getActividadesComp(competencia.id)
       .then(data => {
-        const sorted = [...data].sort((a, b) => {
+        const safe = (Array.isArray(data) ? data : []).filter(Boolean);
+        const sorted = safe.sort((a, b) => {
           const tA = a.created_at ? new Date(a.created_at).getTime() : new Date(a.fecha + 'T12:00:00').getTime();
           const tB = b.created_at ? new Date(b.created_at).getTime() : new Date(b.fecha + 'T12:00:00').getTime();
           return tB - tA;

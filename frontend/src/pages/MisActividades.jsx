@@ -245,7 +245,7 @@ export default function MisActividades({ onNewActivity }) {
 
   async function load() {
     setLoading(true);
-    try { setActividades(await getActividades()); }
+    try { const d = await getActividades(); setActividades((Array.isArray(d) ? d : []).filter(Boolean)); }
     finally { setLoading(false); }
   }
 

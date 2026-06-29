@@ -1373,8 +1373,8 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
         getActividadesComp(competencia.id, mes || undefined),
         getRankingComp(competencia.id, mes || undefined),
       ]).then(([actsData, rankData]) => {
-        setActs((actsData || []).filter(Boolean));
-        setRankingData((rankData || []).filter(Boolean));
+        setActs((Array.isArray(actsData) ? actsData : []).filter(Boolean));
+        setRankingData((Array.isArray(rankData) ? rankData : []).filter(Boolean));
       })
     ).finally(() => setLoading(false));
   }, [competencia.id, mes]);
