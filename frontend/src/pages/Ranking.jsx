@@ -1,44 +1,43 @@
 import { useEffect, useState } from 'react';
-import { getRanking, getMeses } from '../api/ranking';
+import { getRanking } from '../api/ranking';
 
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 export default function Ranking() {
+  const now = new Date();
+  const [year,  setYear]  = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth()); // 0-11; -1 = Acumulado
   const [ranking, setRanking] = useState([]);
-  const [opciones, setOpciones] = useState([]); // [{ val, label, labelCorto, year }]
-  const [idx, setIdx]           = useState(0);
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  // Construye la lista de opciones: meses desc + Acumulado al final
-  useEffect(() => {
-    getMeses().then(meses => {
-      // meses viene ordenado desc (el más reciente primero)
-      const items = meses.map(m => {
-        const [y, mo] = m.split('-');
-        return {
-          val: m,
-          label: MONTHS_ES[parseInt(mo) - 1],
-          year: y,
-        };
-      });
-      // Acumulado va DESPUÉS del mes presente (posición 1)
-      items.splice(1, 0, { val: '', label: 'Acumulado', year: 'total' });
-      setOpciones(items);
-      setIdx(0); // empieza en el mes más reciente
-    });
-  }, []);
-
-  const opcion = opciones[idx] ?? { val: '', label: 'Acumulado', year: 'total' };
+  // month === -1 significa "Acumulado" (un paso a la derecha del mes actual)
+  const isAcumulado = month === -1;
+  const mesVal = isAcumulado ? '' : `${year}-${String(month + 1).padStart(2, '0')}`;
 
   useEffect(() => {
     setLoading(true);
-    getRanking(opcion.val).then(setRanking).finally(() => setLoading(false));
-  }, [opcion.val]);
+    getRanking(mesVal).then(setRanking).finally(() => setLoading(false));
+  }, [mesVal]);
 
   const maxPts = ranking[0]?.puntos || 1;
 
-  function prev() { setIdx(i => Math.max(0, i - 1)); }
-  function next() { setIdx(i => Math.min(opciones.length - 1, i + 1)); }
+  function prev() {
+    // Desde Acumulado → vuelve al mes actual
+    if (isAcumulado) { setYear(now.getFullYear()); setMonth(now.getMonth()); return; }
+    if (month === 0) { setMonth(11); setYear(y => y - 1); }
+    else setMonth(m => m - 1);
+  }
+  function next() {
+    // Un paso más allá del mes actual → Acumulado
+    if (year === now.getFullYear() && month === now.getMonth()) { setMonth(-1); return; }
+    if (isAcumulado) return; // tope derecho
+    if (month === 11) { setMonth(0); setYear(y => y + 1); }
+    else setMonth(m => m + 1);
+  }
+
+  const canNext = !isAcumulado;
+  const label   = isAcumulado ? 'Acumulado' : MONTHS_ES[month];
+  const sublabel = isAcumulado ? 'todos los tiempos' : String(year);
 
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:0 }}>
@@ -47,22 +46,19 @@ export default function Ranking() {
         <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', padding:'16px 20px 0' }}>
           Tabla de posiciones
         </div>
-        {/* Navegación de mes estilo calendario */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 12px 14px' }}>
-          <button onClick={prev} disabled={idx === 0}
-            style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: idx === 0 ? 'var(--t-dim)' : 'var(--t-muted)', cursor: idx === 0 ? 'default' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
+          <button onClick={prev}
+            style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
           <div style={{ textAlign:'center' }}>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
-              {opcion.label}
+              {label}
             </div>
-            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>
-              {opcion.year === 'total' ? 'todos los tiempos' : opcion.year}
-            </div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>{sublabel}</div>
           </div>
-          <button onClick={next} disabled={idx === opciones.length - 1}
-            style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: idx === opciones.length - 1 ? 'var(--t-dim)' : 'var(--t-muted)', cursor: idx === opciones.length - 1 ? 'default' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
+          <button onClick={next} disabled={!canNext}
+            style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: canNext ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
         </div>
