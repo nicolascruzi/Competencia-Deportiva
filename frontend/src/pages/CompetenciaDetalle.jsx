@@ -270,7 +270,130 @@ function PlayerDrawer({ person, acts, onClose }) {
   );
 }
 
+function RankingEvolucion({ acts, nombres }) {
+  const canvasRef = useRef(null);
+  const [hidden, setHidden] = useState(new Set());
+
+  const people   = [...new Set(acts.map(a => a.nombre))].sort();
+  const allDates = [...new Set(acts.map(a => a.fecha.slice(0,10)))].sort();
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !acts.length) return;
+    const ctx = canvas.getContext('2d');
+
+    const cumulMap = {};
+    people.forEach(p => { cumulMap[p] = 0; });
+    const series = {};
+    people.forEach(p => { series[p] = {}; });
+    [...acts].sort((a, b) => a.fecha.localeCompare(b.fecha)).forEach(a => {
+      cumulMap[a.nombre] += a.puntos;
+      series[a.nombre][a.fecha.slice(0,10)] = cumulMap[a.nombre];
+    });
+    const personLines = people.map(p => {
+      let last = 0;
+      return allDates.map(d => { if (series[p][d] !== undefined) last = series[p][d]; return last; });
+    });
+
+    const W = canvas.parentElement?.offsetWidth || 300;
+    const H = 240;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.scale(dpr, dpr);
+
+    const pad = { top:16, right:16, bottom:28, left:46 };
+    const w = W - pad.left - pad.right;
+    const h = H - pad.top - pad.bottom;
+    const maxVal = Math.max(...personLines.flat()) || 1;
+    const n = allDates.length;
+
+    // Gridlines
+    [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+      const y = pad.top + h * (1 - t);
+      ctx.strokeStyle = 'rgba(50,65,90,0.7)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + w, y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(120,145,180,0.7)';
+      ctx.font = `10px JetBrains Mono, monospace`;
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.round(maxVal * t).toLocaleString('es'), pad.left - 5, y + 4);
+    });
+
+    // Etiquetas eje X
+    const maxLabels = W < 340 ? 3 : 5;
+    const step = Math.max(1, Math.floor(n / maxLabels));
+    ctx.fillStyle = 'rgba(120,145,180,0.7)';
+    ctx.font = `9px Inter, sans-serif`;
+    ctx.textAlign = 'center';
+    allDates.forEach((d, i) => {
+      if (i % step === 0 || i === n - 1) {
+        const x = pad.left + (i / Math.max(n - 1, 1)) * w;
+        const parts = d.split('-');
+        ctx.fillText(`${parts[2]}/${parts[1]}`, x, H - 6);
+      }
+    });
+
+    // Líneas por persona
+    personLines.forEach((line, pi) => {
+      if (hidden.has(people[pi])) return;
+      const color = getPersonColor(people[pi], nombres);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      line.forEach((val, i) => {
+        const x = pad.left + (i / Math.max(n - 1, 1)) * w;
+        const y = pad.top + h * (1 - val / maxVal);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      // Punto final
+      const lx = pad.left + w;
+      const ly = pad.top + h * (1 - line[line.length - 1] / maxVal);
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'var(--t-ground, #0e0f11)';
+      ctx.beginPath(); ctx.arc(lx, ly, 2, 0, Math.PI * 2); ctx.fill();
+    });
+  }, [acts, nombres, hidden, people, allDates]);
+
+  useEffect(() => { draw(); }, [draw]);
+  useEffect(() => {
+    const ro = new ResizeObserver(draw);
+    if (canvasRef.current?.parentElement) ro.observe(canvasRef.current.parentElement);
+    return () => ro.disconnect();
+  }, [draw]);
+
+  if (!acts.length) return <EmptyState icon="📈" title="Sin datos" />;
+
+  return (
+    <div style={{ padding:'12px 0 24px' }}>
+      <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 12px 10px', margin:'0 16px' }}>
+        <canvas ref={canvasRef} style={{ display:'block', width:'100%' }} />
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:12 }}>
+          {people.map(p => (
+            <button key={p}
+              onClick={() => setHidden(h => { const n = new Set(h); n.has(p) ? n.delete(p) : n.add(p); return n; })}
+              style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, fontWeight:600, padding:'4px 9px', borderRadius:7, border:'1px solid var(--t-dim)', background: hidden.has(p) ? 'transparent' : 'rgba(var(--t-accent-r),0.04)', color: hidden.has(p) ? 'var(--t-muted)' : 'var(--t-text)', opacity: hidden.has(p) ? 0.4 : 1, cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+              <span style={{ width:8, height:8, borderRadius:'50%', background: getPersonColor(p, nombres), flexShrink:0, display:'inline-block', opacity: hidden.has(p) ? 0.3 : 1 }} />
+              {p.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
+  const [subtab, setSubtab] = useState('tabla');
+
   const people = rankingData.length
     ? rankingData.map((r, i) => ({
         nombre:          r.nombre,
@@ -292,8 +415,26 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
     return 'var(--t-dim2)';
   };
 
+  const tabBtn = (id, label) => (
+    <button key={id} onClick={() => setSubtab(id)}
+      style={{ padding:'6px 14px', borderRadius:'8px 8px 0 0', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent',
+        background: subtab === id ? 'var(--t-surface2)' : 'transparent',
+        color: subtab === id ? 'var(--t-accent)' : 'var(--t-muted)',
+        borderBottom: subtab === id ? '2px solid var(--t-accent)' : '2px solid transparent',
+      }}>{label}</button>
+  );
+
   return (
     <div>
+      {/* Subtabs */}
+      <div style={{ display:'flex', gap:2, padding:'6px 12px 0', borderBottom:'1px solid var(--t-surface2)' }}>
+        {tabBtn('tabla', 'Tabla')}
+        {tabBtn('evolucion', 'Evolución')}
+      </div>
+
+      {subtab === 'evolucion' ? (
+        <RankingEvolucion acts={acts} nombres={nombres} />
+      ) : (
       <div style={{ paddingTop:4 }}>
         {people.map((p, i) => {
           const isTop = i === 0;
@@ -350,6 +491,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
