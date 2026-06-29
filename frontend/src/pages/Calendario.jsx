@@ -431,7 +431,7 @@ export default function Calendario({ competenciaActiva, navYear, navMonth, onNav
             const isSel    = selectedKey === key;
 
             // Emojis del día
-            const dayActs  = byDate[key] || [];
+            const dayActs  = (byDate[key] || []).filter(Boolean);
             const sportIcon = s => SPORT_ICONS[s] || '🏅';
             let emojiNode = null;
             if (count === 1) {

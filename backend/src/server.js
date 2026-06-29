@@ -11,8 +11,6 @@ const fotosRoutes        = require('./routes/fotos');
 const perfilRoutes       = require('./routes/perfil');
 const comentariosRoutes  = require('./routes/comentarios');
 const likesRoutes        = require('./routes/likes');
-const stravaRoutes       = require('./routes/strava');
-const configRoutes       = require('./routes/config');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -30,8 +28,6 @@ app.use('/fotos',        fotosRoutes);
 app.use('/perfil',       perfilRoutes);
 app.use('/comentarios',  comentariosRoutes);
 app.use('/likes',        likesRoutes);
-app.use('/strava',       stravaRoutes);
-app.use('/config',       configRoutes);
 
 // Health check
 app.get('/health', async (req, res) => {
@@ -57,10 +53,4 @@ app.use((err, req, res, next) => {
 // ─── ARRANQUE ─────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✓ Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`  POST /auth/register`);
-  console.log(`  POST /auth/login`);
-  console.log(`  GET  /actividades`);
-  console.log(`  POST /actividades`);
-  console.log(`  GET  /ranking`);
-  console.log(`  GET  /health`);
 });

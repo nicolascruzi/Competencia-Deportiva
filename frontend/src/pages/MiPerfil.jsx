@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getActividades } from '../api/actividades';
 import { updatePerfil, uploadFotoPerfil } from '../api/perfil';
-import { getStravaStatus, connectStrava, disconnectStrava, syncStrava } from '../api/strava';
 import { useAuth } from '../context/AuthContext';
-import ConfigButton from '../components/ConfigSheet';
 
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -113,131 +111,6 @@ function EditField({ label, displayValue, onSave, type = 'text', options, rawVal
   );
 }
 
-// ─── Sección de Strava ────────────────────────────────────────────────────────
-
-function StravaSection() {
-  const [connected, setConnected] = useState(null); // null = cargando
-  const [syncing, setSyncing]     = useState(false);
-  const [syncResult, setSyncResult] = useState(null);
-  const [error, setError]         = useState('');
-
-  useEffect(() => {
-    // Detectar si venimos del callback de Strava
-    const params = new URLSearchParams(window.location.search);
-    const stravaParam = params.get('strava');
-    if (stravaParam) {
-      // Limpiar el query param de la URL sin recargar
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-
-    getStravaStatus()
-      .then(d => setConnected(d.connected))
-      .catch(() => setConnected(false));
-  }, []);
-
-  async function handleSync() {
-    setSyncing(true);
-    setSyncResult(null);
-    setError('');
-    try {
-      const result = await syncStrava();
-      setSyncResult(result);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSyncing(false);
-    }
-  }
-
-  async function handleDisconnect() {
-    if (!confirm('¿Desconectar tu cuenta de Strava?')) return;
-    try {
-      await disconnectStrava();
-      setConnected(false);
-      setSyncResult(null);
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  // Logo SVG de Strava
-  const StravaLogo = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L7.463 0l-7 13.828h4.169"/>
-    </svg>
-  );
-
-  return (
-    <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--t-dim)' }}>
-      <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:12 }}>
-        Strava
-      </div>
-
-      {connected === null ? (
-        <div style={{ display:'flex', alignItems:'center', gap:8, color:'var(--t-muted)', fontSize:13 }}>
-          <div style={{ width:14, height:14, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
-          Verificando…
-        </div>
-      ) : connected ? (
-        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-          {/* Estado conectado */}
-          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'rgba(252,76,2,0.06)', border:'1px solid rgba(252,76,2,0.25)', borderRadius:12 }}>
-            <div style={{ color:'#FC4C02', flexShrink:0 }}><StravaLogo /></div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:'var(--t-text)', lineHeight:1 }}>Conectado con Strava</div>
-              <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>Las actividades nuevas se importan automáticamente</div>
-            </div>
-            <div style={{ width:8, height:8, borderRadius:'50%', background:'#34D399', flexShrink:0 }} />
-          </div>
-
-          {/* Resultado de sync */}
-          {syncResult && (
-            <div style={{ padding:'8px 12px', background:'rgba(52,211,153,0.08)', border:'1px solid rgba(52,211,153,0.25)', borderRadius:10, fontSize:13, color:'var(--t-text)' }}>
-              ✓ {syncResult.imported} actividad{syncResult.imported !== 1 ? 'es' : ''} importada{syncResult.imported !== 1 ? 's' : ''}
-              {syncResult.skipped > 0 && <span style={{ color:'var(--t-muted)' }}> · {syncResult.skipped} ya existían</span>}
-            </div>
-          )}
-
-          {error && (
-            <div style={{ padding:'8px 12px', background:'rgba(248,113,113,0.08)', border:'1px solid rgba(248,113,113,0.25)', borderRadius:10, fontSize:13, color:'#F87171' }}>
-              {error}
-            </div>
-          )}
-
-          {/* Acciones */}
-          <div style={{ display:'flex', gap:8 }}>
-            <button onClick={handleSync} disabled={syncing}
-              style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'10px', borderRadius:10, border:'1px solid rgba(252,76,2,0.3)', background:'rgba(252,76,2,0.06)', color:'#FC4C02', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor: syncing ? 'default' : 'pointer', opacity: syncing ? 0.6 : 1 }}>
-              {syncing
-                ? <><div style={{ width:13, height:13, border:'2px solid rgba(252,76,2,0.3)', borderTopColor:'#FC4C02', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /> Sincronizando…</>
-                : <><StravaLogo /> Sincronizar</>
-              }
-            </button>
-            <button onClick={handleDisconnect}
-              style={{ padding:'10px 14px', borderRadius:10, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer' }}>
-              Desconectar
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-          <div style={{ fontSize:13, color:'var(--t-muted)', lineHeight:1.5 }}>
-            Conectá tu cuenta de Strava para importar actividades automáticamente cuando las registrás desde el reloj o la app.
-          </div>
-          {error && (
-            <div style={{ padding:'8px 12px', background:'rgba(248,113,113,0.08)', border:'1px solid rgba(248,113,113,0.25)', borderRadius:10, fontSize:13, color:'#F87171' }}>
-              {error}
-            </div>
-          )}
-          <button onClick={connectStrava}
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', borderRadius:12, border:'none', background:'#FC4C02', color:'#fff', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer' }}>
-            <StravaLogo /> Conectar con Strava
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function MiPerfil() {
   const { user, logout, updateUser } = useAuth();
@@ -399,9 +272,6 @@ export default function MiPerfil() {
         />
       </div>
 
-      {/* ── STRAVA ── */}
-      <StravaSection />
-
       {/* ── ESTE MES ── */}
       {actsMes.length > 0 && (
         <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--t-dim)' }}>
@@ -459,7 +329,6 @@ export default function MiPerfil() {
 
       {/* ── OPCIONES ── */}
       <div style={{ padding:'12px 20px', display:'flex', flexDirection:'column', gap:8 }}>
-        <ConfigButton isAdmin={user?.role === 'admin'} />
         <button onClick={logout}
           style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
           Cerrar sesión
