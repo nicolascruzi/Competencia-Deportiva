@@ -185,53 +185,38 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
   );
 }
 
-// ─── Tarjeta de actividad ─────────────────────────────────────────────────────
+// ─── Fila de actividad estilo feed ───────────────────────────────────────────
 
 function ActividadCard({ a, onClick }) {
   return (
-    <div onClick={onClick}
-      style={{ background:'var(--t-surface)', border:'1px solid var(--t-surface2)', borderRadius:14, overflow:'hidden', cursor:'pointer', WebkitTapHighlightColor:'transparent', display:'flex', alignItems:'stretch', transition:'border-color 0.15s' }}
-      onTouchStart={e => { e.currentTarget.style.borderColor='var(--t-accent)'; e.currentTarget.style.transform='scale(0.985)'; }}
-      onTouchEnd={e => { e.currentTarget.style.borderColor='var(--t-surface2)'; e.currentTarget.style.transform='scale(1)'; }}>
+    <div onClick={onClick} style={{ borderBottom:'1px solid var(--t-surface2)', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
 
-      {/* Foto lateral (si existe) */}
-      {a.foto_url && (
-        <div style={{ width:68, flexShrink:0, position:'relative', overflow:'hidden' }}>
-          <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
-          <div style={{ position:'absolute', inset:0, background:'linear-gradient(90deg, transparent 60%, rgba(15,29,46,0.4) 100%)' }} />
-        </div>
-      )}
-
-      {/* Contenido */}
-      <div style={{ flex:1, minWidth:0, padding:'10px 12px', display:'flex', alignItems:'center', gap:10 }}>
-        {/* Info */}
+      {/* Header: deporte + pts + hora */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px 8px' }}>
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', lineHeight:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', lineHeight:1 }}>
             {a.deporte_nombre}
           </div>
-          <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:4, fontFamily:"'JetBrains Mono', monospace" }}>
+          <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>
             {Math.round(parseFloat(a.minutos))} min
+            {a.notas && <span style={{ marginLeft:6, fontStyle:'italic', color:'var(--t-muted2)' }}>· {a.notas}</span>}
           </div>
-          {a.notas && (
-            <div style={{ fontSize:11, color:'var(--t-muted2)', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontStyle:'italic' }}>
-              {a.notas}
-            </div>
-          )}
         </div>
-
-        {/* Puntos */}
         <div style={{ textAlign:'right', flexShrink:0 }}>
-          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:19, color:'var(--t-accent)', lineHeight:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, color:'var(--t-accent)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
             {Math.round(parseFloat(a.puntos))}
           </div>
-          <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:3, textTransform:'uppercase', letterSpacing:'0.05em' }}>pts</div>
+          <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:1 }}>pts</div>
         </div>
-
-        {/* Chevron */}
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
-          <path d="M9 18l6-6-6-6"/>
-        </svg>
       </div>
+
+      {/* Foto ancha (si existe) */}
+      {a.foto_url && (
+        <div style={{ margin:'0 16px 12px', borderRadius:10, overflow:'hidden' }}>
+          <img src={a.foto_url} alt={a.deporte_nombre}
+            style={{ width:'100%', aspectRatio:'16/9', objectFit:'cover', display:'block' }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -376,12 +361,9 @@ export default function MisActividades({ onNewActivity }) {
                             · {Math.round(ptsDia)} pts
                           </span>
                         </div>
-                        {/* Tarjetas */}
-                        <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
-                          {acts.map(a => (
-                            <ActividadCard key={a.id} a={a} onClick={() => setDetalle(a)} />
-                          ))}
-                        </div>
+                        {acts.map(a => (
+                          <ActividadCard key={a.id} a={a} onClick={() => setDetalle(a)} />
+                        ))}
                       </div>
                     );
                   })}
