@@ -12,6 +12,7 @@ import Nav from './components/Nav';
 import BottomTabBar from './components/BottomTabBar';
 import ActivityModal from './components/ActivityModal';
 import CrearCompetenciaModal from './components/CrearCompetenciaModal';
+import { getCompetencia } from './api/competencias';
 
 // tabs: 'ranking' | 'calendario' | 'actividades' | 'feed' | 'perfil'
 
@@ -67,9 +68,15 @@ function AppShell() {
 
   if (!user) return <Login />;
 
-  function handleSelectCompetencia(c) {
-    setCompetenciaActiva(c);
+  async function handleSelectCompetencia(c) {
+    // Carga el detalle completo (incluye `deportes`) para que ActivityModal
+    // pueda leer los ponderadores de la competencia
+    setCompetenciaActiva(c); // optimista, sin deportes todavía
     setCompTab('ranking');
+    try {
+      const detalle = await getCompetencia(c.id);
+      setCompetenciaActiva(detalle);
+    } catch { /* si falla, queda sin deportes — ponderador libre */ }
   }
 
   function handleMainTab(id) {
@@ -129,6 +136,7 @@ function AppShell() {
         open={actModalOpen}
         onClose={() => setActModalOpen(false)}
         onCreated={() => setRefreshKey(k => k + 1)}
+        competenciaActiva={competenciaActiva}
       />
       <CrearCompetenciaModal
         open={crearOpen}

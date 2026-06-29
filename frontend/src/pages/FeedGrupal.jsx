@@ -181,16 +181,19 @@ function ComentariosSection({ actividadId, user }) {
   return (
     <div style={{ borderTop:'1px solid var(--t-surface2)' }}>
 
-      {/* Botón "Comentar" + spinner */}
+      {/* Fila acciones: Like · Comentar · Ver todos */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 14px' }}>
-        <button onClick={handleToggle}
-          style={{ display:'flex', alignItems:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', color:'var(--t-muted)', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent', padding:0 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-          </svg>
-          Comentar
-          {loading && <div style={{ width:11, height:11, border:'1.5px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />}
-        </button>
+        <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+          <LikeButton actividadId={actividadId} />
+          <button onClick={handleToggle}
+            style={{ display:'flex', alignItems:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', color:'var(--t-muted)', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent', padding:0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            Comentar
+            {loading && <div style={{ width:11, height:11, border:'1.5px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />}
+          </button>
+        </div>
 
         {/* "Ver todos (N)" si hay más de 1 */}
         {count > 1 && (
@@ -332,8 +335,7 @@ function FeedCard({ act, user, onLightbox }) {
           </span>
           <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
         </div>
-        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:12 }}>
-          <LikeButton actividadId={act.id} />
+        <div style={{ marginLeft:'auto' }}>
           <span style={{ fontSize:12, color:'var(--t-muted2)' }}>
             {new Date(act.fecha + 'T12:00:00').toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short' })}
           </span>

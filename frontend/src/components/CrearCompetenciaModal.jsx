@@ -18,63 +18,53 @@ function PinDisplay({ nombre, pin, onClose }) {
     window.open(`https://wa.me/?text=${texto}`, '_blank');
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end"
-         style={{ background: 'rgba(5,12,20,0.85)', backdropFilter: 'blur(8px)' }}>
-      <div className="w-full rounded-t-3xl flex flex-col items-center"
-           style={{ background: 'var(--t-surface)', border: '1px solid var(--t-dim)', borderBottom: 'none' }}>
+  const btnBase = { width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 };
 
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--t-dim)' }} />
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', flexDirection:'column', justifyContent:'flex-end', background:'rgba(5,12,20,0.85)', backdropFilter:'blur(8px)' }}>
+      <div style={{ width:'100%', borderRadius:'20px 20px 0 0', background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderBottom:'none' }}>
+
+        {/* Handle */}
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px' }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
         </div>
 
-        <div className="px-6 pt-4 pb-8 w-full flex flex-col items-center gap-6"
-             style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' }}>
+        <div style={{ padding:'12px 18px', paddingBottom:'calc(1.5rem + env(safe-area-inset-bottom))', display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
 
-          <div className="text-4xl">🎉</div>
+          <div style={{ fontSize:32 }}>🎉</div>
 
-          <div className="text-center">
-            <div className="font-bold text-2xl uppercase mb-1"
-                 style={{ fontFamily: "'Barlow Condensed', sans-serif", color: 'var(--t-text)' }}>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1, marginBottom:6 }}>
               ¡Competencia creada!
             </div>
-            <div className="text-sm" style={{ color: 'var(--t-muted)' }}>
-              Compartí este PIN para que otros se unan a
-            </div>
-            <div className="font-bold text-base mt-0.5" style={{ color: 'var(--t-text)' }}>
-              {nombre}
+            <div style={{ fontSize:13, color:'var(--t-muted)' }}>
+              Compartí este PIN para que otros se unan a{' '}
+              <span style={{ color:'var(--t-text)', fontWeight:600 }}>{nombre}</span>
             </div>
           </div>
 
-          {/* PIN grande */}
-          <div className="rounded-2xl px-8 py-6 text-center w-full"
-               style={{ background: 'rgba(var(--t-accent-r),0.08)', border: '2px solid rgba(var(--t-accent-r),0.3)' }}>
-            <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--t-muted)' }}>
+          {/* PIN */}
+          <div style={{ width:'100%', borderRadius:14, padding:'16px 20px', textAlign:'center', background:'rgba(var(--t-accent-r),0.08)', border:'1.5px solid rgba(var(--t-accent-r),0.3)' }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:8 }}>
               PIN de acceso
             </div>
-            <div className="font-bold tracking-[0.4em]"
-                 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '42px', color: 'var(--t-accent)' }}>
+            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:34, letterSpacing:'0.35em', color:'var(--t-accent)', lineHeight:1 }}>
               {pin}
             </div>
           </div>
 
           {/* Botones */}
-          <div className="flex flex-col gap-3 w-full">
+          <div style={{ display:'flex', flexDirection:'column', gap:8, width:'100%' }}>
             <button onClick={copiar}
-              className="w-full py-4 rounded-2xl font-bold text-base uppercase tracking-wide flex items-center justify-center gap-2 transition-all"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", background: copiado ? '#34D399' : 'var(--t-accent)', color: 'var(--t-ground)' }}>
+              style={{ ...btnBase, background: copiado ? '#34D399' : 'var(--t-accent)', color:'var(--t-ground)' }}>
               {copiado ? '✓ Copiado!' : '📋 Copiar PIN'}
             </button>
-
             <button onClick={compartirWhatsApp}
-              className="w-full py-4 rounded-2xl font-bold text-base uppercase tracking-wide flex items-center justify-center gap-2"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", background: '#25D366', color: '#fff' }}>
+              style={{ ...btnBase, background:'#25D366', color:'#fff' }}>
               💬 Compartir por WhatsApp
             </button>
-
             <button onClick={onClose}
-              className="w-full py-4 rounded-2xl font-bold text-base uppercase tracking-wide border"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", borderColor: 'var(--t-dim)', color: 'var(--t-muted)', background: 'transparent' }}>
+              style={{ ...btnBase, background:'transparent', border:'1px solid var(--t-dim)', color:'var(--t-muted)' }}>
               Ir a la competencia
             </button>
           </div>
@@ -88,8 +78,8 @@ function PinDisplay({ nombre, pin, onClose }) {
 
 const inputStyle = {
   width: '100%', background: 'var(--t-surface2)', border: '1px solid var(--t-dim)',
-  color: 'var(--t-text)', padding: '12px 14px', borderRadius: '12px',
-  fontSize: '16px', outline: 'none',
+  color: 'var(--t-text)', padding: '11px 13px', borderRadius: '10px',
+  fontSize: '15px', outline: 'none', boxSizing: 'border-box',
 };
 
 export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
@@ -139,38 +129,39 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
   if (paso === 'pin') return <PinDisplay nombre={pinData.nombre} pin={pinData.pin} onClose={onClose} />;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end"
-         style={{ background: 'rgba(5,12,20,0.75)', backdropFilter: 'blur(6px)' }}
+    <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', flexDirection:'column', justifyContent:'flex-end', background:'rgba(5,12,20,0.75)', backdropFilter:'blur(6px)' }}
          onClick={e => e.target === e.currentTarget && onClose()}>
 
-      <div className="w-full rounded-t-3xl flex flex-col"
-           style={{ background: 'var(--t-surface)', border: '1px solid var(--t-dim)', borderBottom: 'none', maxHeight: '92dvh', overflowY: 'auto' }}>
+      <div style={{ width:'100%', borderRadius:'20px 20px 0 0', background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderBottom:'none', maxHeight:'92dvh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--t-dim)' }} />
+        {/* Handle */}
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px', flexShrink:0 }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
         </div>
 
-        <div className="px-5 pb-2 pt-3 flex items-center justify-between">
-          <div className="font-bold text-2xl uppercase tracking-wide"
-               style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 18px 12px', flexShrink:0 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'var(--t-text)' }}>
             Nueva competencia
           </div>
-          <button onClick={onClose} className="text-xl px-2 py-1" style={{ color: 'var(--t-muted)' }}>✕</button>
+          <button onClick={onClose}
+            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            ✕
+          </button>
         </div>
 
         {error && (
-          <div className="mx-5 mb-3 rounded-xl px-4 py-3 text-sm"
-               style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#F87171' }}>
+          <div style={{ margin:'0 18px 10px', borderRadius:10, padding:'10px 14px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="px-5 pb-6 flex flex-col gap-5"
-              style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
+        {/* Scrollable body */}
+        <form onSubmit={handleSubmit} style={{ overflowY:'auto', flex:1, padding:'0 18px', paddingBottom:'calc(1.5rem + env(safe-area-inset-bottom))', display:'flex', flexDirection:'column', gap:16 }}>
 
           {/* Nombre */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--t-muted)' }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>
               Nombre de la competencia
             </label>
             <input
@@ -183,14 +174,16 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
           </div>
 
           {/* Ponderadores */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--t-muted)' }}>
-              Ponderadores por deporte
-            </label>
-            <div className="text-xs mb-1" style={{ color: 'var(--t-muted)' }}>
-              Los puntos = minutos × ponderador. Podés cambiarlo después.
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div>
+              <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>
+                Ponderadores por deporte
+              </label>
+              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>
+                Puntos = minutos × ponderador. Podés cambiarlo después.
+              </div>
             </div>
-            <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               {deportes.map(d => (
                 <PonderadorRow
                   key={d.nombre}
@@ -204,8 +197,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
           </div>
 
           <button type="submit" disabled={loading}
-            className="w-full py-4 rounded-2xl font-bold text-lg uppercase tracking-wide transition-opacity mt-1"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", background: 'var(--t-accent)', color: 'var(--t-ground)', opacity: loading ? 0.7 : 1 }}>
+            style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: loading ? 0.7 : 1, cursor: loading ? 'default' : 'pointer', flexShrink:0 }}>
             {loading ? 'Creando…' : 'Crear competencia'}
           </button>
         </form>

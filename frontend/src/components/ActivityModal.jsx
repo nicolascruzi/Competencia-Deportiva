@@ -48,7 +48,8 @@ const IconCamera = () => (
   </svg>
 );
 
-export default function ActivityModal({ open, onClose, onCreated }) {
+// competenciaActiva: { id, nombre, creador_id, deportes: [{deporte_nombre, ponderador}], ... } | null
+export default function ActivityModal({ open, onClose, onCreated, competenciaActiva }) {
   const [deportes, setDeportes]     = useState([]);
   const [form, setForm]             = useState({ deporte_nombre: '', minutos: '', ponderador: '', fecha: '', notas: '' });
   const [foto, setFoto]             = useState(null);
@@ -56,6 +57,17 @@ export default function ActivityModal({ open, onClose, onCreated }) {
   const [error, setError]           = useState('');
   const [loading, setLoading]       = useState(false);
   const fileInputRef                = useRef(null);
+
+  // Mapa de ponderadores de la competencia activa: { deporte_nombre → ponderador }
+  const compPondMap = competenciaActiva?.deportes
+    ? Object.fromEntries(competenciaActiva.deportes.map(d => [d.deporte_nombre, parseFloat(d.ponderador)]))
+    : null;
+
+  // Devuelve el ponderador correcto para un deporte dado el contexto
+  function getPonderador(nombre, dep) {
+    if (compPondMap && compPondMap[nombre] != null) return compPondMap[nombre];
+    return dep?.ponderador_default ?? 1;
+  }
 
   useEffect(() => { getDeportes().then(setDeportes).catch(() => {}); }, []);
 
@@ -72,13 +84,13 @@ export default function ActivityModal({ open, onClose, onCreated }) {
   useEffect(() => {
     if (deportes.length && !form.deporte_nombre) {
       const first = deportes[0];
-      setForm(f => ({ ...f, deporte_nombre: first.nombre, ponderador: first.ponderador_default }));
+      setForm(f => ({ ...f, deporte_nombre: first.nombre, ponderador: getPonderador(first.nombre, first) }));
     }
-  }, [deportes]);
+  }, [deportes, competenciaActiva]);
 
   function onDeporteChange(nombre) {
     const dep = deportes.find(d => d.nombre === nombre);
-    setForm(f => ({ ...f, deporte_nombre: nombre, ponderador: dep?.ponderador_default ?? f.ponderador }));
+    setForm(f => ({ ...f, deporte_nombre: nombre, ponderador: getPonderador(nombre, dep) }));
   }
 
   function handleFotoChange(e) {
@@ -172,11 +184,27 @@ export default function ActivityModal({ open, onClose, onCreated }) {
               <Input type="number" inputMode="numeric" min="1" required placeholder="60"
                 value={form.minutos} onChange={e => setForm(f => ({ ...f, minutos: e.target.value }))} />
             </Field>
-            <Field label="Ponderador">
-              <Input type="number" inputMode="decimal" min="0.1" step="0.1" required
-                value={form.ponderador} onChange={e => setForm(f => ({ ...f, ponderador: e.target.value }))} />
+            <Field label={compPondMap ? 'Ponderador (comp.)' : 'Ponderador'}>
+              {compPondMap ? (
+                <div style={{ ...S.input, display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'default', opacity:0.7 }}>
+                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}>
+                    {form.ponderador}
+                  </span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                  </svg>
+                </div>
+              ) : (
+                <Input type="number" inputMode="decimal" min="0.1" step="0.1" required
+                  value={form.ponderador} onChange={e => setForm(f => ({ ...f, ponderador: e.target.value }))} />
+              )}
             </Field>
           </div>
+          {compPondMap && (
+            <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:-6 }}>
+              Ponderador fijado por <span style={{ color:'var(--t-accent)', fontWeight:600 }}>{competenciaActiva.nombre}</span>. Solo el admin puede modificarlo.
+            </div>
+          )}
 
           {/* Fecha */}
           <Field label="Fecha">

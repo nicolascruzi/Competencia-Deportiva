@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { getRankingComp, getMesesComp, getActividadesComp } from '../api/competencias';
+import { getRankingComp, getActividadesComp, updatePonderadores } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
+import { getDeportes as getAllDeportes } from '../api/actividades';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -1196,24 +1197,134 @@ function EmptyState({ icon, title, text }) {
 
 // ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 
+// ─── SHEET ADMIN: editar ponderadores ────────────────────────────────────────
+
+function AdminPonderadoresSheet({ competencia, onClose, onSaved }) {
+  const [deportes, setDeportes] = useState([]);
+  const [ponders, setPonders]   = useState({});
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState('');
+  const startY = useRef(null);
+
+  useEffect(() => {
+    // Carga todos los deportes y precarga con los ponderadores actuales de la comp
+    getAllDeportes().then(deps => {
+      setDeportes(deps);
+      const map = {};
+      deps.forEach(d => { map[d.nombre] = d.ponderador_default; });
+      // Sobreescribir con los ponderadores actuales de la competencia
+      (competencia.deportes || []).forEach(cd => { map[cd.deporte_nombre] = cd.ponderador; });
+      setPonders(map);
+    });
+  }, []);
+
+  function onTouchStart(e) { startY.current = e.touches[0].clientY; }
+  function onTouchEnd(e) {
+    if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 80) onClose();
+    startY.current = null;
+  }
+
+  async function handleSave() {
+    setSaving(true); setError('');
+    try {
+      const ponderadores = Object.entries(ponders).map(([deporte_nombre, ponderador]) => ({
+        deporte_nombre, ponderador: parseFloat(ponderador),
+      }));
+      await updatePonderadores(competencia.id, ponderadores);
+      onSaved(ponderadores);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
+      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+        style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'85dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
+
+        {/* Handle */}
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px', flexShrink:0 }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+        </div>
+
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
+          <div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
+              Ponderadores
+            </div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>{competencia.nombre}</div>
+          </div>
+          <button onClick={onClose}
+            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            ✕
+          </button>
+        </div>
+
+        {error && (
+          <div style={{ margin:'8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>
+            {error}
+          </div>
+        )}
+
+        {/* Lista scrollable */}
+        <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:6 }}>
+          <div style={{ fontSize:11, color:'var(--t-muted)', marginBottom:4 }}>
+            Puntos = minutos × ponderador. Los cambios afectan el cálculo desde ahora.
+          </div>
+          {deportes.map(d => (
+            <div key={d.nombre} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px' }}>
+              <span style={{ fontSize:18, flexShrink:0 }}>{d.icono}</span>
+              <span style={{ flex:1, fontSize:14, fontWeight:500, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.nombre}</span>
+              <input
+                type="number" inputMode="decimal" min="0.1" step="0.1"
+                value={ponders[d.nombre] ?? d.ponderador_default}
+                onChange={e => setPonders(p => ({ ...p, [d.nombre]: e.target.value }))}
+                style={{ width:58, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-accent)', padding:'5px 7px', borderRadius:8, fontSize:15, outline:'none', textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}
+                onFocus={e => { e.target.style.borderColor = 'var(--t-accent)'; }}
+                onBlur={e => { e.target.style.borderColor = 'var(--t-dim)'; }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Guardar */}
+        <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
+          <button onClick={handleSave} disabled={saving}
+            style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Guardar cambios'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab }) {
   const { user } = useAuth();
-  const [meses, setMeses]     = useState([]);
-  const [mes, setMes]         = useState('');
-  const [acts, setActs]       = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState(null);
+  const now = new Date();
 
-  // Cargar meses disponibles
-  useEffect(() => {
-    getMesesComp(competencia.id).then(m => {
-      setMeses(m);
-      if (m.length) setMes(m[0]);
-      else setLoading(false);
-    });
-  }, [competencia.id]);
+  // Navegación idéntica al Calendario: year + month (0-11), month=-1 = Acumulado
+  const [year,  setYear]  = useState(now.getFullYear());
+  const [month, setMonth] = useState(-1); // arranca en Acumulado
 
-  // Cargar actividades cuando cambia mes (o cuando meses cargó sin mes)
+  const isAcumulado = month === -1;
+  // mes como string 'YYYY-MM' o '' para acumulado (lo que espera el backend)
+  const mes = isAcumulado ? '' : `${year}-${String(month + 1).padStart(2, '0')}`;
+
+  const [acts, setActs]           = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [profile, setProfile]     = useState(null);
+  const [adminSheet, setAdminSheet] = useState(false);
+  const [compConDeportes, setCompConDeportes] = useState(competencia);
+
+  const isAdmin = user?.id === competencia.creador_id;
+
+  // Cargar actividades cuando cambia mes
   useEffect(() => {
     setLoading(true);
     getActividadesComp(competencia.id, mes || undefined)
@@ -1221,22 +1332,41 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       .finally(() => setLoading(false));
   }, [competencia.id, mes]);
 
+  // Navegación: prev/next idéntico al Calendario pero con Acumulado al final
+  function prev() {
+    if (isAcumulado) {
+      // Acumulado → mes actual
+      setYear(now.getFullYear()); setMonth(now.getMonth()); return;
+    }
+    if (month === 0) { setMonth(11); setYear(y => y - 1); }
+    else setMonth(m => m - 1);
+  }
+  function next() {
+    // Un paso más allá del mes actual → Acumulado
+    if (!isAcumulado && year === now.getFullYear() && month === now.getMonth()) {
+      setMonth(-1); return;
+    }
+    if (isAcumulado) return; // tope derecho
+    if (month === 11) { setMonth(0); setYear(y => y + 1); }
+    else setMonth(m => m + 1);
+  }
+  const canNext = !isAcumulado;
+
   const nombres = [...new Set(acts.map(a => a.nombre))].sort();
 
-  // Determinar el año/mes del viewMonth para el calendario
-  const viewYear  = mes ? parseInt(mes.split('-')[0]) : new Date().getFullYear();
-  const viewMonth = mes ? parseInt(mes.split('-')[1]) - 1 : new Date().getMonth();
+  // Para tabs que usan viewYear/viewMonth (calendario interno)
+  const viewYear  = isAcumulado ? now.getFullYear() : year;
+  const viewMonth = isAcumulado ? now.getMonth() : month;
 
-  const mesLabel = mes
-    ? MONTHS_ES[parseInt(mes.split('-')[1]) - 1] + ' ' + mes.split('-')[0]
-    : 'Acumulado total';
+  const mesLabel = isAcumulado ? 'Acumulado' : MONTHS_ES[month] + ' ' + year;
+  const mesSubLabel = isAcumulado ? 'todos los tiempos' : String(year);
 
   function renderTab() {
     if (loading) return <Spinner />;
     switch (tab) {
       case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
       case 'ranking':  return <Ranking  acts={acts} nombres={nombres} myId={user?.nombre} onOpenProfile={n => setProfile(n)} />;
-      case 'calendar': return <Calendario acts={acts.filter(a => a.nombre === user?.nombre)} mes={mes} meses={meses} onMes={setMes} />;
+      case 'calendar': return <Calendario acts={acts.filter(a => a.nombre === user?.nombre)} mes={mes} meses={[]} onMes={() => {}} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
       case 'deportes': return <Deportes acts={acts} />;
@@ -1263,33 +1393,35 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
           <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(16px,4.5vw,22px)', textTransform:'uppercase', lineHeight:1.1, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>
             {competencia.nombre}
           </div>
-          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:10, color: mes ? 'var(--t-accent)' : 'var(--t-muted)', whiteSpace:'nowrap', flexShrink:0 }}>
-            {mesLabel}
+          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+            {isAdmin && (
+              <button onClick={() => setAdminSheet(true)}
+                title="Editar ponderadores"
+                style={{ width:26, height:26, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Fila 2: barra de mes */}
-        <div style={{ display:'flex', alignItems:'center', height:32, borderBottom:'1px solid var(--t-surface2)', padding:'0 8px' }}>
-          <button
-            onClick={() => { const i=meses.indexOf(mes); if(mes===''&&meses.length){setMes(meses[meses.length-1]);}else if(i>0){setMes(meses[i-1]);}else if(i===0){setMes('');} }}
-            style={{ width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'var(--t-muted)', fontSize:17, cursor:'pointer', flexShrink:0, padding:0 }}>
-            ‹
+        {/* Fila 2: navegación mes (idéntica al Calendario) */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 8px 8px', borderBottom:'1px solid var(--t-surface2)' }}>
+          <button onClick={prev}
+            style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <div style={{ flex:1, display:'flex', overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', gap:2, alignItems:'center', justifyContent:'center' }}>
-            {[{ val:'', label:'Total' }, ...meses.map(m => {
-              const [y, mo] = m.split('-');
-              return { val:m, label: MONTHS_ES[parseInt(mo)-1].slice(0,3).toUpperCase()+' '+y.slice(2) };
-            })].map(({ val, label }) => (
-              <button key={val} onClick={() => setMes(val)}
-                style={{ padding:'2px 9px', borderRadius:12, fontSize:11, fontWeight:700, whiteSpace:'nowrap', flexShrink:0, border:'none', cursor:'pointer', transition:'all 0.15s', background: mes===val ? 'rgba(var(--t-accent-r),0.18)' : 'transparent', color: mes===val ? 'var(--t-accent)' : 'var(--t-muted)' }}>
-                {label}
-              </button>
-            ))}
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
+              {mesLabel}
+            </div>
+            <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>{mesSubLabel}</div>
           </div>
-          <button
-            onClick={() => { const i=meses.indexOf(mes); if(mes===''&&meses.length){setMes(meses[0]);}else if(i<meses.length-1){setMes(meses[i+1]);} }}
-            style={{ width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'none', color:'var(--t-muted)', fontSize:17, cursor:'pointer', flexShrink:0, padding:0 }}>
-            ›
+          <button onClick={next} disabled={!canNext}
+            style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: canNext ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
         </div>
       </div>
@@ -1306,6 +1438,21 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
           acts={acts}
           nombres={nombres}
           onClose={() => setProfile(null)}
+        />
+      )}
+
+      {/* Admin ponderadores sheet */}
+      {adminSheet && (
+        <AdminPonderadoresSheet
+          competencia={compConDeportes}
+          onClose={() => setAdminSheet(false)}
+          onSaved={ponderadores => {
+            setCompConDeportes(prev => ({
+              ...prev,
+              deportes: ponderadores.map(p => ({ deporte_nombre: p.deporte_nombre, ponderador: p.ponderador })),
+            }));
+            setAdminSheet(false);
+          }}
         />
       )}
     </>
