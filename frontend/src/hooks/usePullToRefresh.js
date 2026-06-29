@@ -49,11 +49,16 @@ export function usePullToRefresh(onRefresh, enabled = true) {
       startY.current = null;
 
       if (pullYRef.current >= THRESHOLD * 0.85) {
-        // Disparar refresh — fijar círculo y hacer girar
         setRefreshing(true);
+        const started = Date.now();
+        const MIN_SHOW = 1000; // mínimo 1 segundo girando, como Instagram
         Promise.resolve(handleRefresh()).finally(() => {
-          setRefreshing(false);
-          setPullY(0);
+          const elapsed = Date.now() - started;
+          const wait = Math.max(0, MIN_SHOW - elapsed);
+          setTimeout(() => {
+            setRefreshing(false);
+            setPullY(0);
+          }, wait);
         });
       } else {
         setPullY(0);

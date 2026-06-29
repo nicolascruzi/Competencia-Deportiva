@@ -66,18 +66,36 @@ function SinCompetencia({ onOpen }) {
 
 const TAB_ORDER = ['ranking', 'calendario', 'feed', 'actividades', 'perfil'];
 
+const PTR_THRESHOLD = 56;
+
 // Wrapper por tab: detecta el gesto, baja el contenido y notifica al padre
 function PullToRefreshTab({ active, onRefresh, onPullChange, children }) {
   const { containerRef, pullY, refreshing } = usePullToRefresh(onRefresh, active);
+  // `closing`: el refresh terminó y el contenido está volviendo arriba con animación
+  const [closing, setClosing] = useState(false);
+  const prevRefreshing = useRef(false);
 
   useEffect(() => {
-    onPullChange?.({ pullY, refreshing });
-  }, [pullY, refreshing]);
+    // Detectar el flanco descendente de refreshing (true → false)
+    if (prevRefreshing.current && !refreshing) {
+      setClosing(true);
+      // Dar tiempo a que la transición CSS termine antes de limpiar
+      setTimeout(() => setClosing(false), 350);
+    }
+    prevRefreshing.current = refreshing;
+  }, [refreshing]);
 
-  // pullY va 0..THRESHOLD (56px). El contenido baja esa misma cantidad.
-  // Al soltar y entrar en refreshing queda fijo en THRESHOLD hasta que termina.
-  const THRESHOLD = 56;
-  const offsetY = refreshing ? THRESHOLD : pullY;
+  useEffect(() => {
+    onPullChange?.({ pullY, refreshing, closing });
+  }, [pullY, refreshing, closing]);
+
+  const offsetY = refreshing || closing ? PTR_THRESHOLD : pullY;
+  // Durante el arrastre: sin transición (sigue al dedo en tiempo real)
+  // Durante closing: transición suave hacia arriba
+  // En reposo: sin transición
+  const transition = closing
+    ? 'transform 0.38s cubic-bezier(0.22,1,0.36,1)'
+    : 'none';
 
   return (
     <div
@@ -86,7 +104,7 @@ function PullToRefreshTab({ active, onRefresh, onPullChange, children }) {
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
         transform: offsetY > 0 ? `translateY(${offsetY}px)` : 'none',
-        transition: (refreshing || pullY > 0) ? 'none' : 'transform 0.3s cubic-bezier(0.22,1,0.36,1)',
+        transition,
         willChange: 'transform',
       }}
     >
@@ -110,7 +128,7 @@ function AppShell() {
   const [toast, setToast]                     = useState(null); // { actividad, ptsAntes, ptsDespues }
   const [evolucionSignal, setEvolucionSignal] = useState(0);
   const [showOnboarding, setShowOnboarding]   = useState(false);
-  const [ptrState, setPtrState]               = useState({ pullY: 0, refreshing: false });
+  const [ptrState, setPtrState]               = useState({ pullY: 0, refreshing: false, closing: false });
   const onPullChange = useCallback((s) => setPtrState(s), []);
   // Estado de mes compartido entre Ranking y Calendario
   const _now = new Date();
@@ -225,7 +243,7 @@ function AppShell() {
       />
 
       {/* Indicador PTR fijo debajo de la navbar */}
-      <PullToRefreshIndicator pullY={ptrState.pullY} refreshing={ptrState.refreshing} />
+      <PullToRefreshIndicator pullY={ptrState.pullY} refreshing={ptrState.refreshing} closing={ptrState.closing} />
 
       {/* Viewport */}
       <div style={{ paddingTop:'calc(env(safe-area-inset-top) + 52px)',

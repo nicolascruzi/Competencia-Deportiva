@@ -3,15 +3,13 @@ const SIZE = 34;
 const R    = 13;
 const CIRC = 2 * Math.PI * R;
 
-export default function PullToRefreshIndicator({ pullY, refreshing }) {
-  const visible = pullY > 2 || refreshing;
+export default function PullToRefreshIndicator({ pullY, refreshing, closing }) {
+  const visible = pullY > 2 || refreshing || closing;
   if (!visible) return null;
 
-  const progress = refreshing ? 1 : Math.min(1, pullY / THRESHOLD);
-  // El espacio abierto entre navbar y contenido es `pullY` px (o THRESHOLD cuando refreshing).
-  // Centramos el círculo en ese espacio.
-  const space = refreshing ? THRESHOLD : pullY;
-  const centerOffset = (space - SIZE) / 2; // puede ser negativo al inicio → círculo emerge
+  const progress = (refreshing || closing) ? 1 : Math.min(1, pullY / THRESHOLD);
+  const space = (refreshing || closing) ? THRESHOLD : pullY;
+  const centerOffset = (space - SIZE) / 2;
 
   return (
     <>
@@ -31,7 +29,9 @@ export default function PullToRefreshIndicator({ pullY, refreshing }) {
         pointerEvents: 'none',
         // El círculo sube/baja para quedar centrado en el espacio abierto
         transform: `translateY(${Math.max(0, centerOffset)}px)`,
-        transition: (refreshing || pullY > 0) ? 'none' : 'transform 0.3s cubic-bezier(0.22,1,0.36,1)',
+        // Durante closing el indicador sube con el contenido
+        transition: closing ? 'transform 0.38s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease' : 'none',
+        opacity: closing ? 0 : 1,
       }}>
         <div style={{
           width: SIZE,
@@ -45,13 +45,13 @@ export default function PullToRefreshIndicator({ pullY, refreshing }) {
           justifyContent: 'center',
           // Escala de 0.5 a 1 mientras aparece
           transform: `scale(${Math.min(1, 0.5 + progress * 0.5)})`,
-          transition: (refreshing || pullY > 0) ? 'none' : 'transform 0.3s ease',
+          transition: 'none',
         }}>
           <svg
             width={SIZE - 8}
             height={SIZE - 8}
             viewBox="0 0 26 26"
-            style={refreshing ? {
+            style={(refreshing || closing) ? {
               animation: 'ptr-spin 0.75s linear infinite',
               transformOrigin: '13px 13px',
             } : {
