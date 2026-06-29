@@ -241,7 +241,7 @@ function DaySheet({ fecha, acts, onClose, onSelectAct }) {
 
 // ─── Calendario ───────────────────────────────────────────────────────────────
 
-export default function Calendario() {
+export default function Calendario({ competenciaActiva }) {
   const now = new Date();
   const [year, setYear]   = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -317,6 +317,18 @@ export default function Calendario() {
   return (
     <div style={{ paddingBottom:32 }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+
+      {/* Header competencia */}
+      {competenciaActiva && (
+        <div style={{ padding:'14px 20px 0' }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)' }}>
+            {competenciaActiva.nombre}
+          </div>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)', marginTop:2 }}>
+            Calendario
+          </div>
+        </div>
+      )}
 
       {/* Navegación de mes */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 20px 16px' }}>

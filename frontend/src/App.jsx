@@ -162,7 +162,7 @@ function AppShell() {
           onNewActivity={() => setActModalOpen(true)}
         />
       : <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />,
-    calendario:  <Calendario   key={refreshKey} />,
+    calendario:  <Calendario   key={refreshKey} competenciaActiva={competenciaActiva} />,
     feed:        <FeedGrupal   key={competenciaActiva?.id} competencia={competenciaActiva} />,
     actividades: <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} />,
     perfil:      <MiPerfil     key={refreshKey} />,

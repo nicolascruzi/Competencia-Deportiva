@@ -268,96 +268,84 @@ function PlayerDrawer({ person, acts, onClose }) {
   );
 }
 
-function Ranking({ acts, nombres, myId }) {
-  const people  = aggregateByPerson(acts);
-  const maxPts  = people[0]?.pts || 1;
-  const [selected, setSelected] = useState(null);
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+function Ranking({ acts, nombres, myId, onOpenProfile }) {
+  const people = aggregateByPerson(acts);
+  const maxPts = people[0]?.pts || 1;
 
   if (!people.length) return <EmptyState icon="🏁" title="Sin registros" text="Cargá actividades para ver el ranking." />;
 
   return (
     <div>
       <KpiStrip acts={acts} />
-
-      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
         {people.map((p, i) => {
           const pct   = Math.round((p.pts / maxPts) * 100);
           const isTop = i === 0;
           const isMe  = p.nombre === myId;
+          const medal = MEDALS[i] ?? null;
 
           return (
             <div key={p.nombre}
-              onClick={() => setSelected(p)}
+              onClick={() => onOpenProfile?.(p.nombre)}
               style={{
-                background: 'var(--t-surface)',
-                border: '1px solid',
-                borderColor: isTop ? 'rgba(var(--t-accent-r),0.4)' : 'var(--t-dim)',
-                borderRadius: 14,
-                padding: '14px 16px',
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 12px',
+                background: isTop ? 'rgba(var(--t-accent-r),0.06)' : 'var(--t-surface)',
+                border: `1px solid ${isTop ? 'rgba(var(--t-accent-r),0.3)' : 'var(--t-dim)'}`,
+                borderRadius: 12,
                 cursor: 'pointer',
                 WebkitTapHighlightColor: 'transparent',
-                transition: 'border-color 0.15s',
-                position: 'relative',
-                overflow: 'hidden',
+                position: 'relative', overflow: 'hidden',
               }}>
 
-              {/* Franja superior para el líder */}
-              {isTop && (
-                <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.7 }} />
-              )}
+              {/* línea top del líder */}
+              {isTop && <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.6 }} />}
 
-              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                {/* Posición */}
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:32, lineHeight:1, width:32, textAlign:'center', flexShrink:0, fontVariantNumeric:'tabular-nums', color: isTop ? 'var(--t-accent)' : 'var(--t-dim2)' }}>
-                  {i + 1}
-                </div>
+              {/* Posición / medalla */}
+              <div style={{ width:24, textAlign:'center', flexShrink:0 }}>
+                {medal
+                  ? <span style={{ fontSize:15, lineHeight:1 }}>{medal}</span>
+                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, color:'var(--t-dim2)', fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{i + 1}</span>
+                }
+              </div>
 
-                {/* Avatar */}
-                <div style={{ width:36, height:36, borderRadius:'50%', flexShrink:0, background:'rgba(var(--t-accent-r),0.1)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
-                  {p.foto_perfil_url
-                    ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                    : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-accent)' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
-                  }
-                </div>
+              {/* Avatar */}
+              <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'rgba(var(--t-accent-r),0.1)', border:`1.5px solid ${isTop ? 'rgba(var(--t-accent-r),0.35)' : 'var(--t-dim)'}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                {p.foto_perfil_url
+                  ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, color:'var(--t-accent)' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
+                }
+              </div>
 
-                {/* Info central */}
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
-                    <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:19, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                      {p.nombre}
-                    </span>
-                    {isMe && <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)', flexShrink:0 }}>yo</span>}
-                  </div>
-                  <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2, fontVariantNumeric:'tabular-nums' }}>
-                    {p.actividades} ses · {Math.round(p.minutos).toLocaleString('es')} min
-                  </div>
-                  {/* Barra */}
-                  <div style={{ height:3, background:'var(--t-dim)', borderRadius:2, marginTop:8, overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.5 }} />
-                  </div>
+              {/* Nombre + stats + barra */}
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {p.nombre}
+                  </span>
+                  {isMe && <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.12)', padding:'1px 5px', borderRadius:4, flexShrink:0 }}>tú</span>}
                 </div>
+                <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:2, fontVariantNumeric:'tabular-nums' }}>
+                  {p.actividades} ses · {Math.round(p.minutos / 60)}h
+                </div>
+                <div style={{ height:2, background:'var(--t-dim)', borderRadius:2, marginTop:5, overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity: isTop ? 0.7 : 0.35, transition:'width 0.4s ease' }} />
+                </div>
+              </div>
 
-                {/* Puntos */}
-                <div style={{ textAlign:'right', flexShrink:0, paddingLeft:4 }}>
-                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, lineHeight:1, color: isTop ? 'var(--t-accent)' : 'var(--t-text)', fontVariantNumeric:'tabular-nums' }}>
-                    {Math.round(p.pts).toLocaleString('es')}
-                  </div>
-                  <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginTop:2 }}>pts</div>
+              {/* Puntos */}
+              <div style={{ textAlign:'right', flexShrink:0 }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, lineHeight:1, color: isTop ? 'var(--t-accent)' : 'var(--t-text)', fontVariantNumeric:'tabular-nums' }}>
+                  {Math.round(p.pts).toLocaleString('es')}
                 </div>
+                <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginTop:1 }}>pts</div>
               </div>
             </div>
           );
         })}
       </div>
-
-      {/* Drawer de detalle */}
-      {selected && (
-        <PlayerDrawer
-          person={selected}
-          acts={acts}
-          onClose={() => setSelected(null)}
-        />
-      )}
     </div>
   );
 }
@@ -1310,7 +1298,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
 
   // Navegación idéntica al Calendario: year + month (0-11), month=-1 = Acumulado
   const [year,  setYear]  = useState(now.getFullYear());
-  const [month, setMonth] = useState(-1); // arranca en Acumulado
+  const [month, setMonth] = useState(now.getMonth()); // arranca en mes actual
 
   const isAcumulado = month === -1;
   // mes como string 'YYYY-MM' o '' para acumulado (lo que espera el backend)
@@ -1384,27 +1372,30 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       {/* ── SUBHEADER STICKY ───────────────────────────────────────────── */}
       <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 52px)', zIndex:10, background:'var(--t-ground)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
 
-        {/* Fila 1: back + nombre + mes actual */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
+        {/* Fila 1: nombre competencia + tab activo (estilo Feed) + acciones */}
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px 8px', borderBottom:'1px solid var(--t-surface2)' }}>
           <button onClick={onBack}
             style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', flexShrink:0 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(16px,4.5vw,22px)', textTransform:'uppercase', lineHeight:1.1, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>
-            {competencia.nombre}
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {competencia.nombre}
+            </div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', lineHeight:1.1, color:'var(--t-text)', marginTop:1 }}>
+              {tab === 'ranking' ? 'Ranking' : tab === 'podio' ? 'Podio' : tab === 'calendar' ? 'Calendario' : tab === 'evolucion' ? 'Evolución' : tab === 'carrera' ? 'Carrera' : tab === 'deportes' ? 'Deportes' : tab === 'records' ? 'Récords' : tab === 'comparar' ? 'Comparar' : tab === 'insights' ? 'Insights' : 'Competencia'}
+            </div>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-            {isAdmin && (
-              <button onClick={() => setAdminSheet(true)}
-                title="Editar ponderadores"
-                style={{ width:26, height:26, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-                </svg>
-              </button>
-            )}
-          </div>
+          {isAdmin && (
+            <button onClick={() => setAdminSheet(true)}
+              title="Editar ponderadores"
+              style={{ width:26, height:26, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Fila 2: navegación mes (idéntica al Calendario) */}
