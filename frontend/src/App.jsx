@@ -39,6 +39,8 @@ function SinCompetencia({ onOpen }) {
   );
 }
 
+const TAB_ORDER = ['ranking', 'calendario', 'feed', 'actividades', 'perfil'];
+
 function AppShell() {
   const { user, loading } = useAuth();
   const [actModalOpen, setActModalOpen]       = useState(false);
@@ -47,8 +49,9 @@ function AppShell() {
   const [competenciaActiva, setCompetenciaActiva] = useState(null);
   const [mainTab, setMainTab]                 = useState('ranking');
   const [compTab, setCompTab]                 = useState('ranking');
-  // para que SinCompetencia pueda abrir el selector desde el botón
   const [forceOpenSelector, setForceOpenSelector] = useState(0);
+  const swipeStartX = useRef(null);
+  const swipeStartY = useRef(null);
 
   if (loading) {
     return (
@@ -79,15 +82,9 @@ function AppShell() {
     } catch { /* si falla, queda sin deportes — ponderador libre */ }
   }
 
-  const TAB_ORDER = ['ranking', 'calendario', 'feed', 'actividades', 'perfil'];
-
   function handleMainTab(id) {
     setMainTab(id);
   }
-
-  // Swipe horizontal para cambiar de tab
-  const swipeStartX = useRef(null);
-  const swipeStartY = useRef(null);
 
   function onSwipeTouchStart(e) {
     swipeStartX.current = e.touches[0].clientX;
