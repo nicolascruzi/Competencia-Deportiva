@@ -50,8 +50,12 @@ function AppShell() {
   const [mainTab, setMainTab]                 = useState('ranking');
   const [compTab, setCompTab]                 = useState('ranking');
   const [forceOpenSelector, setForceOpenSelector] = useState(0);
-  const swipeStartX = useRef(null);
-  const swipeStartY = useRef(null);
+  // swipe state
+  const swipeStartX  = useRef(null);
+  const swipeStartY  = useRef(null);
+  const swipeLocked  = useRef(null); // 'h' | 'v' | null
+  const [dragOffset, setDragOffset] = useState(0); // px de arrastre live
+  const [animating,  setAnimating]  = useState(false);
 
   if (loading) {
     return (
@@ -83,25 +87,58 @@ function AppShell() {
   }
 
   function handleMainTab(id) {
+    setAnimating(true);
     setMainTab(id);
+    setTimeout(() => setAnimating(false), 320);
   }
 
   function onSwipeTouchStart(e) {
     swipeStartX.current = e.touches[0].clientX;
     swipeStartY.current = e.touches[0].clientY;
+    swipeLocked.current = null;
+    setDragOffset(0);
+  }
+
+  function onSwipeTouchMove(e) {
+    if (swipeStartX.current === null) return;
+    const dx = e.touches[0].clientX - swipeStartX.current;
+    const dy = e.touches[0].clientY - swipeStartY.current;
+
+    // Detecta la dirección dominante en los primeros 8px
+    if (!swipeLocked.current) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      swipeLocked.current = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    }
+    if (swipeLocked.current !== 'h') return;
+
+    // Atenúa en los bordes (primer y último tab)
+    const idx = TAB_ORDER.indexOf(mainTab);
+    const atLeft  = idx === 0;
+    const atRight = idx === TAB_ORDER.length - 1;
+    let offset = dx;
+    if ((dx > 0 && atLeft) || (dx < 0 && atRight)) offset = dx * 0.2; // resistencia
+
+    e.preventDefault(); // evita scroll vertical mientras arrastra horizontal
+    setDragOffset(offset);
   }
 
   function onSwipeTouchEnd(e) {
     if (swipeStartX.current === null) return;
     const dx = e.changedTouches[0].clientX - swipeStartX.current;
-    const dy = e.changedTouches[0].clientY - swipeStartY.current;
     swipeStartX.current = null;
     swipeStartY.current = null;
-    // Solo actúa si el movimiento es predominantemente horizontal y supera 60px
-    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+
+    if (swipeLocked.current !== 'h') { setDragOffset(0); swipeLocked.current = null; return; }
+    swipeLocked.current = null;
+
     const idx = TAB_ORDER.indexOf(mainTab);
-    if (dx < 0 && idx < TAB_ORDER.length - 1) handleMainTab(TAB_ORDER[idx + 1]); // swipe izq → siguiente
-    if (dx > 0 && idx > 0)                    handleMainTab(TAB_ORDER[idx - 1]); // swipe der → anterior
+    const threshold = window.innerWidth * 0.28; // 28% del ancho
+    if (dx < -threshold && idx < TAB_ORDER.length - 1) {
+      handleMainTab(TAB_ORDER[idx + 1]);
+    } else if (dx > threshold && idx > 0) {
+      handleMainTab(TAB_ORDER[idx - 1]);
+    }
+    setDragOffset(0);
   }
 
   function handleCreated() {
@@ -114,28 +151,24 @@ function AppShell() {
     setCrearOpen(true);
   }
 
-  function renderContent() {
-    if (mainTab === 'actividades') return <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} />;
-    if (mainTab === 'calendario')  return <Calendario key={refreshKey} />;
-    if (mainTab === 'feed')        return <FeedGrupal key={competenciaActiva?.id} competencia={competenciaActiva} />;
-    if (mainTab === 'perfil')      return <MiPerfil key={refreshKey} />;
+  const tabContent = {
+    ranking: competenciaActiva
+      ? <CompetenciaDetalle
+          key={competenciaActiva.id + compTab}
+          competencia={competenciaActiva}
+          tab={compTab}
+          onTab={setCompTab}
+          onBack={() => setCompetenciaActiva(null)}
+          onNewActivity={() => setActModalOpen(true)}
+        />
+      : <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />,
+    calendario:  <Calendario   key={refreshKey} />,
+    feed:        <FeedGrupal   key={competenciaActiva?.id} competencia={competenciaActiva} />,
+    actividades: <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} />,
+    perfil:      <MiPerfil     key={refreshKey} />,
+  };
 
-    // ranking — requiere competencia
-    if (!competenciaActiva) {
-      return <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />;
-    }
-
-    return (
-      <CompetenciaDetalle
-        key={competenciaActiva.id + compTab}
-        competencia={competenciaActiva}
-        tab={compTab}
-        onTab={setCompTab}
-        onBack={() => setCompetenciaActiva(null)}
-        onNewActivity={() => setActModalOpen(true)}
-      />
-    );
-  }
+  const activeIdx = TAB_ORDER.indexOf(mainTab);
 
   return (
     <>
@@ -147,11 +180,29 @@ function AppShell() {
         forceOpenSelector={forceOpenSelector}
       />
 
-      <div
-        onTouchStart={onSwipeTouchStart}
-        onTouchEnd={onSwipeTouchEnd}
-        style={{ paddingTop:'calc(env(safe-area-inset-top) + 52px)', paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
-        {renderContent()}
+      {/* Viewport: oculta todo lo que sale de la ventana */}
+      <div style={{ overflow:'hidden', position:'relative',
+                    paddingTop:'calc(env(safe-area-inset-top) + 52px)',
+                    paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
+
+        {/* Strip horizontal: todas las tabs una al lado de la otra */}
+        <div
+          onTouchStart={onSwipeTouchStart}
+          onTouchMove={onSwipeTouchMove}
+          onTouchEnd={onSwipeTouchEnd}
+          style={{
+            display: 'flex',
+            width: `${TAB_ORDER.length * 100}%`,
+            transform: `translateX(calc(${-activeIdx * (100 / TAB_ORDER.length)}% + ${dragOffset}px))`,
+            transition: dragOffset === 0 ? 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none',
+            willChange: 'transform',
+          }}>
+          {TAB_ORDER.map(id => (
+            <div key={id} style={{ width: `${100 / TAB_ORDER.length}%`, flexShrink: 0, minWidth: 0 }}>
+              {tabContent[id]}
+            </div>
+          ))}
+        </div>
       </div>
 
       <BottomTabBar activeTab={mainTab} onTab={handleMainTab} />
