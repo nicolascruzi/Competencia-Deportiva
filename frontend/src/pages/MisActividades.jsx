@@ -210,11 +210,11 @@ function ActividadCard({ a, onClick }) {
         </div>
       </div>
 
-      {/* Foto ancha (si existe) */}
+      {/* Foto full width */}
       {a.foto_url && (
-        <div style={{ margin:'0 16px 12px', borderRadius:10, overflow:'hidden' }}>
+        <div style={{ marginBottom:12, overflow:'hidden' }}>
           <img src={a.foto_url} alt={a.deporte_nombre}
-            style={{ width:'100%', aspectRatio:'16/9', objectFit:'cover', display:'block' }} />
+            style={{ width:'100%', aspectRatio:'4/3', objectFit:'cover', display:'block' }} />
         </div>
       )}
     </div>
