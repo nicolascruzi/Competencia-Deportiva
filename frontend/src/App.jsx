@@ -106,7 +106,9 @@ function PullToRefreshTab({ active, onRefresh, onPullChange, children }) {
     <div
       ref={containerRef}
       style={{
+        height: '100%',
         overflowY: 'auto',
+        overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
         transform: offsetY > 0 ? `translateY(${offsetY}px)` : 'none',
         transition,
@@ -250,17 +252,21 @@ function AppShell() {
       {/* Indicador PTR fijo debajo de la navbar */}
       <PullToRefreshIndicator pullY={ptrState.pullY} refreshing={ptrState.refreshing} closing={ptrState.closing} />
 
-      {/* Viewport */}
-      <div style={{ paddingTop:'calc(env(safe-area-inset-top) + 52px)',
-                    paddingBottom:'calc(80px + env(safe-area-inset-bottom))',
-                    position:'relative', overflow:'hidden' }}>
+      {/* Viewport — altura exacta de la pantalla menos navbars */}
+      <div style={{
+        position: 'fixed',
+        top: 'calc(env(safe-area-inset-top) + 52px)',
+        bottom: 'calc(env(safe-area-inset-bottom) + 60px)',
+        left: 0, right: 0,
+        overflow: 'hidden',
+      }}>
         {TAB_ORDER.map((id, i) => {
           const offsetPct = (i - activeIdx) * 100;
           const isActive  = i === activeIdx;
           return (
             <div key={id} style={{
-              position: isActive ? 'relative' : 'absolute',
-              top: 0, left: 0, width: '100%',
+              position: 'absolute',
+              top: 0, left: 0, width: '100%', height: '100%',
               transform: `translateX(${offsetPct}%)`,
               transition: 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)',
               pointerEvents: isActive ? 'auto' : 'none',

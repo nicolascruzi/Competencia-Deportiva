@@ -3,37 +3,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const THRESHOLD = 56;
 const RESIST    = 0.5;
 
-// Devuelve true si ALGÚN ancestro del nodo tiene contenido scrolleado
-function isScrolledDown(node) {
-  let cur = node;
-  while (cur && cur !== document.documentElement) {
-    if ((cur.scrollTop || 0) > 0) return true;
-    cur = cur.parentElement;
-  }
-  return false;
-}
-
 export function usePullToRefresh(onRefresh, enabled = true) {
   const [pullY, setPullY]           = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Todas las refs — nunca causan re-renders
-  const startY        = useRef(null);   // clientY del touchstart, null = no hay gesto
-  const locked        = useRef(false);  // true = este gesto NO activa PTR
-  const pullYRef      = useRef(0);
-  const refreshingRef = useRef(false);
-  const mountedRef    = useRef(true);
-  const containerRef  = useRef(null);
+  const startY      = useRef(null);
+  const blocked     = useRef(false); // gesto bloqueado porque empezó con scroll > 0 o fue hacia arriba
+  const pullYRef    = useRef(0);
+  const mountedRef  = useRef(true);
+  const containerRef = useRef(null);
 
   useEffect(() => { pullYRef.current = pullY; }, [pullY]);
-  useEffect(() => { refreshingRef.current = refreshing; }, [refreshing]);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
-  // Reset inmediato al desactivar (cambio de pestaña)
+  // Reset completo al desactivar (cambio de pestaña)
   useEffect(() => {
     if (!enabled) {
       startY.current = null;
-      locked.current = false;
+      blocked.current = false;
       setPullY(0);
       setRefreshing(false);
     }
@@ -47,63 +34,52 @@ export function usePullToRefresh(onRefresh, enabled = true) {
     if (!el) return;
 
     function onTouchStart(e) {
-      // Resetear estado por si el gesto anterior no terminó limpio
-      startY.current = null;
-      locked.current = false;
-
-      if (refreshingRef.current) return;
-
-      const touch  = e.touches[0];
-      const target = document.elementFromPoint(touch.clientX, touch.clientY) || e.target;
-
-      // Bloquear si ya hay scroll en cualquier ancestro
-      if (isScrolledDown(target)) {
-        locked.current = true;
-        return;
-      }
-
-      startY.current = touch.clientY;
+      startY.current  = e.touches[0].clientY;
+      // Si el contenedor tiene cualquier scroll, bloquear PTR para este gesto
+      blocked.current = el.scrollTop > 0;
     }
 
     function onTouchMove(e) {
-      if (refreshingRef.current) return;
-      if (locked.current || startY.current === null) return;
+      if (startY.current === null) return;
+      if (blocked.current) return;
 
       const dy = e.touches[0].clientY - startY.current;
 
-      // Dedo va hacia arriba o es scroll normal — bloquear el gesto completo
+      // Movimiento hacia arriba → bloquear todo el gesto
       if (dy <= 0) {
-        locked.current = true;
+        blocked.current = true;
         if (pullYRef.current > 0) setPullY(0);
         return;
       }
 
-      // PTR activo: prevenir scroll nativo y mover el contenido
+      // Si el contenedor se scrolleó desde que empezó el gesto, bloquear
+      if (el.scrollTop > 0) {
+        blocked.current = true;
+        if (pullYRef.current > 0) setPullY(0);
+        return;
+      }
+
       e.preventDefault();
-      const visual = Math.min(THRESHOLD, dy * RESIST);
-      setPullY(visual);
+      setPullY(Math.min(THRESHOLD, dy * RESIST));
     }
 
     function onTouchEnd() {
-      const current = pullYRef.current;
-      startY.current = null;
-      locked.current = false;
-
-      if (current < 2) return; // no hubo gesto real
+      const current   = pullYRef.current;
+      startY.current  = null;
+      blocked.current = false;
 
       if (current >= THRESHOLD * 0.85) {
         setRefreshing(true);
-        const started  = Date.now();
-        const MIN_SHOW = 1000;
+        const started = Date.now();
         Promise.resolve(handleRefresh()).finally(() => {
-          const wait = Math.max(0, MIN_SHOW - (Date.now() - started));
+          const wait = Math.max(0, 1000 - (Date.now() - started));
           setTimeout(() => {
             if (!mountedRef.current) return;
             setRefreshing(false);
             setPullY(0);
           }, wait);
         });
-      } else {
+      } else if (current > 0) {
         setPullY(0);
       }
     }
