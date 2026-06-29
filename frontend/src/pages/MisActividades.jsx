@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getActividades, deleteActividad } from '../api/actividades';
 import { uploadFoto, deleteFoto } from '../api/fotos';
 
@@ -391,14 +392,15 @@ export default function MisActividades({ onNewActivity }) {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {detalle && (
+      {detalle && createPortal(
         <DetallePanel
           actividad={detalle}
           onClose={() => setDetalle(null)}
           onDelete={handleDelete}
           onFotoUploaded={handleFotoUploaded}
           onFotoDeleted={handleFotoDeleted}
-        />
+        />,
+        document.body
       )}
     </div>
   );

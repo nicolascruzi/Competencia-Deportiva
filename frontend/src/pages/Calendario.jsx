@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getActividades, deleteActividad } from '../api/actividades';
 import { uploadFoto, deleteFoto } from '../api/fotos';
 
@@ -446,24 +447,26 @@ export default function Calendario({ competenciaActiva }) {
 
 
       {/* Bottom sheet con actividades del día */}
-      {selectedDate && !detalle && (
+      {selectedDate && !detalle && createPortal(
         <DaySheet
           fecha={selectedDate}
           acts={selectedActs}
           onClose={() => setSelectedDate(null)}
           onSelectAct={a => setDetalle(a)}
-        />
+        />,
+        document.body
       )}
 
       {/* Detalle de actividad */}
-      {detalle && (
+      {detalle && createPortal(
         <DetallePanel
           actividad={detalle}
           onClose={() => setDetalle(null)}
           onDelete={handleDelete}
           onFotoUploaded={handleFotoUploaded}
           onFotoDeleted={handleFotoDeleted}
-        />
+        />,
+        document.body
       )}
     </div>
   );

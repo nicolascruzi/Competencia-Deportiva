@@ -269,8 +269,19 @@ function PlayerDrawer({ person, acts, onClose }) {
   );
 }
 
-function Ranking({ acts, nombres, myId, onOpenProfile }) {
-  const people = aggregateByPerson(acts);
+function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
+  // rankingData viene del backend e incluye todos los participantes (incluso con 0 pts)
+  // Normalizar campos para que coincidan con aggregateByPerson
+  const people = rankingData.length
+    ? rankingData.map((r, i) => ({
+        nombre:        r.nombre,
+        foto_perfil_url: r.foto_perfil_url,
+        pts:           parseFloat(r.puntos) || 0,
+        minutos:       parseFloat(r.minutos) || 0,
+        actividades:   parseInt(r.actividades) || 0,
+        rank:          i + 1,
+      }))
+    : aggregateByPerson(acts);
   const maxPts = people[0]?.pts || 1;
 
   if (!people.length) return <EmptyState icon="🏁" title="Sin registros" text="Cargá actividades para ver el ranking." />;
@@ -1340,18 +1351,25 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   // mes como string 'YYYY-MM' o '' para acumulado (lo que espera el backend)
   const mes = isAcumulado ? '' : `${year}-${String(month + 1).padStart(2, '0')}`;
 
-  const [acts, setActs]       = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState(null);
+  const [acts, setActs]             = useState([]);
+  const [rankingData, setRankingData] = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [profile, setProfile]       = useState(null);
   const [compConDeportes, setCompConDeportes] = useState(competencia);
 
   const isAdmin = user?.id === competencia.creador_id;
 
-  // Cargar actividades cuando cambia mes
+  // Cargar actividades + ranking (que incluye participantes con 0 pts) cuando cambia mes
   useEffect(() => {
     setLoading(true);
-    getActividadesComp(competencia.id, mes || undefined)
-      .then(setActs)
+    Promise.all([
+      getActividadesComp(competencia.id, mes || undefined),
+      getRankingComp(competencia.id, mes || undefined),
+    ])
+      .then(([actsData, rankData]) => {
+        setActs(actsData);
+        setRankingData(rankData);
+      })
       .finally(() => setLoading(false));
   }, [competencia.id, mes]);
 
@@ -1388,7 +1406,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
     if (loading) return <Spinner />;
     switch (tab) {
       case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
-      case 'ranking':  return <Ranking  acts={acts} nombres={nombres} myId={user?.nombre} onOpenProfile={n => setProfile(n)} />;
+      case 'ranking':  return <Ranking  acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre} onOpenProfile={n => setProfile(n)} />;
       case 'calendar': return <Calendario acts={acts.filter(a => a.nombre === user?.nombre)} mes={mes} meses={[]} onMes={() => {}} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
@@ -1408,7 +1426,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 52px)', zIndex:10, background:'var(--t-ground)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
 
         {/* Fila 1: nombre competencia + tab activo (estilo Feed) + acciones */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'2px 14px 2px', borderBottom:'1px solid var(--t-surface2)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 14px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
           <button onClick={onBack}
             style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', flexShrink:0 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getActividadesComp, getComentarios, createComentario, deleteComentario, getLikes, toggleLike } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 
@@ -219,14 +220,15 @@ function ComentariosSection({ actividadId, user }) {
       )}
 
       {/* Popup con todos los comentarios */}
-      {popupOpen && (
+      {popupOpen && createPortal(
         <TodosPopup
           comentarios={comentarios}
           user={user}
           onDelete={handleDelete}
           onSend={handleSend}
           onClose={() => setPopupOpen(false)}
-        />
+        />,
+        document.body
       )}
     </div>
   );
@@ -417,14 +419,15 @@ export default function FeedGrupal({ competencia }) {
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       {/* Lightbox */}
-      {lightbox && (
+      {lightbox && createPortal(
         <div onClick={() => setLightbox(null)}
           style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <button onClick={() => setLightbox(null)}
             style={{ position:'absolute', top:20, right:20, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,0.85)', border:'none', color:'var(--t-text)', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
           <img src={lightbox} alt="" onClick={e => e.stopPropagation()}
             style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:12, objectFit:'contain' }} />
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Header */}
