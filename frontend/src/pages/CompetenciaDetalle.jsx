@@ -294,7 +294,6 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
 
   return (
     <div>
-      <KpiStrip acts={acts} />
       <div style={{ paddingTop:4 }}>
         {people.map((p, i) => {
           const isTop = i === 0;
