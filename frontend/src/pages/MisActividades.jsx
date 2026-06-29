@@ -496,29 +496,40 @@ function formatWeekLabel(mon, sun) {
   return `${fmt(mon)} – ${fmt(sun)}`;
 }
 
+const DOW_LABELS = ['L','M','X','J','V','S','D'];
+
 function Objetivos({ actividades }) {
-  const [deportes, setDeportes]     = useState([]);
-  const [objetivos, setObjetivos]   = useState(() => {
+  const [deportes, setDeportes]   = useState([]);
+  const [objetivos, setObjetivos] = useState(() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
   });
-  const [editando, setEditando]     = useState(null); // { deporte, sesiones } | 'nuevo'
-  const [form, setForm]             = useState({ deporte:'', sesiones:3 });
+  const [editando, setEditando]   = useState(null);
+  const [form, setForm]           = useState({ deporte:'', sesiones:3 });
 
   useEffect(() => { getDeportes().then(setDeportes).catch(() => {}); }, []);
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(objetivos)); }, [objetivos]);
 
-  // Semana actual y 3 semanas anteriores
   const now   = new Date();
+  const todayStr = now.toISOString().slice(0,10);
   const weeks = Array.from({ length: 4 }, (_, i) => {
     const d = new Date(now); d.setDate(now.getDate() - i * 7);
     return getWeekRange(d);
-  }).reverse(); // más antigua primero
+  }).reverse();
 
   function sesionesEnSemana(deporte, { mon, sun }) {
     return actividades.filter(a => {
       const f = new Date(a.fecha + 'T12:00:00');
-      return (deporte === '__all__' || a.deporte_nombre === deporte) && f >= mon && f <= sun;
+      return a.deporte_nombre === deporte && f >= mon && f <= sun;
     }).length;
+  }
+
+  // Returns array of 7 booleans [L..D] indicating if there's a session that day
+  function diasEnSemana(deporte, { mon }) {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(mon); d.setDate(mon.getDate() + i);
+      const ds = d.toISOString().slice(0,10);
+      return actividades.some(a => a.deporte_nombre === deporte && a.fecha === ds);
+    });
   }
 
   function guardar() {
@@ -540,153 +551,213 @@ function Objetivos({ actividades }) {
   const deportesDisponibles = deportes.filter(d => !objetivos.find(o => o.deporte === d.nombre) || editando?.deporte === d.nombre);
   const semanaActual = weeks[weeks.length - 1];
 
-  const ringStyle = (pct) => {
-    const r = 20, c = 2 * Math.PI * r;
-    const filled = Math.min(1, pct) * c;
-    return { r, c, filled, stroke: pct >= 1 ? '#34c759' : 'var(--t-accent)' };
-  };
+  // cumplidos esta semana
+  const cumplidos = objetivos.filter(o => sesionesEnSemana(o.deporte, semanaActual) >= o.sesiones).length;
 
   return (
-    <div style={{ padding:'16px 16px 40px', display:'flex', flexDirection:'column', gap:16 }}>
+    <div style={{ paddingBottom:40 }}>
 
-      {/* Objetivos activos */}
+      {/* Resumen semanal */}
+      {objetivos.length > 0 && (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px 10px', borderBottom:'1px solid var(--t-dim)' }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>
+            Semana actual
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, fontWeight:700,
+            color: cumplidos === objetivos.length ? '#22C55E' : cumplidos > 0 ? '#FBBF24' : 'var(--t-muted)',
+            letterSpacing:'0.03em' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+            {cumplidos} de {objetivos.length} cumplido{objetivos.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
       {objetivos.length === 0 && !editando && (
-        <div style={{ textAlign:'center', padding:'32px 0 8px', color:'var(--t-muted)', fontSize:13 }}>
+        <div style={{ textAlign:'center', padding:'40px 24px 8px', color:'var(--t-muted)', fontSize:13 }}>
           Todavía no tenés objetivos. Creá uno abajo.
         </div>
       )}
 
+      {/* Objetivo cards */}
       {objetivos.map(obj => {
         const sesHoy = sesionesEnSemana(obj.deporte, semanaActual);
-        const pct    = sesHoy / obj.sesiones;
-        const cumple = pct >= 1;
-        const ring   = ringStyle(pct);
+        const cumple = sesHoy >= obj.sesiones;
+        const falta  = obj.sesiones - sesHoy;
 
-        // Historial últimas 4 semanas
-        const hist = weeks.map(w => ({
-          label: formatWeekLabel(w.mon, w.sun),
-          ses: sesionesEnSemana(obj.deporte, w),
-          isCurrent: w.mon.getTime() === semanaActual.mon.getTime(),
-        }));
+        const hist = weeks.map((w, wi) => {
+          const ses  = sesionesEnSemana(obj.deporte, w);
+          const dias = diasEnSemana(obj.deporte, w);
+          const isCurrent = wi === weeks.length - 1;
+          const ok   = ses >= obj.sesiones;
+          // compute day strings for today check
+          const dayStrs = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(w.mon); d.setDate(w.mon.getDate() + i);
+            return d.toISOString().slice(0,10);
+          });
+          return { label: formatWeekLabel(w.mon, w.sun), ses, dias, ok, isCurrent, dayStrs };
+        });
 
         return (
-          <div key={obj.deporte} style={{ background:'var(--t-surface)', border:`1px solid ${cumple ? 'rgba(52,199,89,0.3)' : 'var(--t-dim)'}`, borderRadius:16, overflow:'hidden' }}>
+          <div key={obj.deporte} style={{
+            borderBottom: '1px solid var(--t-dim)',
+            position: 'relative',
+            background: cumple ? 'linear-gradient(180deg, rgba(34,197,94,0.04) 0%, transparent 70px)' : 'transparent',
+          }}>
+            {/* Rail izquierdo */}
+            <div style={{
+              position:'absolute', left:0, top:16, bottom:16, width:3,
+              borderRadius:'0 2px 2px 0',
+              background: cumple ? '#22C55E' : 'var(--t-accent)',
+            }} />
 
-            {/* Header objetivo */}
-            <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 14px 12px' }}>
-              {/* Ring */}
-              <div style={{ flexShrink:0, position:'relative', width:52, height:52 }}>
-                <svg width="52" height="52" style={{ transform:'rotate(-90deg)' }}>
-                  <circle cx="26" cy="26" r={ring.r} fill="none" stroke="var(--t-surface2)" strokeWidth="4" />
-                  <circle cx="26" cy="26" r={ring.r} fill="none" stroke={ring.stroke} strokeWidth="4"
-                    strokeDasharray={`${ring.c}`} strokeDashoffset={ring.c - ring.filled}
-                    strokeLinecap="round" style={{ transition:'stroke-dashoffset 0.5s ease' }} />
-                </svg>
-                <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column' }}>
-                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:14, lineHeight:1, color: cumple ? '#34c759' : 'var(--t-text)' }}>{sesHoy}</span>
-                  <span style={{ fontSize:8, color:'var(--t-muted)', lineHeight:1 }}>/{obj.sesiones}</span>
-                </div>
-              </div>
-
-              {/* Info */}
+            {/* Fila principal */}
+            <div style={{ display:'flex', alignItems:'center', gap:14, padding:'16px 16px 12px 20px' }}>
+              {/* Nombre + estado */}
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, color:'var(--t-text)', lineHeight:1 }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:19, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-text)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                   {obj.deporte}
                 </div>
-                <div style={{ fontSize:11, color: cumple ? '#34c759' : 'var(--t-muted)', marginTop:3 }}>
-                  {cumple ? '✓ Meta cumplida esta semana' : `${obj.sesiones - sesHoy} sesión${obj.sesiones - sesHoy !== 1 ? 'es' : ''} para completar`}
-                </div>
+                {cumple ? (
+                  <div style={{ display:'inline-flex', alignItems:'center', gap:4, marginTop:4, fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#22C55E', background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.25)', borderRadius:5, padding:'2px 7px' }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Meta cumplida
+                  </div>
+                ) : (
+                  <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:3 }}>
+                    {falta} sesión{falta !== 1 ? 'es' : ''} para completar
+                  </div>
+                )}
               </div>
 
-              {/* Editar / borrar */}
-              <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+              {/* Ratio grande */}
+              <div style={{ display:'flex', alignItems:'flex-end', gap:0, flexShrink:0 }}>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:52, lineHeight:1, color: cumple ? '#22C55E' : sesHoy > 0 ? 'var(--t-accent)' : 'var(--t-dim)', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.03em' }}>
+                  {sesHoy}
+                </span>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:28, color:'var(--t-dim)', lineHeight:1, paddingBottom:4, margin:'0 1px' }}>/</span>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:22, color:'var(--t-muted)', lineHeight:1, paddingBottom:4, fontVariantNumeric:'tabular-nums' }}>
+                  {obj.sesiones}
+                </span>
+                <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', paddingBottom:6, marginLeft:4, lineHeight:1.3 }}>
+                  ses<br/>sem
+                </span>
+              </div>
+
+              {/* Acciones */}
+              <div style={{ display:'flex', flexDirection:'column', gap:5, flexShrink:0 }}>
                 <button onClick={() => { setForm({ deporte: obj.deporte, sesiones: obj.sesiones }); setEditando(obj); }}
-                  style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13 }}>
-                  ✎
+                  style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
                 </button>
                 <button onClick={() => eliminar(obj.deporte)}
-                  style={{ width:28, height:28, borderRadius:8, border:'1px solid rgba(248,113,113,0.2)', background:'transparent', color:'#F87171', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13 }}>
-                  ✕
+                  style={{ width:28, height:28, borderRadius:8, border:'1px solid rgba(248,113,113,0.2)', background:'transparent', color:'#F87171', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
                 </button>
               </div>
             </div>
 
-            {/* Historial 4 semanas */}
-            <div style={{ borderTop:'1px solid var(--t-surface2)', padding:'10px 14px 12px', display:'flex', flexDirection:'column', gap:6 }}>
-              <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:2 }}>Últimas 4 semanas</div>
-              {hist.map((w, wi) => {
-                const wPct = Math.min(1, w.ses / obj.sesiones);
-                const wOk  = w.ses >= obj.sesiones;
-                return (
-                  <div key={wi} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <div style={{ fontSize:10, color: w.isCurrent ? 'var(--t-text)' : 'var(--t-muted)', fontWeight: w.isCurrent ? 700 : 400, whiteSpace:'nowrap', width:100, flexShrink:0 }}>
-                      {w.isCurrent ? 'Esta semana' : w.label}
-                    </div>
-                    <div style={{ flex:1, height:5, background:'var(--t-surface2)', borderRadius:3, overflow:'hidden' }}>
-                      <div style={{ height:'100%', width:(wPct*100)+'%', background: wOk ? '#34c759' : 'var(--t-accent)', borderRadius:3, opacity: w.isCurrent ? 1 : 0.6, transition:'width 0.4s ease' }} />
-                    </div>
-                    <div style={{ fontSize:10, color: wOk ? '#34c759' : 'var(--t-muted)', fontVariantNumeric:'tabular-nums', width:28, textAlign:'right', flexShrink:0, fontWeight:600 }}>
-                      {w.ses}/{obj.sesiones}
-                    </div>
+            {/* Grid semanal */}
+            <div style={{ padding:'0 20px 14px', display:'flex', flexDirection:'column', gap:6 }}>
+              {/* Header días */}
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div style={{ width:70, flexShrink:0 }} />
+                <div style={{ display:'flex', gap:5, flex:1 }}>
+                  {DOW_LABELS.map(l => (
+                    <div key={l} style={{ width:22, textAlign:'center', fontSize:9, fontWeight:700, color:'var(--t-muted)', letterSpacing:'0.04em' }}>{l}</div>
+                  ))}
+                </div>
+                <div style={{ width:24, flexShrink:0 }} />
+              </div>
+
+              {hist.map((w, wi) => (
+                <div key={wi} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ fontSize:10, color: w.isCurrent ? 'var(--t-text)' : 'var(--t-muted)', fontWeight: w.isCurrent ? 700 : 400, whiteSpace:'nowrap', width:70, flexShrink:0 }}>
+                    {w.isCurrent ? 'Esta sem.' : formatWeekLabel(weeks[wi].mon, weeks[wi].sun).split(' – ')[0]}
                   </div>
-                );
-              })}
+                  <div style={{ display:'flex', gap:5, flex:1 }}>
+                    {w.dias.map((filled, di) => {
+                      const isToday = w.dayStrs[di] === todayStr;
+                      return (
+                        <div key={di} style={{
+                          width:22, height:22, borderRadius:6,
+                          border: `1px solid ${filled ? (w.ok ? 'rgba(34,197,94,0.35)' : 'rgba(249,115,22,0.4)') : isToday ? 'var(--t-muted)' : 'var(--t-dim)'}`,
+                          background: filled ? (w.ok ? 'rgba(34,197,94,0.12)' : 'rgba(249,115,22,0.15)') : 'transparent',
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          fontSize:8, fontWeight:700,
+                          color: filled ? (w.ok ? '#22C55E' : 'var(--t-accent)') : isToday ? 'var(--t-text)' : 'transparent',
+                        }}>
+                          {filled ? '✓' : ''}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize:10, fontWeight:700, color: w.ok ? '#22C55E' : 'var(--t-muted)', width:24, textAlign:'right', flexShrink:0, fontVariantNumeric:'tabular-nums' }}>
+                    {w.ses}/{obj.sesiones}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         );
       })}
 
       {/* Formulario nuevo / editar */}
-      {editando !== null ? (
-        <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-accent)', borderRadius:16, padding:'16px 14px' }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', marginBottom:12 }}>
-            {editando === 'nuevo' ? 'Nuevo objetivo' : `Editar · ${editando.deporte}`}
-          </div>
-
-          {/* Deporte */}
-          {editando === 'nuevo' && (
-            <div style={{ marginBottom:10 }}>
-              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginBottom:5 }}>Deporte</div>
-              <select value={form.deporte} onChange={e => setForm(f => ({ ...f, deporte: e.target.value }))}
-                style={{ width:'100%', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'9px 12px', borderRadius:9, fontSize:14, appearance:'none' }}>
-                <option value="">Seleccioná un deporte</option>
-                {deportesDisponibles.map(d => <option key={d.id} value={d.nombre}>{d.nombre}</option>)}
-              </select>
+      <div style={{ padding:'16px 16px 0' }}>
+        {editando !== null ? (
+          <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-accent)', borderRadius:16, padding:'16px 14px' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', marginBottom:12 }}>
+              {editando === 'nuevo' ? 'Nuevo objetivo' : `Editar · ${editando.deporte}`}
             </div>
-          )}
 
-          {/* Sesiones por semana */}
-          <div style={{ marginBottom:14 }}>
-            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginBottom:8 }}>
-              Sesiones por semana
+            {editando === 'nuevo' && (
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginBottom:5 }}>Deporte</div>
+                <select value={form.deporte} onChange={e => setForm(f => ({ ...f, deporte: e.target.value }))}
+                  style={{ width:'100%', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'9px 12px', borderRadius:9, fontSize:14, appearance:'none' }}>
+                  <option value="">Seleccioná un deporte</option>
+                  {deportesDisponibles.map(d => <option key={d.id} value={d.nombre}>{d.nombre}</option>)}
+                </select>
+              </div>
+            )}
+
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginBottom:8 }}>Sesiones por semana</div>
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <button onClick={() => setForm(f => ({ ...f, sesiones: Math.max(1, f.sesiones - 1) }))}
+                  style={{ width:36, height:36, borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>−</button>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:32, color:'var(--t-accent)', minWidth:32, textAlign:'center', lineHeight:1 }}>{form.sesiones}</span>
+                <button onClick={() => setForm(f => ({ ...f, sesiones: Math.min(14, f.sesiones + 1) }))}
+                  style={{ width:36, height:36, borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>+</button>
+                <span style={{ fontSize:12, color:'var(--t-muted)' }}>sesiones / sem</span>
+              </div>
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-              <button onClick={() => setForm(f => ({ ...f, sesiones: Math.max(1, f.sesiones - 1) }))}
-                style={{ width:36, height:36, borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>−</button>
-              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:32, color:'var(--t-accent)', minWidth:32, textAlign:'center', lineHeight:1 }}>{form.sesiones}</span>
-              <button onClick={() => setForm(f => ({ ...f, sesiones: Math.min(14, f.sesiones + 1) }))}
-                style={{ width:36, height:36, borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>+</button>
-              <span style={{ fontSize:12, color:'var(--t-muted)' }}>sesiones / semana</span>
+
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={guardar}
+                style={{ flex:1, padding:'11px', borderRadius:10, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', cursor:'pointer' }}>
+                Guardar
+              </button>
+              <button onClick={() => setEditando(null)}
+                style={{ padding:'11px 16px', borderRadius:10, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, cursor:'pointer' }}>
+                Cancelar
+              </button>
             </div>
           </div>
-
-          <div style={{ display:'flex', gap:8 }}>
-            <button onClick={guardar}
-              style={{ flex:1, padding:'11px', borderRadius:10, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', cursor:'pointer' }}>
-              Guardar
-            </button>
-            <button onClick={() => setEditando(null)}
-              style={{ padding:'11px 16px', borderRadius:10, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, cursor:'pointer' }}>
-              Cancelar
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => { setForm({ deporte:'', sesiones:3 }); setEditando('nuevo'); }}
-          style={{ width:'100%', padding:'13px', borderRadius:14, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-          + Agregar objetivo
-        </button>
-      )}
+        ) : (
+          <button onClick={() => { setForm({ deporte:'', sesiones:3 }); setEditando('nuevo'); }}
+            style={{ width:'100%', padding:'13px', borderRadius:14, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+            + Agregar objetivo
+          </button>
+        )}
+      </div>
     </div>
   );
 }
