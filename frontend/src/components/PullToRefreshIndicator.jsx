@@ -9,7 +9,7 @@ export default function PullToRefreshIndicator({ pullY, refreshing, closing }) {
   const space        = (refreshing || closing) ? THRESHOLD : pullY;
   const centerOffset = Math.max(0, (space - SIZE) / 2);
   const scale        = Math.min(1, 0.45 + progress * 0.55);
-  const rotateDeg    = (refreshing || closing) ? undefined : `rotate(${progress * 720}deg)`;
+  const spinning     = refreshing || closing;
 
   return (
     <>
@@ -26,19 +26,22 @@ export default function PullToRefreshIndicator({ pullY, refreshing, closing }) {
         transition: closing ? 'transform 0.38s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease' : 'none',
         opacity: closing ? 0 : 1,
       }}>
-        <div style={{
-          width: SIZE,
-          height: SIZE,
-          borderRadius: '50%',
-          borderTop: `3px solid var(--t-accent)`,
-          borderRight: '3px solid transparent',
-          borderBottom: '3px solid transparent',
-          borderLeft: '3px solid transparent',
-          boxSizing: 'border-box',
-          background: 'transparent',
-          animation: (refreshing || closing) ? 'ptr-spin 0.7s linear infinite' : 'none',
-          transform: `scale(${scale})${rotateDeg ? ` ${rotateDeg}` : ''}`,
-        }} />
+        {/* scale en wrapper separado para no interferir con animation */}
+        <div style={{ transform: `scale(${scale})` }}>
+          <div style={{
+            width: SIZE,
+            height: SIZE,
+            borderRadius: '50%',
+            borderTop: '3px solid var(--t-accent)',
+            borderRight: '3px solid transparent',
+            borderBottom: '3px solid transparent',
+            borderLeft: '3px solid transparent',
+            boxSizing: 'border-box',
+            background: 'transparent',
+            animation: spinning ? 'ptr-spin 0.7s linear infinite' : 'none',
+            transform: spinning ? 'none' : `rotate(${progress * 720}deg)`,
+          }} />
+        </div>
       </div>
     </>
   );
