@@ -1102,63 +1102,104 @@ function Insights({ acts }) {
 
 function ProfilePanel({ nombre, acts, nombres, onClose }) {
   if (!nombre) return null;
-  const data   = acts.filter(a => a.nombre===nombre);
-  const pts    = data.reduce((s,a)=>s+a.puntos,0);
-  const min    = data.reduce((s,a)=>s+parseFloat(a.minutos),0);
-  const color  = getPersonColor(nombre, nombres);
+  const data = acts.filter(a => a.nombre === nombre);
+  const pts  = data.reduce((s, a) => s + a.puntos, 0);
+  const min  = data.reduce((s, a) => s + parseFloat(a.minutos), 0);
+
+  // foto de perfil del jugador (primera actividad que la tenga)
+  const fotoUrl = data.find(a => a.foto_perfil_url)?.foto_perfil_url ?? null;
 
   const sportMap = {};
   data.forEach(a => {
-    if (!sportMap[a.deporte_nombre]) sportMap[a.deporte_nombre]={min:0,pts:0,sesiones:0};
-    sportMap[a.deporte_nombre].min+=parseFloat(a.minutos);
-    sportMap[a.deporte_nombre].pts+=a.puntos;
+    if (!sportMap[a.deporte_nombre]) sportMap[a.deporte_nombre] = { min:0, pts:0, sesiones:0 };
+    sportMap[a.deporte_nombre].min      += parseFloat(a.minutos);
+    sportMap[a.deporte_nombre].pts      += a.puntos;
     sportMap[a.deporte_nombre].sesiones++;
   });
-  const sportRows = Object.entries(sportMap).sort((a,b)=>b[1].pts-a[1].pts);
+  const sportRows = Object.entries(sportMap).sort((a, b) => b[1].pts - a[1].pts);
 
   return (
     <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(5,12,20,0.75)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', display:'flex', alignItems:'flex-start', justifyContent:'flex-end' }}
-         onClick={e => e.target===e.currentTarget && onClose()}>
-      <div style={{ width:'min(400px,100vw)', height:'100vh', background:'var(--t-surface)', borderLeft:'1px solid var(--t-dim)', overflowY:'auto', WebkitOverflowScrolling:'touch', padding:'52px 20px 32px', display:'flex', flexDirection:'column', gap:18 }}>
-        <button onClick={onClose} style={{ position:'absolute', top:14, right:16, color:'var(--t-muted)', fontSize:18, padding:'6px 10px', borderRadius:8, background:'transparent', border:'none', cursor:'pointer' }}>✕</button>
+         onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ width:'min(400px,100vw)', height:'100dvh', background:'var(--t-surface)', borderLeft:'1px solid var(--t-dim)', overflowY:'auto', WebkitOverflowScrolling:'touch', display:'flex', flexDirection:'column' }}>
 
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:'clamp(32px,8vw,50px)', textTransform:'uppercase', letterSpacing:'0.02em', lineHeight:1, color }}>{nombre}</div>
-
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-          {[
-            { label:'Puntos', val:Math.round(pts).toLocaleString('es') },
-            { label:'Minutos', val:Math.round(min).toLocaleString('es') },
-            { label:'Actividades', val:data.length },
-            { label:'Prom/sesión', val:data.length?Math.round(pts/data.length):0 },
-          ].map(s => (
-            <div key={s.label} style={{ background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8, padding:'10px 12px' }}>
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:19, color:'var(--t-accent)' }}>{s.val}</div>
-              <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:3 }}>{s.label}</div>
-            </div>
-          ))}
+        {/* Header */}
+        <div style={{ padding:'16px 16px 14px', borderBottom:'1px solid var(--t-dim)', display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
+          <div style={{ width:44, height:44, borderRadius:12, flexShrink:0, overflow:'hidden', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            {fotoUrl
+              ? <img src={fotoUrl} alt={nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+              : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, color:'var(--t-muted)' }}>{nombre.charAt(0).toUpperCase()}</span>
+            }
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', letterSpacing:'0.02em', lineHeight:1, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{nombre}</div>
+            <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>{data.length} actividades registradas</div>
+          </div>
+          <button onClick={onClose} style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
         </div>
 
-        <div>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:10 }}>Desglose por deporte</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {sportRows.map(([sport, v]) => {
-              const pct = pts > 0 ? Math.round(v.pts/pts*100) : 0;
-              return (
-                <div key={sport} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8 }}>
-                  <span style={{ fontSize:22, flexShrink:0 }}>{sportIcon(sport)}</span>
+        <div style={{ padding:'16px', display:'flex', flexDirection:'column', gap:16 }}>
+          {/* Stats grid */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:0, border:'1px solid var(--t-dim)', borderRadius:10, overflow:'hidden' }}>
+            {[
+              { label:'Puntos',     val: Math.round(pts).toLocaleString('es') },
+              { label:'Horas',      val: Math.round(min / 60) + 'h' },
+              { label:'Sesiones',   val: data.length },
+            ].map((s, i) => (
+              <div key={s.label} style={{ padding:'10px 8px', textAlign:'center', borderRight: i < 2 ? '1px solid var(--t-dim)' : 'none', background:'var(--t-surface)' }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, color:'var(--t-text)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>{s.val}</div>
+                <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginTop:3 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Deportes */}
+          {sportRows.length > 0 && (
+            <div>
+              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:8 }}>Por deporte</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {sportRows.map(([sport, v]) => {
+                  const pct = pts > 0 ? Math.round(v.pts / pts * 100) : 0;
+                  return (
+                    <div key={sport} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8 }}>
+                      <span style={{ fontSize:18, flexShrink:0 }}>{sportIcon(sport)}</span>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontWeight:600, fontSize:13, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{sport}</div>
+                        <div style={{ height:2, background:'var(--t-dim)', borderRadius:2, marginTop:5 }}>
+                          <div style={{ height:2, width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.6, transition:'width 0.4s' }} />
+                        </div>
+                      </div>
+                      <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:11, lineHeight:1.5 }}>
+                        <div style={{ color:'var(--t-accent)', fontWeight:700 }}>{Math.round(v.pts)} pts</div>
+                        <div style={{ color:'var(--t-muted)' }}>{v.sesiones} ses</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Últimas actividades */}
+          <div>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:8 }}>Últimas actividades</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+              {[...data].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 8).map((a, i) => (
+                <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8 }}>
+                  <span style={{ fontSize:15, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:700, fontSize:13, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{sport}</div>
-                    <div style={{ height:4, background:'var(--t-dim)', borderRadius:2, marginTop:5 }}>
-                      <div style={{ height:4, width:pct+'%', background:color, borderRadius:2, transition:'width 0.4s' }} />
+                    <div style={{ fontSize:12, fontWeight:600, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.deporte_nombre}</div>
+                    <div style={{ fontSize:10, color:'var(--t-muted)' }}>
+                      {new Date(a.fecha + 'T12:00:00').toLocaleDateString('es', { day:'numeric', month:'short' })}
                     </div>
                   </div>
-                  <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:12, lineHeight:1.6 }}>
-                    <div style={{ color:'var(--t-text)', fontWeight:700 }}>{Math.round(v.pts)} <span style={{ color:'var(--t-muted)', fontWeight:400 }}>pts</span></div>
-                    <div style={{ color:'var(--t-muted)' }}>{Math.round(v.min)} min · {v.sesiones} ses.</div>
+                  <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace" }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)' }}>{Math.round(a.puntos)} pts</div>
+                    <div style={{ fontSize:10, color:'var(--t-muted)' }}>{Math.round(parseFloat(a.minutos))} min</div>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </div>
       </div>

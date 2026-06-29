@@ -180,28 +180,30 @@ function AppShell() {
         forceOpenSelector={forceOpenSelector}
       />
 
-      {/* Viewport: oculta todo lo que sale de la ventana */}
-      <div style={{ overflow:'hidden', position:'relative',
-                    paddingTop:'calc(env(safe-area-inset-top) + 52px)',
+      {/* Viewport — sin overflow:hidden para no romper position:fixed de modales */}
+      <div style={{ paddingTop:'calc(env(safe-area-inset-top) + 52px)',
                     paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
 
-        {/* Strip horizontal: todas las tabs una al lado de la otra */}
-        <div
-          onTouchStart={onSwipeTouchStart}
-          onTouchMove={onSwipeTouchMove}
-          onTouchEnd={onSwipeTouchEnd}
-          style={{
-            display: 'flex',
-            width: `${TAB_ORDER.length * 100}%`,
-            transform: `translateX(calc(${-activeIdx * (100 / TAB_ORDER.length)}% + ${dragOffset}px))`,
-            transition: dragOffset === 0 ? 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none',
-            willChange: 'transform',
-          }}>
-          {TAB_ORDER.map(id => (
-            <div key={id} style={{ width: `${100 / TAB_ORDER.length}%`, flexShrink: 0, minWidth: 0 }}>
-              {tabContent[id]}
-            </div>
-          ))}
+        {/* Clipper: solo este div oculta las tabs vecinas */}
+        <div style={{ overflow:'hidden' }}>
+          {/* Strip horizontal */}
+          <div
+            onTouchStart={onSwipeTouchStart}
+            onTouchMove={onSwipeTouchMove}
+            onTouchEnd={onSwipeTouchEnd}
+            style={{
+              display: 'flex',
+              width: `${TAB_ORDER.length * 100}%`,
+              transform: `translateX(calc(${-activeIdx * (100 / TAB_ORDER.length)}% + ${dragOffset}px))`,
+              transition: dragOffset === 0 ? 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none',
+              willChange: 'transform',
+            }}>
+            {TAB_ORDER.map(id => (
+              <div key={id} style={{ width: `${100 / TAB_ORDER.length}%`, flexShrink: 0, minWidth: 0 }}>
+                {tabContent[id]}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
