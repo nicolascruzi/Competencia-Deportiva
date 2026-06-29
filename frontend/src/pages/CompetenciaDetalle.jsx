@@ -74,20 +74,19 @@ function KpiStrip({ acts }) {
   const totalPts = acts.reduce((s, a) => s + a.puntos, 0);
   const totalMin = acts.reduce((s, a) => s + parseFloat(a.minutos), 0);
   const items = [
-    { label:'Participantes', val: personas,                              accent: false },
-    { label:'Puntos totales', val: Math.round(totalPts).toLocaleString('es'), accent: true  },
-    { label:'Actividades',   val: acts.length,                          accent: false },
-    { label:'Horas',         val: Math.round(totalMin / 60) + 'h',     accent: false },
+    { label:'Jugadores',     val: personas },
+    { label:'Pts totales',   val: Math.round(totalPts).toLocaleString('es'), accent: true },
+    { label:'Actividades',   val: acts.length },
+    { label:'Horas',         val: Math.round(totalMin / 60) + 'h' },
   ];
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:20 }}>
+    <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', borderBottom:'1px solid var(--t-surface2)', padding:'8px 0' }}>
       {items.map(({ label, val, accent }) => (
-        <div key={label} style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'12px 14px', position:'relative', overflow:'hidden' }}>
-          {accent && <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.7 }} />}
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:28, color: accent ? 'var(--t-accent)' : 'var(--t-text)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
+        <div key={label} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1, padding:'0 4px' }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color: accent ? 'var(--t-accent)' : 'var(--t-text)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
             {val}
           </div>
-          <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:4, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em' }}>
+          <div style={{ fontSize:9, color:'var(--t-muted)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em' }}>
             {label}
           </div>
         </div>
@@ -272,83 +271,81 @@ function PlayerDrawer({ person, acts, onClose }) {
 }
 
 function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
-  // rankingData viene del backend e incluye todos los participantes (incluso con 0 pts)
-  // Normalizar campos para que coincidan con aggregateByPerson
   const people = rankingData.length
     ? rankingData.map((r, i) => ({
-        nombre:        r.nombre,
+        nombre:          r.nombre,
         foto_perfil_url: r.foto_perfil_url,
-        pts:           parseFloat(r.puntos) || 0,
-        minutos:       parseFloat(r.minutos) || 0,
-        actividades:   parseInt(r.actividades) || 0,
-        rank:          i + 1,
+        pts:             parseFloat(r.puntos) || 0,
+        minutos:         parseFloat(r.minutos) || 0,
+        actividades:     parseInt(r.actividades) || 0,
+        deportes:        r.deportes || [],
+        rank:            i + 1,
       }))
     : aggregateByPerson(acts);
-  const maxPts = people[0]?.pts || 1;
 
   if (!people.length) return <EmptyState icon="🏁" title="Sin registros" text="Cargá actividades para ver el ranking." />;
+
+  const posColor = (i) => {
+    if (i === 0) return 'var(--t-accent)';
+    if (i === 1) return '#9bb0cc';
+    if (i === 2) return '#c07840';
+    return 'var(--t-dim2)';
+  };
 
   return (
     <div>
       <KpiStrip acts={acts} />
-      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+      <div style={{ paddingTop:4 }}>
         {people.map((p, i) => {
-          const pct   = Math.round((p.pts / maxPts) * 100);
           const isTop = i === 0;
           const isMe  = p.nombre === myId;
+          const sportsOnActs = acts.filter(a => a.nombre === p.nombre);
+          const sportIcons = [...new Set(sportsOnActs.map(a => sportIcon(a.deporte_nombre)))].slice(0, 3).join(' ');
 
           return (
             <div key={p.nombre}
               onClick={() => onOpenProfile?.(p.nombre)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '9px 12px',
-                background: isTop ? 'rgba(var(--t-accent-r),0.06)' : 'var(--t-surface)',
-                border: `1px solid ${isTop ? 'rgba(var(--t-accent-r),0.3)' : 'var(--t-dim)'}`,
-                borderRadius: 12,
+                display: 'flex', alignItems: 'center', gap: 0,
+                padding: '9px 16px',
+                borderBottom: '1px solid var(--t-surface2)',
+                background: isTop ? 'linear-gradient(90deg, rgba(var(--t-accent-r),0.07) 0%, transparent 60%)' : 'transparent',
                 cursor: 'pointer',
                 WebkitTapHighlightColor: 'transparent',
-                position: 'relative', overflow: 'hidden',
               }}>
 
-              {/* línea top del líder */}
-              {isTop && <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.6 }} />}
-
               {/* Posición */}
-              <div style={{ width:24, textAlign:'center', flexShrink:0 }}>
-                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, color: isTop ? 'var(--t-accent)' : 'var(--t-dim2)', fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{i + 1}</span>
+              <div style={{ width:32, flexShrink:0 }}>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, color: posColor(i), fontVariantNumeric:'tabular-nums', lineHeight:1, letterSpacing:'-0.04em' }}>{i + 1}</span>
               </div>
 
               {/* Avatar */}
-              <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'rgba(var(--t-accent-r),0.1)', border:`1.5px solid ${isTop ? 'rgba(var(--t-accent-r),0.35)' : 'var(--t-dim)'}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-surface2)', border: isTop ? '1.5px solid rgba(var(--t-accent-r),0.4)' : '1.5px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', marginRight:10 }}>
                 {p.foto_perfil_url
                   ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, color:'var(--t-accent)' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
+                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, color: isTop ? 'var(--t-accent)' : 'var(--t-muted)' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
                 }
               </div>
 
-              {/* Nombre + stats + barra */}
+              {/* Nombre + deportes */}
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, color:'var(--t-text)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     {p.nombre}
                   </span>
                   {isMe && <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.12)', padding:'1px 5px', borderRadius:4, flexShrink:0 }}>tú</span>}
                 </div>
-                <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:2, fontVariantNumeric:'tabular-nums' }}>
-                  {p.actividades} ses · {Math.round(p.minutos / 60)}h
-                </div>
-                <div style={{ height:2, background:'var(--t-dim)', borderRadius:2, marginTop:5, overflow:'hidden' }}>
-                  <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity: isTop ? 0.7 : 0.35, transition:'width 0.4s ease' }} />
+                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>
+                  {sportIcons || '—'}
                 </div>
               </div>
 
               {/* Puntos */}
-              <div style={{ textAlign:'right', flexShrink:0 }}>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, lineHeight:1, color: isTop ? 'var(--t-accent)' : 'var(--t-text)', fontVariantNumeric:'tabular-nums' }}>
+              <div style={{ textAlign:'right', flexShrink:0, minWidth:52 }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, lineHeight:1, color: isTop ? 'var(--t-accent)' : 'var(--t-text)', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>
                   {Math.round(p.pts).toLocaleString('es')}
                 </div>
-                <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginTop:1 }}>pts</div>
+                <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginTop:1 }}>pts</div>
               </div>
             </div>
           );
