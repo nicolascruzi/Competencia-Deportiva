@@ -397,7 +397,7 @@ function Calendario({ acts, mes, meses, onMes }) {
   const todayDate   = today.getFullYear() === viewYear && today.getMonth() === viewMonth ? today.getDate() : -1;
   const emptyCells  = Array.from({ length: firstDow });
   const days        = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-  const selectedActs = selectedDay ? (dayActivities[selectedDay] || []) : [];
+  const selectedActs = selectedDay ? (dayActivities[selectedDay] || []).filter(Boolean) : [];
   const sortedDays   = Object.keys(dayActivities).map(Number).sort((a, b) => a - b);
 
   // Navegación entre meses (usando meses disponibles del padre)
@@ -461,7 +461,7 @@ function Calendario({ acts, mes, meses, onMes }) {
         <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
           {emptyCells.map((_, i) => <div key={'e'+i} style={{ aspectRatio:'1' }} />)}
           {days.map(day => {
-            const dayActs = dayActivities[day] || [];
+            const dayActs = (dayActivities[day] || []).filter(Boolean);
             const hasActs = dayActs.length > 0;
             const isToday = day === todayDate;
             const isSel   = day === selectedDay;
@@ -566,7 +566,7 @@ function Calendario({ acts, mes, meses, onMes }) {
             Actividades de {MONTHS_ES[viewMonth]}
           </div>
           {sortedDays.map(day => {
-            const dayActs = dayActivities[day];
+            const dayActs = (dayActivities[day] || []).filter(Boolean);
             const dow = new Date(viewYear, viewMonth, day)
               .toLocaleDateString('es', { weekday:'short' });
             return (

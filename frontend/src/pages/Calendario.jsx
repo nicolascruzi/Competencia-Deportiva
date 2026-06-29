@@ -432,15 +432,16 @@ export default function Calendario({ competenciaActiva, navYear, navMonth, onNav
 
             // Emojis del día
             const dayActs  = (byDate[key] || []).filter(Boolean);
+            const dayCount = dayActs.length;
             const sportIcon = s => SPORT_ICONS[s] || '🏅';
             let emojiNode = null;
-            if (count === 1) {
+            if (dayCount === 1) {
               emojiNode = (
                 <span style={{ fontSize: isSel ? 13 : 14, lineHeight:1, filter: isSel ? 'brightness(0) invert(1)' : 'none', opacity: isSel ? 0.85 : 1 }}>
                   {sportIcon(dayActs[0].deporte_nombre)}
                 </span>
               );
-            } else if (count === 2) {
+            } else if (dayCount === 2) {
               emojiNode = (
                 <div style={{ display:'flex', gap:1 }}>
                   {dayActs.slice(0,2).map((a, ei) => (
@@ -450,7 +451,7 @@ export default function Calendario({ competenciaActiva, navYear, navMonth, onNav
                   ))}
                 </div>
               );
-            } else {
+            } else if (dayCount >= 3) {
               // 3+ → deporte con más minutos + badge con el total
               const top = [...dayActs].sort((a,b) => parseFloat(b.minutos) - parseFloat(a.minutos))[0];
               emojiNode = (
@@ -459,7 +460,7 @@ export default function Calendario({ competenciaActiva, navYear, navMonth, onNav
                     {sportIcon(top.deporte_nombre)}
                   </span>
                   <span style={{ position:'absolute', top:-3, right:-6, background: isSel ? 'rgba(255,255,255,0.9)' : 'var(--t-accent)', color: isSel ? 'var(--t-accent)' : 'var(--t-ground)', fontSize:8, fontWeight:800, borderRadius:6, padding:'1px 3px', lineHeight:1.2, fontFamily:"'Barlow Condensed', sans-serif" }}>
-                    {count}
+                    {dayCount}
                   </span>
                 </div>
               );
