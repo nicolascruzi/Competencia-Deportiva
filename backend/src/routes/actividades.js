@@ -153,4 +153,25 @@ router.get('/deportes', async (req, res) => {
   }
 });
 
+// POST /actividades/deportes — crear deporte custom
+router.post('/deportes', async (req, res) => {
+  const { nombre, icono, ponderador_default } = req.body;
+  if (!nombre?.trim()) return res.status(400).json({ error: 'El nombre es obligatorio' });
+  const icono_final = (icono?.trim()) || '🏅';
+  const pond = parseFloat(ponderador_default) || 1.0;
+  try {
+    const result = await pool.query(
+      `INSERT INTO deportes (nombre, icono, ponderador_default)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (nombre) DO UPDATE SET icono = EXCLUDED.icono, ponderador_default = EXCLUDED.ponderador_default
+       RETURNING *`,
+      [nombre.trim(), icono_final, pond]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al crear deporte' });
+  }
+});
+
 module.exports = router;

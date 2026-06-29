@@ -8,3 +8,4 @@ export const createActividad = (body)        => apiFetch('/actividades',      { 
 export const updateActividad = (id, body)    => apiFetch(`/actividades/${id}`,{ method: 'PUT',    body: JSON.stringify(body) });
 export const deleteActividad = (id)          => apiFetch(`/actividades/${id}`,{ method: 'DELETE' });
 export const getDeportes     = ()            => apiFetch('/actividades/deportes');
+export const createDeporte  = (body)        => apiFetch('/actividades/deportes', { method: 'POST', body: JSON.stringify(body) });

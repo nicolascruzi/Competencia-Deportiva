@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getDeportes } from '../api/actividades';
+import { getDeportes, createDeporte } from '../api/actividades';
 import { createCompetencia, joinCompetencia } from '../api/competencias';
 import { useLoading } from '../context/LoadingContext';
 
@@ -102,20 +102,44 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
   const [focusedNombre, setFocusedNombre] = useState(false);
   const [focusedPin, setFocusedPin]       = useState(false);
 
+  // Deporte custom
+  const [customNombre, setCustomNombre]   = useState('');
+  const [customEmoji, setCustomEmoji]     = useState('');
+  const [customPond, setCustomPond]       = useState('1.0');
+  const [addingCustom, setAddingCustom]   = useState(false);
+  const [customError, setCustomError]     = useState('');
+
+  function reloadDeportes() {
+    return getDeportes().then(deps => {
+      setDeportes(deps);
+      setPonders(prev => {
+        const next = { ...prev };
+        deps.forEach(d => { if (!(d.nombre in next)) next[d.nombre] = d.ponderador_default; });
+        return next;
+      });
+    });
+  }
+
   useEffect(() => {
     if (open) {
       setPaso('elegir');
       setNombre(''); setError(''); setPinInput('');
-      withLoading(() =>
-        getDeportes().then(deps => {
-          setDeportes(deps);
-          const initial = {};
-          deps.forEach(d => { initial[d.nombre] = d.ponderador_default; });
-          setPonders(initial);
-        })
-      );
+      setCustomNombre(''); setCustomEmoji(''); setCustomPond('1.0'); setAddingCustom(false); setCustomError('');
+      withLoading(() => reloadDeportes());
     }
   }, [open]);
+
+  async function handleAgregarCustom() {
+    if (!customNombre.trim()) return setCustomError('Ingresá el nombre del deporte');
+    setCustomError('');
+    try {
+      await createDeporte({ nombre: customNombre.trim(), icono: customEmoji.trim() || '🏅', ponderador_default: parseFloat(customPond) || 1.0 });
+      await reloadDeportes();
+      setCustomNombre(''); setCustomEmoji(''); setCustomPond('1.0'); setAddingCustom(false);
+    } catch (err) {
+      setCustomError(err.message);
+    }
+  }
 
   async function handleCrear(e) {
     e.preventDefault();
@@ -231,6 +255,46 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
                   <PonderadorRow key={d.nombre} deporte={d.nombre} icono={d.icono} value={ponders[d.nombre] ?? d.ponderador_default} onChange={v => setPonders(p => ({ ...p, [d.nombre]: v }))} />
                 ))}
               </div>
+
+              {/* Agregar deporte custom */}
+              {!addingCustom ? (
+                <button type="button" onClick={() => setAddingCustom(true)}
+                  style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 12px', borderRadius:12, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13, fontWeight:600, width:'100%', justifyContent:'center', marginTop:4 }}>
+                  + Agregar deporte extra
+                </button>
+              ) : (
+                <div style={{ background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'12px', display:'flex', flexDirection:'column', gap:8, marginTop:4 }}>
+                  <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Deporte extra</div>
+                  {customError && <div style={{ fontSize:12, color:'#F87171' }}>{customError}</div>}
+                  <div style={{ display:'flex', gap:8 }}>
+                    <input
+                      type="text" placeholder="Emoji" value={customEmoji}
+                      onChange={e => setCustomEmoji(e.target.value)}
+                      style={{ width:52, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px', borderRadius:8, fontSize:20, textAlign:'center', outline:'none', flexShrink:0 }}
+                    />
+                    <input
+                      type="text" placeholder="Nombre del deporte" value={customNombre}
+                      onChange={e => setCustomNombre(e.target.value)}
+                      style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                    />
+                    <input
+                      type="number" inputMode="decimal" min="0.1" step="0.1" placeholder="Pond."
+                      value={customPond} onChange={e => setCustomPond(e.target.value)}
+                      style={{ width:60, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-accent)', padding:'8px', borderRadius:8, fontSize:14, textAlign:'center', outline:'none', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, flexShrink:0 }}
+                    />
+                  </div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    <button type="button" onClick={handleAgregarCustom}
+                      style={{ flex:1, padding:'9px', borderRadius:9, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', cursor:'pointer' }}>
+                      Agregar
+                    </button>
+                    <button type="button" onClick={() => { setAddingCustom(false); setCustomError(''); }}
+                      style={{ padding:'9px 14px', borderRadius:9, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:13, cursor:'pointer' }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <button type="submit" disabled={loading}
               style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: loading ? 0.7 : 1, cursor: loading ? 'default' : 'pointer', flexShrink:0 }}>

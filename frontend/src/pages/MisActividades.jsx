@@ -257,29 +257,61 @@ function ActividadCard({ a, onClick }) {
 
 // ─── Evolución de puntos ──────────────────────────────────────────────────────
 
+const MONTHS_ES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS_SHORT_EV = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function getISOWeek(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.getDay() === 0 ? 7 : d.getDay();
+  d.setDate(d.getDate() + 4 - day);
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+
+function getWeekMon(weekKey) {
+  const [y, w] = weekKey.split('-W').map(Number);
+  const jan4 = new Date(y, 0, 4);
+  const jan4Day = jan4.getDay() === 0 ? 7 : jan4.getDay();
+  const mon = new Date(jan4);
+  mon.setDate(jan4.getDate() - (jan4Day - 1) + (w - 1) * 7);
+  return mon;
+}
+
 function Evolucion({ actividades }) {
   const canvasRef = useRef(null);
+  const [granularidad, setGranularidad] = useState('mes'); // 'mes' | 'semana'
+  const [deporteFiltro, setDeporteFiltro] = useState('__all__');
 
-  // Agrupar por mes y acumular puntos
-  const meses = [...new Set(actividades.map(a => a.fecha.slice(0,7)))].sort();
+  // Deportes presentes en las actividades
+  const deportesPresentes = [...new Set(actividades.map(a => a.deporte_nombre))].sort();
+
+  // Actividades filtradas por deporte
+  const actsFiltradas = deporteFiltro === '__all__'
+    ? actividades
+    : actividades.filter(a => a.deporte_nombre === deporteFiltro);
+
+  // Periodos según granularidad
+  const periodos = granularidad === 'mes'
+    ? [...new Set(actsFiltradas.map(a => a.fecha.slice(0,7)))].sort()
+    : [...new Set(actsFiltradas.map(a => getISOWeek(a.fecha)))].sort();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !meses.length) return;
+    if (!canvas || !periodos.length) return;
     const ctx = canvas.getContext('2d');
 
-    // Puntos acumulados por mes
     let acum = 0;
-    const data = meses.map(mes => {
-      const pts = actividades
-        .filter(a => a.fecha.slice(0,7) === mes)
+    const data = periodos.map(p => {
+      const pts = actsFiltradas
+        .filter(a => (granularidad === 'mes' ? a.fecha.slice(0,7) : getISOWeek(a.fecha)) === p)
         .reduce((s, a) => s + parseFloat(a.puntos), 0);
       acum += pts;
-      return { mes, pts, acum };
+      return { p, pts, acum };
     });
 
     const W = canvas.parentElement?.offsetWidth || 300;
-    const H = 220;
+    const H = 200;
     const dpr = window.devicePixelRatio || 1;
     canvas.width  = W * dpr;
     canvas.height = H * dpr;
@@ -287,19 +319,18 @@ function Evolucion({ actividades }) {
     canvas.style.height = H + 'px';
     ctx.scale(dpr, dpr);
 
-    const pad = { top:20, right:20, bottom:36, left:50 };
+    const pad = { top:20, right:16, bottom:32, left:46 };
     const w = W - pad.left - pad.right;
     const h = H - pad.top - pad.bottom;
     const maxVal = Math.max(...data.map(d => d.acum)) || 1;
     const n = data.length;
 
-    // Área rellena bajo la curva
-    const accentR = getComputedStyle(document.documentElement).getPropertyValue('--t-accent-r').trim() || '79,142,247';
+    const accentR = getComputedStyle(document.documentElement).getPropertyValue('--t-accent-r').trim() || '249,115,22';
     const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + h);
     grad.addColorStop(0, `rgba(${accentR},0.22)`);
     grad.addColorStop(1, `rgba(${accentR},0.0)`);
 
-    const xOf = i => pad.left + (i / Math.max(n - 1, 1)) * w;
+    const xOf = i => pad.left + (n === 1 ? w / 2 : (i / (n - 1)) * w);
     const yOf = v => pad.top + h * (1 - v / maxVal);
 
     // Gridlines
@@ -317,53 +348,46 @@ function Evolucion({ actividades }) {
     });
 
     // Área
-    ctx.beginPath();
-    data.forEach((d, i) => {
-      const x = xOf(i), y = yOf(d.acum);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.lineTo(xOf(n - 1), pad.top + h);
-    ctx.lineTo(xOf(0), pad.top + h);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // Línea principal
-    ctx.beginPath();
-    ctx.strokeStyle = `rgb(${accentR})`;
-    ctx.lineWidth = 2.5;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    data.forEach((d, i) => {
-      const x = xOf(i), y = yOf(d.acum);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-
-    // Puntos + etiquetas de mes
-    const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    data.forEach((d, i) => {
-      const x = xOf(i), y = yOf(d.acum);
-      // Punto
+    if (n > 1) {
       ctx.beginPath();
-      ctx.arc(x, y, i === n - 1 ? 5 : 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgb(${accentR})`;
-      ctx.fill();
+      data.forEach((d, i) => { const x = xOf(i), y = yOf(d.acum); i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+      ctx.lineTo(xOf(n-1), pad.top+h); ctx.lineTo(xOf(0), pad.top+h);
+      ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+    }
+
+    // Línea
+    if (n > 1) {
       ctx.beginPath();
-      ctx.arc(x, y, i === n - 1 ? 2.5 : 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = 'var(--t-ground, #0e0f11)';
-      ctx.fill();
-      // Etiqueta mes (solo si hay espacio)
-      const showLabel = n <= 8 || i % Math.ceil(n / 6) === 0 || i === n - 1;
+      ctx.strokeStyle = `rgb(${accentR})`; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      data.forEach((d, i) => { const x = xOf(i), y = yOf(d.acum); i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+      ctx.stroke();
+    }
+
+    // Puntos + etiquetas
+    data.forEach((d, i) => {
+      const x = xOf(i), y = yOf(d.acum);
+      ctx.beginPath(); ctx.arc(x, y, i === n-1 ? 5 : 3.5, 0, Math.PI*2);
+      ctx.fillStyle = `rgb(${accentR})`; ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y, i === n-1 ? 2.5 : 1.5, 0, Math.PI*2);
+      ctx.fillStyle = '#050C14'; ctx.fill();
+
+      const showLabel = n <= 8 || i % Math.ceil(n / 6) === 0 || i === n-1;
       if (showLabel) {
-        const [yy, mm] = d.mes.split('-');
+        let label;
+        if (granularidad === 'mes') {
+          const [yy, mm] = d.p.split('-');
+          label = `${MONTHS_SHORT_EV[parseInt(mm)-1]} ${yy.slice(2)}`;
+        } else {
+          const mon = getWeekMon(d.p);
+          label = `${mon.getDate()}/${mon.getMonth()+1}`;
+        }
         ctx.fillStyle = 'rgba(120,145,180,0.8)';
         ctx.font = `9px Inter, sans-serif`;
-        ctx.textAlign = i === 0 ? 'left' : i === n - 1 ? 'right' : 'center';
-        ctx.fillText(`${MONTHS_SHORT[parseInt(mm) - 1]} ${yy.slice(2)}`, x, H - 8);
+        ctx.textAlign = i === 0 ? 'left' : i === n-1 ? 'right' : 'center';
+        ctx.fillText(label, x, H - 6);
       }
     });
-  }, [actividades, meses]);
+  }, [actsFiltradas, periodos, granularidad]);
 
   useEffect(() => { draw(); }, [draw]);
   useEffect(() => {
@@ -378,29 +402,69 @@ function Evolucion({ actividades }) {
     </div>
   );
 
-  // Stats resumen
-  const totalPts  = actividades.reduce((s, a) => s + parseFloat(a.puntos), 0);
-  const totalMin  = actividades.reduce((s, a) => s + parseFloat(a.minutos), 0);
-  const totalActs = actividades.length;
-  const mejorMes  = (() => {
-    const byMes = {};
-    actividades.forEach(a => {
-      const m = a.fecha.slice(0,7);
-      byMes[m] = (byMes[m] || 0) + parseFloat(a.puntos);
+  // Stats sobre las actividades filtradas
+  const totalPts  = actsFiltradas.reduce((s, a) => s + parseFloat(a.puntos), 0);
+  const totalMin  = actsFiltradas.reduce((s, a) => s + parseFloat(a.minutos), 0);
+  const totalActs = actsFiltradas.length;
+
+  const mejorPeriodo = (() => {
+    if (!periodos.length) return null;
+    const byP = {};
+    actsFiltradas.forEach(a => {
+      const p = granularidad === 'mes' ? a.fecha.slice(0,7) : getISOWeek(a.fecha);
+      byP[p] = (byP[p] || 0) + parseFloat(a.puntos);
     });
-    const best = Object.entries(byMes).sort((a,b) => b[1]-a[1])[0];
+    const best = Object.entries(byP).sort((a,b) => b[1]-a[1])[0];
     if (!best) return null;
-    const [y, m] = best[0].split('-');
-    const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    return { label: `${MONTHS_ES[parseInt(m)-1]} ${y}`, pts: Math.round(best[1]) };
+    let label;
+    if (granularidad === 'mes') {
+      const [y, m] = best[0].split('-');
+      label = `${MONTHS_ES_FULL[parseInt(m)-1]} ${y}`;
+    } else {
+      const mon = getWeekMon(best[0]);
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      const fmt = d => `${d.getDate()}/${d.getMonth()+1}`;
+      label = `${fmt(mon)} – ${fmt(sun)}`;
+    }
+    return { label, pts: Math.round(best[1]) };
   })();
 
   const statStyle = { display:'flex', flexDirection:'column', alignItems:'center', gap:2, flex:1 };
   const valStyle  = { fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, lineHeight:1, fontVariantNumeric:'tabular-nums' };
   const lblStyle  = { fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em' };
 
+  const maxPtsPeriodo = periodos.length
+    ? Math.max(...periodos.map(p => actsFiltradas.filter(a => (granularidad==='mes'?a.fecha.slice(0,7):getISOWeek(a.fecha))===p).reduce((s,a)=>s+parseFloat(a.puntos),0)))
+    : 1;
+
+  const pillBtn = (active) => ({
+    padding:'5px 14px', borderRadius:20, border:'none', cursor:'pointer',
+    fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12,
+    textTransform:'uppercase', letterSpacing:'0.05em',
+    background: active ? 'var(--t-accent)' : 'var(--t-surface2)',
+    color: active ? 'var(--t-ground)' : 'var(--t-muted)',
+    transition:'background 0.15s, color 0.15s',
+  });
+
   return (
-    <div style={{ padding:'16px 16px 32px', display:'flex', flexDirection:'column', gap:20 }}>
+    <div style={{ padding:'16px 16px 32px', display:'flex', flexDirection:'column', gap:16 }}>
+
+      {/* Controles */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+        {/* Granularidad */}
+        <div style={{ display:'flex', gap:4, background:'var(--t-surface2)', borderRadius:22, padding:3 }}>
+          <button style={pillBtn(granularidad==='mes')} onClick={() => setGranularidad('mes')}>Mes</button>
+          <button style={pillBtn(granularidad==='semana')} onClick={() => setGranularidad('semana')}>Semana</button>
+        </div>
+        {/* Filtro deporte */}
+        <select
+          value={deporteFiltro}
+          onChange={e => setDeporteFiltro(e.target.value)}
+          style={{ background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color: deporteFiltro === '__all__' ? 'var(--t-muted)' : 'var(--t-text)', padding:'6px 10px', borderRadius:10, fontSize:12, fontWeight:600, appearance:'none', cursor:'pointer', maxWidth:140 }}>
+          <option value="__all__">Todos los deportes</option>
+          {deportesPresentes.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
 
       {/* Stats resumen */}
       <div style={{ display:'flex', gap:0, background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, overflow:'hidden' }}>
@@ -419,61 +483,76 @@ function Evolucion({ actividades }) {
       </div>
 
       {/* Gráfico */}
-      <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'16px 12px 8px' }}>
-        <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:10 }}>
-          Puntos acumulados
+      {actsFiltradas.length > 0 ? (
+        <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'16px 12px 8px', overflow:'hidden' }}>
+          <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:10 }}>
+            Puntos acumulados · {granularidad === 'mes' ? 'por mes' : 'por semana'}
+          </div>
+          <canvas ref={canvasRef} style={{ display:'block', width:'100%', maxWidth:'100%' }} />
         </div>
-        <canvas ref={canvasRef} style={{ display:'block', width:'100%' }} />
-      </div>
+      ) : (
+        <div style={{ textAlign:'center', padding:'32px 24px', color:'var(--t-muted)', fontSize:13, background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14 }}>
+          Sin actividades de {deporteFiltro} registradas.
+        </div>
+      )}
 
-      {/* Mejor mes */}
-      {mejorMes && (
+      {/* Mejor periodo */}
+      {mejorPeriodo && (
         <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div>
-            <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:4 }}>Mejor mes</div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:18, color:'var(--t-text)' }}>{mejorMes.label}</div>
+            <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:4 }}>
+              Mejor {granularidad === 'mes' ? 'mes' : 'semana'}
+            </div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, color:'var(--t-text)' }}>{mejorPeriodo.label}</div>
           </div>
           <div style={{ textAlign:'right' }}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, color:'var(--t-accent)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>{mejorMes.pts.toLocaleString('es')}</div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, color:'var(--t-accent)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>{mejorPeriodo.pts.toLocaleString('es')}</div>
             <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</div>
           </div>
         </div>
       )}
 
-      {/* Tabla mensual */}
-      <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, overflow:'hidden' }}>
-        <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', padding:'12px 16px 8px', borderBottom:'1px solid var(--t-dim)' }}>
-          Por mes
+      {/* Tabla de periodos */}
+      {periodos.length > 0 && (
+        <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, overflow:'hidden' }}>
+          <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', padding:'12px 16px 8px', borderBottom:'1px solid var(--t-dim)' }}>
+            Por {granularidad === 'mes' ? 'mes' : 'semana'}
+          </div>
+          {[...periodos].reverse().map(p => {
+            const actsP = actsFiltradas.filter(a => (granularidad==='mes'?a.fecha.slice(0,7):getISOWeek(a.fecha))===p);
+            const pts   = Math.round(actsP.reduce((s,a) => s+parseFloat(a.puntos),0));
+            const mins  = Math.round(actsP.reduce((s,a) => s+parseFloat(a.minutos),0));
+            const pct   = Math.round((pts / (maxPtsPeriodo || 1)) * 100);
+            let label;
+            if (granularidad === 'mes') {
+              const [y, m] = p.split('-');
+              label = `${MONTHS_ES_FULL[parseInt(m)-1]} ${y}`;
+            } else {
+              const mon = getWeekMon(p);
+              const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+              const fmt = d => `${d.getDate()}/${d.getMonth()+1}`;
+              label = `${fmt(mon)} – ${fmt(sun)}`;
+            }
+            return (
+              <div key={p} style={{ padding:'10px 16px', borderBottom:'1px solid var(--t-surface2)' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
+                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, color:'var(--t-text)' }}>{label}</span>
+                  <div>
+                    <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{pts.toLocaleString('es')}</span>
+                    <span style={{ fontSize:9, color:'var(--t-muted)', marginLeft:3, textTransform:'uppercase' }}>pts</span>
+                  </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ flex:1, height:3, background:'var(--t-surface2)', borderRadius:2, overflow:'hidden' }}>
+                    <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.7 }} />
+                  </div>
+                  <span style={{ fontSize:10, color:'var(--t-muted)', whiteSpace:'nowrap' }}>{actsP.length} ses · {mins} min</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
-        {[...meses].reverse().map(mes => {
-          const actsDelMes = actividades.filter(a => a.fecha.slice(0,7) === mes);
-          const pts  = Math.round(actsDelMes.reduce((s, a) => s + parseFloat(a.puntos), 0));
-          const mins = Math.round(actsDelMes.reduce((s, a) => s + parseFloat(a.minutos), 0));
-          const [y, m] = mes.split('-');
-          const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-          const maxPtsMes = Math.max(...meses.map(mm => actividades.filter(a=>a.fecha.slice(0,7)===mm).reduce((s,a)=>s+parseFloat(a.puntos),0)));
-          const pct = Math.round((pts / (maxPtsMes || 1)) * 100);
-          return (
-            <div key={mes} style={{ padding:'10px 16px', borderBottom:'1px solid var(--t-surface2)' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, color:'var(--t-text)' }}>
-                  {MONTHS_ES[parseInt(m)-1]} {y}
-                </span>
-                <div style={{ textAlign:'right' }}>
-                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{pts.toLocaleString('es')}</span>
-                  <span style={{ fontSize:9, color:'var(--t-muted)', marginLeft:3, textTransform:'uppercase' }}>pts</span>
-                </div>
-              </div>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <div style={{ flex:1, height:3, background:'var(--t-surface2)', borderRadius:2, overflow:'hidden' }}>
-                  <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.7 }} />
-                </div>
-                <span style={{ fontSize:10, color:'var(--t-muted)', whiteSpace:'nowrap' }}>{actsDelMes.length} ses · {mins} min</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      )}
     </div>
   );
 }

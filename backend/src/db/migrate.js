@@ -100,29 +100,43 @@ CREATE TABLE IF NOT EXISTS likes (
 );
 CREATE INDEX IF NOT EXISTS idx_likes_actividad ON likes(actividad_id);
 
--- Deportes iniciales (los mismos del CSV actual)
+-- Deportes con ponderadores oficiales
 INSERT INTO deportes (nombre, icono, ponderador_default) VALUES
-  ('Bicicleta MTB',    '🚵', 1.5),
-  ('Bicicleta Rodillo','🚴', 1.2),
-  ('Bicicleta Ruta',   '🚴', 1.4),
-  ('Box',              '🥊', 1.6),
-  ('Buceo',            '🤿', 1.3),
-  ('Crossfit',         '🏋️', 1.8),
-  ('Cuerda',           '🪢', 1.4),
-  ('Escalada',         '🧗', 1.5),
-  ('Funcional',        '💪', 1.3),
-  ('Fútbol',           '⚽', 1.4),
-  ('Gimnasio',         '🏋️', 1.2),
-  ('Golf',             '⛳', 1.0),
-  ('Natación',         '🏊', 1.6),
-  ('Padel',            '🏓', 1.3),
-  ('Spinning',         '🚴', 1.3),
-  ('Surf',             '🏄', 1.4),
-  ('Tenis',            '🎾', 1.3),
-  ('Trail Running',    '🏃', 1.7),
-  ('Trekking',         '🥾', 1.3),
-  ('Trote',            '🏃', 1.4)
-ON CONFLICT (nombre) DO NOTHING;
+  ('Natación',           '🏊', 1.50),
+  ('Box',                '🥊', 1.50),
+  ('Trote',              '🏃', 1.40),
+  ('Fútbol',             '⚽', 1.40),
+  ('Basquetbol',         '🏀', 1.30),
+  ('Crossfit',           '🏋️', 1.20),
+  ('Spinning',           '🚴', 1.20),
+  ('Trail Running',      '🏃', 1.40),
+  ('Cuerda',             '🪢', 1.20),
+  ('Tenis',              '🎾', 1.10),
+  ('Bicicleta Rodillo',  '🚴', 1.10),
+  ('Escalada',           '🧗', 1.10),
+  ('Funcional',          '💪', 1.10),
+  ('Bicicleta Ruta',     '🚴', 1.10),
+  ('Gimnasio',           '🏋️', 1.00),
+  ('Elíptica',           '🏃', 1.00),
+  ('Padel',              '🏓', 0.70),
+  ('Trekking',           '🥾', 0.70),
+  ('Surf',               '🏄', 0.70),
+  ('Golf',               '⛳', 0.40),
+  ('Rodeo',              '🤠', 1.40),
+  ('Ski/Snowboard',      '⛷️', 0.30),
+  ('Bicicleta MTB',      '🚵', 1.20),
+  ('Ebike',              '⚡', 0.90),
+  ('Kine',               '🩺', 0.80),
+  ('Topeada',            '🐂', 0.40),
+  ('Buceo',              '🤿', 0.60),
+  ('Ski acuático',       '🎿', 1.50),
+  ('Gimnasia artística', '🤸', 0.80),
+  ('Atletismo',          '🏅', 0.90),
+  ('Pilates',            '🧘', 1.00),
+  ('Caminata',           '🚶', 0.60)
+ON CONFLICT (nombre) DO UPDATE SET
+  ponderador_default = EXCLUDED.ponderador_default,
+  icono = EXCLUDED.icono;
 `;
 
 async function migrate() {
