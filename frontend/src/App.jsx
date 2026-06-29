@@ -66,14 +66,18 @@ function SinCompetencia({ onOpen }) {
 
 const TAB_ORDER = ['ranking', 'calendario', 'feed', 'actividades', 'perfil'];
 
-// Wrapper por tab: detecta el gesto y notifica al padre via onPull/onRelease
+// Wrapper por tab: detecta el gesto, baja el contenido y notifica al padre
 function PullToRefreshTab({ active, onRefresh, onPullChange, children }) {
   const { containerRef, pullY, refreshing } = usePullToRefresh(onRefresh, active);
 
-  // Notificar al padre cada vez que cambia el estado del arrastre
   useEffect(() => {
     onPullChange?.({ pullY, refreshing });
   }, [pullY, refreshing]);
+
+  // pullY va 0..THRESHOLD (56px). El contenido baja esa misma cantidad.
+  // Al soltar y entrar en refreshing queda fijo en THRESHOLD hasta que termina.
+  const THRESHOLD = 56;
+  const offsetY = refreshing ? THRESHOLD : pullY;
 
   return (
     <div
@@ -81,6 +85,9 @@ function PullToRefreshTab({ active, onRefresh, onPullChange, children }) {
       style={{
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
+        transform: offsetY > 0 ? `translateY(${offsetY}px)` : 'none',
+        transition: (refreshing || pullY > 0) ? 'none' : 'transform 0.3s cubic-bezier(0.22,1,0.36,1)',
+        willChange: 'transform',
       }}
     >
       {children}

@@ -1,25 +1,23 @@
 const THRESHOLD = 56;
-const SIZE = 38;
-const R    = 14;
+const SIZE = 34;
+const R    = 13;
 const CIRC = 2 * Math.PI * R;
 
 export default function PullToRefreshIndicator({ pullY, refreshing }) {
-  const visible = pullY > 0 || refreshing;
+  const visible = pullY > 2 || refreshing;
   if (!visible) return null;
 
-  // 0..1 mientras el dedo baja. Al soltar y entrar en refreshing queda en 1.
   const progress = refreshing ? 1 : Math.min(1, pullY / THRESHOLD);
-
-  // El círculo empieza justo pegado al borde inferior de la navbar
-  // y baja hasta THRESHOLD px. Empieza escondido (translateY negativo de su propio tamaño).
-  const travel = refreshing ? THRESHOLD : pullY;
+  // El espacio abierto entre navbar y contenido es `pullY` px (o THRESHOLD cuando refreshing).
+  // Centramos el círculo en ese espacio.
+  const space = refreshing ? THRESHOLD : pullY;
+  const centerOffset = (space - SIZE) / 2; // puede ser negativo al inicio → círculo emerge
 
   return (
     <>
       <style>{`
         @keyframes ptr-spin {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
       <div style={{
@@ -29,52 +27,47 @@ export default function PullToRefreshIndicator({ pullY, refreshing }) {
         right: 0,
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'flex-start',
         zIndex: 45,
         pointerEvents: 'none',
-        // El contenedor sigue el dedo — empieza a -SIZE (oculto bajo navbar)
-        // y viaja hacia abajo hasta THRESHOLD
-        transform: `translateY(${travel - SIZE}px)`,
-        transition: refreshing ? 'none' : 'transform 0.04s linear',
-        willChange: 'transform',
+        // El círculo sube/baja para quedar centrado en el espacio abierto
+        transform: `translateY(${Math.max(0, centerOffset)}px)`,
+        transition: (refreshing || pullY > 0) ? 'none' : 'transform 0.3s cubic-bezier(0.22,1,0.36,1)',
       }}>
-        {/* Fondo del círculo */}
         <div style={{
           width: SIZE,
           height: SIZE,
           borderRadius: '50%',
           background: 'var(--t-surface)',
           border: '1px solid var(--t-dim)',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          // Escala de 0.4 a 1 mientras baja (aparece creciendo)
-          transform: `scale(${0.4 + progress * 0.6})`,
-          transition: refreshing ? 'none' : 'transform 0.04s linear',
+          // Escala de 0.5 a 1 mientras aparece
+          transform: `scale(${Math.min(1, 0.5 + progress * 0.5)})`,
+          transition: (refreshing || pullY > 0) ? 'none' : 'transform 0.3s ease',
         }}>
           <svg
-            width={SIZE - 10}
-            height={SIZE - 10}
-            viewBox="0 0 28 28"
+            width={SIZE - 8}
+            height={SIZE - 8}
+            viewBox="0 0 26 26"
             style={refreshing ? {
               animation: 'ptr-spin 0.75s linear infinite',
-              transformOrigin: '14px 14px',
+              transformOrigin: '13px 13px',
             } : {
-              // Mientras se arrastra, rota según progreso (0→360°)
-              transform: `rotate(${progress * 360}deg)`,
-              transition: 'transform 0.04s linear',
-              transformOrigin: '14px 14px',
+              transform: `rotate(${progress * 300}deg)`,
+              transformOrigin: '13px 13px',
+              transition: 'none',
             }}
           >
-            {/* Track gris */}
-            <circle cx="14" cy="14" r={R} fill="none"
-              stroke="var(--t-dim)" strokeWidth="2.5" />
-            {/* Arco naranja que crece con el progreso */}
-            <circle cx="14" cy="14" r={R} fill="none"
-              stroke="var(--t-accent)" strokeWidth="2.5"
+            {/* Track gris tenue */}
+            <circle cx="13" cy="13" r={R} fill="none"
+              stroke="var(--t-dim)" strokeWidth="2.2" />
+            {/* Arco naranja que crece */}
+            <circle cx="13" cy="13" r={R} fill="none"
+              stroke="var(--t-accent)" strokeWidth="2.2"
               strokeLinecap="round"
-              strokeDasharray={`${CIRC * (refreshing ? 0.25 : progress * 0.85)} ${CIRC}`}
+              strokeDasharray={`${CIRC * (refreshing ? 0.25 : Math.max(0.08, progress * 0.8))} ${CIRC}`}
               strokeDashoffset={CIRC * 0.25}
             />
           </svg>
