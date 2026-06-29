@@ -15,6 +15,8 @@ import ActivityModal from './components/ActivityModal';
 import ActivityToast from './components/ActivityToast';
 import CrearCompetenciaModal from './components/CrearCompetenciaModal';
 import OnboardingModal from './components/OnboardingModal';
+import PullToRefreshIndicator from './components/PullToRefreshIndicator';
+import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { getCompetencia } from './api/competencias';
 import { getActividades } from './api/actividades';
 import { useLoading } from './context/LoadingContext';
@@ -63,6 +65,28 @@ function SinCompetencia({ onOpen }) {
 }
 
 const TAB_ORDER = ['ranking', 'calendario', 'feed', 'actividades', 'perfil'];
+
+// Wrapper por tab que implementa pull-to-refresh
+function PullToRefreshTab({ id, active, onRefresh, children }) {
+  const { containerRef, pullY, refreshing } = usePullToRefresh(onRefresh, active);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: 'relative',
+        overflowY: 'auto',
+        // desplaza el contenido hacia abajo mientras se arrastra
+        transform: pullY > 0 ? `translateY(${pullY}px)` : 'none',
+        transition: refreshing || pullY > 0 ? 'none' : 'transform 0.3s cubic-bezier(0.22,1,0.36,1)',
+        WebkitOverflowScrolling: 'touch',
+      }}
+    >
+      <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} />
+      {children}
+    </div>
+  );
+}
 
 function AppShell() {
   const { user, loading } = useAuth();
@@ -197,16 +221,23 @@ function AppShell() {
                     position:'relative', overflow:'hidden' }}>
         {TAB_ORDER.map((id, i) => {
           const offsetPct = (i - activeIdx) * 100;
+          const isActive  = i === activeIdx;
           return (
             <div key={id} style={{
-              position: i === activeIdx ? 'relative' : 'absolute',
+              position: isActive ? 'relative' : 'absolute',
               top: 0, left: 0, width: '100%',
               transform: `translateX(${offsetPct}%)`,
               transition: 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)',
-              pointerEvents: i === activeIdx ? 'auto' : 'none',
+              pointerEvents: isActive ? 'auto' : 'none',
               visibility: Math.abs(i - activeIdx) > 1 ? 'hidden' : 'visible',
             }}>
-              {tabContent[id]}
+              <PullToRefreshTab
+                id={id}
+                active={isActive}
+                onRefresh={() => setRefreshKey(k => k + 1)}
+              >
+                {tabContent[id]}
+              </PullToRefreshTab>
             </div>
           );
         })}
