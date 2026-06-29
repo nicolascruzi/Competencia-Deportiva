@@ -8,6 +8,13 @@ const DAYS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+const SPORT_ICONS = {
+  'Bicicleta MTB':'🚵','Bicicleta Rodillo':'🚴','Bicicleta Ruta':'🚴','Box':'🥊',
+  'Buceo':'🤿','Crossfit':'🏋️','Cuerda':'🪢','Escalada':'🧗','Funcional':'💪',
+  'Fútbol':'⚽','Gimnasio':'🏋️','Golf':'⛳','Natación':'🏊','Padel':'🏓',
+  'Spinning':'🚴','Surf':'🏄','Tenis':'🎾','Trail Running':'🏃','Trekking':'🥾','Trote':'🏃',
+};
+
 const IconCamera = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
@@ -423,28 +430,57 @@ export default function Calendario({ competenciaActiva, navYear, navMonth, onNav
             const count    = byDate[key]?.length || 0;
             const isSel    = selectedKey === key;
 
+            // Emojis del día
+            const dayActs  = byDate[key] || [];
+            const sportIcon = s => SPORT_ICONS[s] || '🏅';
+            let emojiNode = null;
+            if (count === 1) {
+              emojiNode = (
+                <span style={{ fontSize: isSel ? 13 : 14, lineHeight:1, filter: isSel ? 'brightness(0) invert(1)' : 'none', opacity: isSel ? 0.85 : 1 }}>
+                  {sportIcon(dayActs[0].deporte_nombre)}
+                </span>
+              );
+            } else if (count === 2) {
+              emojiNode = (
+                <div style={{ display:'flex', gap:1 }}>
+                  {dayActs.slice(0,2).map((a, ei) => (
+                    <span key={ei} style={{ fontSize:10, lineHeight:1, filter: isSel ? 'brightness(0) invert(1)' : 'none', opacity: isSel ? 0.85 : 1 }}>
+                      {sportIcon(a.deporte_nombre)}
+                    </span>
+                  ))}
+                </div>
+              );
+            } else {
+              // 3+ → deporte con más minutos + badge con el total
+              const top = [...dayActs].sort((a,b) => parseFloat(b.minutos) - parseFloat(a.minutos))[0];
+              emojiNode = (
+                <div style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ fontSize:13, lineHeight:1, filter: isSel ? 'brightness(0) invert(1)' : 'none', opacity: isSel ? 0.85 : 1 }}>
+                    {sportIcon(top.deporte_nombre)}
+                  </span>
+                  <span style={{ position:'absolute', top:-3, right:-6, background: isSel ? 'rgba(255,255,255,0.9)' : 'var(--t-accent)', color: isSel ? 'var(--t-accent)' : 'var(--t-ground)', fontSize:8, fontWeight:800, borderRadius:6, padding:'1px 3px', lineHeight:1.2, fontFamily:"'Barlow Condensed', sans-serif" }}>
+                    {count}
+                  </span>
+                </div>
+              );
+            }
+
             return (
               <button key={key} onClick={() => handleDayClick(d)}
                 style={{
                   position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                   aspectRatio:'1', borderRadius:12, border:'none', cursor: hasActs ? 'pointer' : 'default',
                   background: isSel ? 'var(--t-accent)' : isToday ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
-                  WebkitTapHighlightColor:'transparent', gap:2,
+                  WebkitTapHighlightColor:'transparent', gap:1,
                 }}>
                 <span style={{
                   fontFamily:"'Barlow Condensed', sans-serif", fontWeight: isToday || isSel ? 900 : 600,
-                  fontSize:16, lineHeight:1,
+                  fontSize: hasActs ? 13 : 16, lineHeight:1,
                   color: isSel ? 'var(--t-ground)' : isToday ? 'var(--t-accent)' : hasActs ? 'var(--t-text)' : 'var(--t-muted)',
                 }}>
                   {d}
                 </span>
-                {hasActs && (
-                  <div style={{ display:'flex', gap:2 }}>
-                    {Array.from({ length: Math.min(count, 3) }).map((_, ci) => (
-                      <div key={ci} style={{ width:4, height:4, borderRadius:'50%', background: isSel ? 'var(--t-ground)' : 'var(--t-accent)', opacity: isSel ? 0.7 : 0.8 }} />
-                    ))}
-                  </div>
-                )}
+                {emojiNode}
               </button>
             );
           })}
