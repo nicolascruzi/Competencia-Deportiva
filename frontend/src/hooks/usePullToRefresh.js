@@ -23,9 +23,22 @@ export function usePullToRefresh(onRefresh, enabled = true) {
     const el = containerRef.current;
     if (!el) return;
 
+    // Encuentra el elemento realmente scrolleado bajo el punto de toque.
+    // Sube por el DOM desde el target hasta encontrar uno con scrollTop > 0
+    // o hasta llegar al wrapper del tab.
+    function getScrollTop(touchTarget) {
+      let node = touchTarget;
+      while (node && node !== el) {
+        if (node.scrollTop > 0) return node.scrollTop;
+        node = node.parentElement;
+      }
+      return el.scrollTop;
+    }
+
     function onTouchStart(e) {
       if (refreshingRef.current) return;
-      if (el.scrollTop > 0) return;
+      // Verificar el scrollTop real del elemento bajo el dedo
+      if (getScrollTop(e.target) > 0) return;
       startY.current    = e.touches[0].clientY;
       activeGesture.current = false;
     }
@@ -34,13 +47,13 @@ export function usePullToRefresh(onRefresh, enabled = true) {
       if (refreshingRef.current || startY.current === null) return;
       const dy = e.touches[0].clientY - startY.current;
       if (dy <= 0) { activeGesture.current = false; return; }
-      if (el.scrollTop > 0) { startY.current = null; return; }
+      // Si el elemento bajo el dedo scrolleó, cancelar el gesto
+      if (getScrollTop(e.target) > 0) { startY.current = null; setPullY(0); return; }
 
       activeGesture.current = true;
-      // Resistencia tipo Instagram: el círculo se mueve menos que el dedo
       const visual = Math.min(THRESHOLD, dy * RESIST);
       setPullY(visual);
-      e.preventDefault(); // evitar bounce nativo
+      e.preventDefault();
     }
 
     function onTouchEnd() {
