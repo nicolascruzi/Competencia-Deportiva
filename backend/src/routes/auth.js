@@ -7,9 +7,13 @@ const { authMiddleware } = require('../middleware/auth');
 const router = express.Router();
 const SALT_ROUNDS = 12;
 
+const USER_FIELDS = `id, email, nombre, apellido, apodo,
+  COALESCE(apodo, nombre) AS nombre_display,
+  role, created_at, foto_perfil_url, peso_kg, estatura_cm, fecha_nacimiento, sexo`;
+
 function makeToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, nombre: user.nombre, role: user.role },
+    { id: user.id, email: user.email, nombre: user.nombre_display || user.nombre, role: user.role },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -17,7 +21,7 @@ function makeToken(user) {
 
 // POST /auth/register
 router.post('/register', async (req, res) => {
-  const { email, nombre, password } = req.body;
+  const { email, nombre, apellido, password } = req.body;
 
   if (!email || !nombre || !password)
     return res.status(400).json({ error: 'email, nombre y password son requeridos' });
@@ -32,8 +36,9 @@ router.post('/register', async (req, res) => {
 
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
     const result = await pool.query(
-      'INSERT INTO users (email, nombre, password_hash) VALUES ($1, $2, $3) RETURNING id, email, nombre, role',
-      [email.toLowerCase(), nombre.trim(), hash]
+      `INSERT INTO users (email, nombre, apellido, password_hash) VALUES ($1, $2, $3, $4)
+       RETURNING ${USER_FIELDS}`,
+      [email.toLowerCase(), nombre.trim(), apellido?.trim() || null, hash]
     );
 
     const user = result.rows[0];
@@ -53,7 +58,7 @@ router.post('/login', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT id, email, nombre, role, password_hash FROM users WHERE email = $1',
+      `SELECT ${USER_FIELDS}, password_hash FROM users WHERE email = $1`,
       [email.toLowerCase()]
     );
 
@@ -78,7 +83,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, nombre, role, created_at, foto_perfil_url, peso_kg, estatura_cm, fecha_nacimiento, sexo FROM users WHERE id = $1',
+      `SELECT ${USER_FIELDS} FROM users WHERE id = $1`,
       [req.user.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });

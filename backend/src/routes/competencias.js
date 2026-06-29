@@ -188,6 +188,9 @@ router.get('/:id/ranking', authMiddleware, async (req, res) => {
        SELECT
          u.id,
          u.nombre,
+         u.apellido,
+         u.apodo,
+         COALESCE(u.apodo, u.nombre) AS nombre_display,
          u.foto_perfil_url,
          COUNT(a.id)::int                                                          AS actividades,
          COALESCE(SUM(a.minutos), 0)                                               AS minutos,
@@ -200,7 +203,7 @@ router.get('/:id/ranking', authMiddleware, async (req, res) => {
        FROM users u
        JOIN participantes p ON p.user_id = u.id
        LEFT JOIN actividades a ON a.user_id = u.id ${mesFilter}
-       GROUP BY u.id, u.nombre, u.foto_perfil_url
+       GROUP BY u.id, u.nombre, u.apellido, u.apodo, u.foto_perfil_url
        ORDER BY puntos DESC, minutos DESC`,
       params
     );
@@ -252,7 +255,9 @@ router.get('/:id/actividades', authMiddleware, async (req, res) => {
     const params = mes ? [id, mes] : [id];
 
     const { rows } = await pool.query(
-      `SELECT a.id, u.id AS user_id, u.nombre, u.foto_perfil_url, a.deporte_nombre, a.minutos,
+      `SELECT a.id, u.id AS user_id, u.nombre, u.apellido, u.apodo,
+              COALESCE(u.apodo, u.nombre) AS nombre_display,
+              u.foto_perfil_url, a.deporte_nombre, a.minutos,
               a.ponderador AS ponderador_original,
               TO_CHAR(a.fecha, 'YYYY-MM-DD') AS fecha,
               a.notas, a.foto_url, a.created_at

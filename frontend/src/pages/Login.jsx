@@ -9,7 +9,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const [loginForm, setLoginForm]       = useState({ email: '', password: '' });
-  const [registerForm, setRegisterForm] = useState({ nombre: '', email: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ nombre: '', apellido: '', email: '', password: '' });
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -28,7 +28,7 @@ export default function Login() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const data = await register(registerForm.nombre, registerForm.email, registerForm.password);
+      const data = await register(registerForm.nombre, registerForm.apellido, registerForm.email, registerForm.password);
       saveLogin(data.token, data.user);
     } catch (err) {
       setError(err.message);
@@ -127,13 +127,22 @@ export default function Login() {
               </form>
             ) : (
               <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                <Field label="Nombre">
-                  <input
-                    type="text" required placeholder="Tu nombre"
-                    value={registerForm.nombre}
-                    onChange={e => setRegisterForm(f => ({ ...f, nombre: e.target.value }))}
-                  />
-                </Field>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <Field label="Nombre">
+                    <input
+                      type="text" required placeholder="Tu nombre"
+                      value={registerForm.nombre}
+                      onChange={e => setRegisterForm(f => ({ ...f, nombre: e.target.value }))}
+                    />
+                  </Field>
+                  <Field label="Apellido">
+                    <input
+                      type="text" placeholder="Apellido"
+                      value={registerForm.apellido}
+                      onChange={e => setRegisterForm(f => ({ ...f, apellido: e.target.value }))}
+                    />
+                  </Field>
+                </div>
                 <Field label="Email">
                   <input
                     type="email" required placeholder="tu@email.com"

@@ -14,6 +14,7 @@ import BottomTabBar from './components/BottomTabBar';
 import ActivityModal from './components/ActivityModal';
 import ActivityToast from './components/ActivityToast';
 import CrearCompetenciaModal from './components/CrearCompetenciaModal';
+import OnboardingModal from './components/OnboardingModal';
 import { getCompetencia } from './api/competencias';
 import { getActividades } from './api/actividades';
 import { useLoading } from './context/LoadingContext';
@@ -77,10 +78,20 @@ function AppShell() {
   const [restoringComp, setRestoringComp]     = useState(true);
   const [toast, setToast]                     = useState(null); // { actividad, ptsAntes, ptsDespues }
   const [evolucionSignal, setEvolucionSignal] = useState(0);
+  const [showOnboarding, setShowOnboarding]   = useState(false);
   // Estado de mes compartido entre Ranking y Calendario
   const _now = new Date();
   const [navYear,  setNavYear]  = useState(_now.getFullYear());
   const [navMonth, setNavMonth] = useState(_now.getMonth()); // -1 = Acumulado
+
+  // Mostrar onboarding a usuarios nuevos (sin apodo ni fecha de nacimiento)
+  useEffect(() => {
+    if (!user) return;
+    const key = `nanao_onboarding_done_${user.id}`;
+    if (!localStorage.getItem(key) && !user.apodo && !user.fecha_nacimiento) {
+      setShowOnboarding(true);
+    }
+  }, [user?.id]);
 
   // Restaurar última competencia cuando el usuario está listo
   useEffect(() => {
@@ -252,6 +263,13 @@ function AppShell() {
         onClose={() => setCrearOpen(false)}
         onCreated={comp => { handleCreated(); setCompetenciaActiva(comp); }}
       />
+
+      {showOnboarding && (
+        <OnboardingModal onClose={() => {
+          localStorage.setItem(`nanao_onboarding_done_${user.id}`, '1');
+          setShowOnboarding(false);
+        }} />
+      )}
     </>
   );
 }

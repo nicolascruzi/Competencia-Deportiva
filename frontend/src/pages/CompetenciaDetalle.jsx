@@ -33,14 +33,15 @@ function getPersonColor(nombre, nombres) {
 function aggregateByPerson(acts) {
   const map = {};
   acts.forEach(a => {
-    if (!map[a.nombre]) map[a.nombre] = { nombre: a.nombre, foto_perfil_url: a.foto_perfil_url ?? null, pts: 0, minutos: 0, actividades: 0, deportes: new Set(), ultimaFecha: null };
-    if (!map[a.nombre].foto_perfil_url && a.foto_perfil_url) map[a.nombre].foto_perfil_url = a.foto_perfil_url;
-    map[a.nombre].pts       += a.puntos;
-    map[a.nombre].minutos   += parseFloat(a.minutos);
-    map[a.nombre].actividades++;
-    map[a.nombre].deportes.add(a.deporte_nombre);
+    const key = a.nombre_display || a.nombre;
+    if (!map[key]) map[key] = { nombre: key, foto_perfil_url: a.foto_perfil_url ?? null, pts: 0, minutos: 0, actividades: 0, deportes: new Set(), ultimaFecha: null };
+    if (!map[key].foto_perfil_url && a.foto_perfil_url) map[key].foto_perfil_url = a.foto_perfil_url;
+    map[key].pts       += a.puntos;
+    map[key].minutos   += parseFloat(a.minutos);
+    map[key].actividades++;
+    map[key].deportes.add(a.deporte_nombre);
     const f = new Date(a.fecha);
-    if (!map[a.nombre].ultimaFecha || f > map[a.nombre].ultimaFecha) map[a.nombre].ultimaFecha = f;
+    if (!map[key].ultimaFecha || f > map[key].ultimaFecha) map[key].ultimaFecha = f;
   });
   return Object.values(map).sort((a, b) => b.pts - a.pts).map((p, i) => ({ ...p, rank: i + 1 }));
 }
@@ -396,7 +397,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
 
   const people = rankingData.length
     ? rankingData.map((r, i) => ({
-        nombre:          r.nombre,
+        nombre:          r.nombre_display || r.nombre,
         foto_perfil_url: r.foto_perfil_url,
         pts:             parseFloat(r.puntos) || 0,
         minutos:         parseFloat(r.minutos) || 0,
@@ -673,7 +674,7 @@ function Calendario({ acts, mes, meses, onMes }) {
               <span style={{ fontSize:20, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:13, fontWeight:600, color:'var(--t-text)' }}>{a.deporte_nombre}</div>
-                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>{a.nombre}</div>
+                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>{a.nombre_display || a.nombre}</div>
                 {a.notas && (
                   <div style={{ fontSize:11, color:'var(--t-muted2)', fontStyle:'italic', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     {a.notas}
@@ -1551,8 +1552,8 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
     if (loading) return <Spinner />;
     switch (tab) {
       case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
-      case 'ranking':  return <Ranking  acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre} onOpenProfile={n => setProfile(n)} />;
-      case 'calendar': return <Calendario acts={acts.filter(a => a.nombre === user?.nombre)} mes={mes} meses={[]} onMes={() => {}} />;
+      case 'ranking':  return <Ranking  acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={n => setProfile(n)} />;
+      case 'calendar': return <Calendario acts={acts.filter(a => (a.nombre_display || a.nombre) === (user?.nombre_display || user?.nombre))} mes={mes} meses={[]} onMes={() => {}} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
       case 'deportes': return <Deportes acts={acts} />;

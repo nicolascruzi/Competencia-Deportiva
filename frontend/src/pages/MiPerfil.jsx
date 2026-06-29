@@ -168,6 +168,8 @@ export default function MiPerfil() {
         return label + (edad !== null ? ` · ${edad} años` : '');
       })()
     : null;
+  const nombreCompleto = [user?.nombre, user?.apellido].filter(Boolean).join(' ');
+  const displayName = user?.nombre_display || user?.apodo || user?.nombre || '';
 
   return (
     <div style={{ paddingBottom:32 }}>
@@ -184,7 +186,7 @@ export default function MiPerfil() {
                 <img src={user.foto_perfil_url} alt="perfil" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
               ) : (
                 <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:30, color:'var(--t-accent)' }}>
-                  {user?.nombre?.charAt(0).toUpperCase()}
+                  {displayName?.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
@@ -201,9 +203,12 @@ export default function MiPerfil() {
           </div>
 
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
-              {user?.nombre}
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-accent)' }}>
+              {displayName}
             </div>
+            {nombreCompleto && displayName !== nombreCompleto && (
+              <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:2, lineHeight:1 }}>{nombreCompleto}</div>
+            )}
             <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{user?.email}</div>
           </div>
         </div>
@@ -232,6 +237,9 @@ export default function MiPerfil() {
           Datos personales
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+          <PersonalCell label="Apodo (ranking)" value={user?.apodo} onEdit={() => setEditingField('apodo')} />
+          <PersonalCell label="Nombre" value={user?.nombre} onEdit={() => setEditingField('nombre')} />
+          <PersonalCell label="Apellido" value={user?.apellido} onEdit={() => setEditingField('apellido')} />
           <PersonalCell label="Sexo" value={sexoLabel} onEdit={() => setEditingField('sexo')} />
           <PersonalCell label="Nacimiento" value={fechaNacDisplay} onEdit={() => setEditingField('fecha_nacimiento')} />
           <PersonalCell label="Peso" value={user?.peso_kg ? `${user.peso_kg} kg` : null} onEdit={() => setEditingField('peso_kg')} />
@@ -241,20 +249,26 @@ export default function MiPerfil() {
           <div style={{ marginTop:12 }}>
             <EditField
               label={
+                editingField === 'apodo' ? 'Apodo (aparece en ranking)' :
+                editingField === 'nombre' ? 'Nombre' :
+                editingField === 'apellido' ? 'Apellido' :
                 editingField === 'sexo' ? 'Sexo' :
                 editingField === 'fecha_nacimiento' ? 'Fecha de nacimiento' :
                 editingField === 'peso_kg' ? 'Peso' : 'Estatura'
               }
-              displayValue={null}
               rawValue={
+                editingField === 'apodo' ? (user?.apodo ?? '') :
+                editingField === 'nombre' ? (user?.nombre ?? '') :
+                editingField === 'apellido' ? (user?.apellido ?? '') :
                 editingField === 'sexo' ? (user?.sexo ?? '') :
-                editingField === 'fecha_nacimiento' ? (user?.fecha_nacimiento ?? '') :
+                editingField === 'fecha_nacimiento' ? (user?.fecha_nacimiento?.slice(0,10) ?? '') :
                 editingField === 'peso_kg' ? (user?.peso_kg ?? '') :
                 (user?.estatura_cm ?? '')
               }
               type={
                 editingField === 'sexo' ? 'text' :
-                editingField === 'fecha_nacimiento' ? 'date' : 'number'
+                editingField === 'fecha_nacimiento' ? 'date' :
+                (editingField === 'peso_kg' || editingField === 'estatura_cm') ? 'number' : 'text'
               }
               options={editingField === 'sexo' ? [
                 { label:'Masculino', value:'M' },

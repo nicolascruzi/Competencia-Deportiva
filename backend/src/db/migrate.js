@@ -80,6 +80,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS peso_kg              NUMERIC(5,2);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS estatura_cm          INTEGER;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS fecha_nacimiento     DATE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS sexo                 TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS apellido             TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS apodo                TEXT;
 
 -- Comentarios en actividades
 CREATE TABLE IF NOT EXISTS comentarios (

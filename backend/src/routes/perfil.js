@@ -20,18 +20,25 @@ function uploadToCloudinary(buffer, options) {
   });
 }
 
+const USER_FIELDS = `id, email, nombre, apellido, apodo,
+  COALESCE(apodo, nombre) AS nombre_display,
+  role, created_at, foto_perfil_url, peso_kg, estatura_cm, fecha_nacimiento, sexo`;
+
 // PUT /perfil — actualiza datos del perfil
 router.put('/', authMiddleware, async (req, res) => {
-  const { peso_kg, estatura_cm, fecha_nacimiento, sexo } = req.body;
+  const { peso_kg, estatura_cm, fecha_nacimiento, sexo, nombre, apellido, apodo } = req.body;
 
   const campos = [];
   const valores = [];
   let idx = 1;
 
-  if (peso_kg !== undefined)        { campos.push(`peso_kg = $${idx++}`);        valores.push(peso_kg); }
-  if (estatura_cm !== undefined)    { campos.push(`estatura_cm = $${idx++}`);    valores.push(estatura_cm); }
+  if (nombre !== undefined)          { campos.push(`nombre = $${idx++}`);          valores.push(nombre?.trim() || null); }
+  if (apellido !== undefined)        { campos.push(`apellido = $${idx++}`);        valores.push(apellido?.trim() || null); }
+  if (apodo !== undefined)           { campos.push(`apodo = $${idx++}`);           valores.push(apodo?.trim() || null); }
+  if (peso_kg !== undefined)         { campos.push(`peso_kg = $${idx++}`);         valores.push(peso_kg); }
+  if (estatura_cm !== undefined)     { campos.push(`estatura_cm = $${idx++}`);     valores.push(estatura_cm); }
   if (fecha_nacimiento !== undefined){ campos.push(`fecha_nacimiento = $${idx++}`); valores.push(fecha_nacimiento); }
-  if (sexo !== undefined)           { campos.push(`sexo = $${idx++}`);           valores.push(sexo); }
+  if (sexo !== undefined)            { campos.push(`sexo = $${idx++}`);            valores.push(sexo); }
 
   if (campos.length === 0)
     return res.status(400).json({ error: 'No se recibió ningún campo para actualizar' });
@@ -41,7 +48,7 @@ router.put('/', authMiddleware, async (req, res) => {
   try {
     const { rows: [user] } = await pool.query(
       `UPDATE users SET ${campos.join(', ')} WHERE id = $${idx}
-       RETURNING id, email, nombre, role, created_at, foto_perfil_url, peso_kg, estatura_cm, fecha_nacimiento, sexo`,
+       RETURNING ${USER_FIELDS}`,
       valores
     );
 
