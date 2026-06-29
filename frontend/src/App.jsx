@@ -76,6 +76,7 @@ function AppShell() {
   const [adminSheetOpen, setAdminSheetOpen]   = useState(false);
   const [restoringComp, setRestoringComp]     = useState(true);
   const [toast, setToast]                     = useState(null); // { actividad, ptsAntes, ptsDespues }
+  const [evolucionSignal, setEvolucionSignal] = useState(0);
   // Estado de mes compartido entre Ranking y Calendario
   const _now = new Date();
   const [navYear,  setNavYear]  = useState(_now.getFullYear());
@@ -161,7 +162,7 @@ function AppShell() {
       : <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />,
     calendario:  <Calendario   key={refreshKey} competenciaActiva={competenciaActiva} navYear={navYear} navMonth={navMonth} onNavYear={setNavYear} onNavMonth={setNavMonth} />,
     feed:        <FeedGrupal   key={competenciaActiva?.id} competencia={competenciaActiva} />,
-    actividades: <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} />,
+    actividades: <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} evolucionSignal={evolucionSignal} />,
     perfil:      <MiPerfil     key={refreshKey} />,
   };
 
@@ -238,6 +239,12 @@ function AppShell() {
           ptsAntes={toast.ptsAntes}
           ptsDespues={toast.ptsDespues}
           onClose={() => setToast(null)}
+          onVerEvolucion={() => {
+            setToast(null);
+            setMainTab('actividades');
+            // señal para que MisActividades abra subtab evolucion
+            setEvolucionSignal(n => n + 1);
+          }}
         />
       )}
       <CrearCompetenciaModal

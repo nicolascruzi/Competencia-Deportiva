@@ -1,80 +1,69 @@
 import { useEffect, useRef, useState } from 'react';
 
-// Muestra un overlay de celebración animado tras guardar una actividad.
 // Props:
-//   actividad  — la actividad recién creada { deporte_nombre, minutos, ponderador, puntos, fecha }
-//   ptsAntes   — puntos acumulados esta semana ANTES de guardar
-//   ptsDespues — puntos acumulados esta semana DESPUÉS de guardar
-//   onClose    — callback para cerrar
-export default function ActivityToast({ actividad, ptsAntes, ptsDespues, onClose }) {
+//   actividad   — la actividad recién creada
+//   ptsAntes    — pts acumulados esta semana ANTES de guardar
+//   ptsDespues  — pts acumulados esta semana DESPUÉS de guardar
+//   onClose     — callback para cerrar
+//   onVerEvolucion — callback para navegar a "actividades" subtab "evolucion"
+export default function ActivityToast({ actividad, ptsAntes, ptsDespues, onClose, onVerEvolucion }) {
   const [visible, setVisible] = useState(false);
   const [barPct, setBarPct]   = useState(0);
   const [numPts, setNumPts]   = useState(ptsAntes);
-  const autoRef = useRef(null);
 
-  const delta      = Math.round(ptsDespues - ptsAntes);
-  const ptsDisplay = Math.round(ptsDespues);
+  const delta         = Math.round(ptsDespues - ptsAntes);
+  const pts_actividad = parseFloat(actividad?.puntos) || Math.round(parseFloat(actividad?.minutos) * parseFloat(actividad?.ponderador));
 
-  // Animar entrada + barra
   useEffect(() => {
     const t1 = setTimeout(() => setVisible(true), 30);
-    const t2 = setTimeout(() => {
-      // barra: muestra cuánto representa ptsDespues respecto a un máximo visual dinámico
-      // usamos ptsDespues * 1.3 como techo para que nunca llegue al 100% (da sensación de progreso continuo)
-      const pct = Math.min(92, Math.round((ptsDespues / (ptsDespues * 1.35 || 1)) * 100));
-      setBarPct(pct);
-    }, 120);
 
-    // Animar número de pts desde ptsAntes hasta ptsDespues
-    const duration = 900;
-    const start = Date.now();
-    const from = ptsAntes;
-    const to = ptsDespues;
+    // Animar barra: 74% como valor visual fijo para dar sensación de progreso continuo
+    const t2 = setTimeout(() => setBarPct(74), 150);
+
+    // Animar contador de pts
+    const duration = 900, from = ptsAntes, to = ptsDespues, start = Date.now();
     function tick() {
-      const elapsed = Date.now() - start;
-      const progress = Math.min(1, elapsed / duration);
-      // ease out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setNumPts(from + (to - from) * eased);
-      if (progress < 1) requestAnimationFrame(tick);
+      const p = Math.min(1, (Date.now() - start) / duration);
+      setNumPts(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(tick);
     }
     const t3 = setTimeout(() => requestAnimationFrame(tick), 200);
-
-    // Auto-cerrar a los 4s
-    autoRef.current = setTimeout(() => handleClose(), 4200);
 
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, []);
 
   function handleClose() {
-    clearTimeout(autoRef.current);
     setVisible(false);
-    setTimeout(onClose, 300);
+    setTimeout(onClose, 280);
   }
 
-  const pts_actividad = parseFloat(actividad?.puntos) || Math.round(parseFloat(actividad?.minutos) * parseFloat(actividad?.ponderador));
+  function handleVerEvolucion() {
+    handleClose();
+    setTimeout(() => onVerEvolucion?.(), 280);
+  }
+
+  const pctAntes = ptsDespues > 0 ? Math.min(72, (ptsAntes / ptsDespues) * 74) : 0;
 
   return (
     <div
-      onClick={handleClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 500,
         display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
         background: visible ? 'rgba(5,12,20,0.72)' : 'rgba(5,12,20,0)',
         backdropFilter: visible ? 'blur(4px)' : 'none',
         WebkitBackdropFilter: visible ? 'blur(4px)' : 'none',
-        transition: 'background 0.28s, backdrop-filter 0.28s',
+        transition: 'background 0.28s',
+        // NO onClick en el fondo — no se cierra al tocar fuera
       }}
     >
       <div
-        onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
           background: 'var(--t-surface)',
           borderRadius: '20px 20px 0 0',
           border: '1px solid var(--t-dim)',
           borderBottom: 'none',
-          padding: '0 0 calc(24px + env(safe-area-inset-bottom))',
+          paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.35s cubic-bezier(0.22,1,0.36,1)',
           overflow: 'hidden',
@@ -85,37 +74,35 @@ export default function ActivityToast({ actividad, ptsAntes, ptsDespues, onClose
           <div style={{ width: 36, height: 3, borderRadius: 2, background: 'var(--t-dim)' }} />
         </div>
 
-        {/* Cabecera */}
-        <div style={{ padding: '0 20px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Cabecera: deporte + pts */}
+        <div style={{ padding: '0 20px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--t-muted)', marginBottom: 2 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--t-muted)', marginBottom: 3 }}>
               Actividad registrada
             </div>
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 22, textTransform: 'uppercase', color: 'var(--t-text)', lineHeight: 1 }}>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 24, textTransform: 'uppercase', color: 'var(--t-text)', lineHeight: 1 }}>
               {actividad?.deporte_nombre}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--t-muted)', marginTop: 3 }}>
+            <div style={{ fontSize: 12, color: 'var(--t-muted)', marginTop: 4 }}>
               {actividad?.minutos} min · ×{parseFloat(actividad?.ponderador).toFixed(1)}
             </div>
           </div>
-
-          {/* Delta pts */}
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 38, color: 'var(--t-accent)', lineHeight: 1, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 42, color: 'var(--t-accent)', lineHeight: 1, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
               +{Math.round(pts_actividad)}
             </div>
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--t-muted)' }}>pts</div>
           </div>
         </div>
 
-        {/* Barra de progreso semanal */}
-        <div style={{ padding: '0 20px', marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--t-muted)' }}>
+        {/* Barra progreso semanal */}
+        <div style={{ padding: '0 20px', marginBottom: 22 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--t-muted)' }}>
               Esta semana
-            </div>
+            </span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 18, color: 'var(--t-accent)', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 20, color: 'var(--t-accent)', fontVariantNumeric: 'tabular-nums' }}>
                 {Math.round(numPts).toLocaleString('es')}
               </span>
               <span style={{ fontSize: 10, color: 'var(--t-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>pts</span>
@@ -123,47 +110,45 @@ export default function ActivityToast({ actividad, ptsAntes, ptsDespues, onClose
           </div>
 
           {/* Track */}
-          <div style={{ height: 10, background: 'var(--t-surface2)', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
-            {/* Tramo anterior (gris más claro) */}
+          <div style={{ height: 12, background: 'var(--t-surface2)', borderRadius: 7, overflow: 'hidden', position: 'relative' }}>
+            {/* Segmento previo */}
             <div style={{
               position: 'absolute', left: 0, top: 0, bottom: 0,
-              width: barPct * (ptsAntes / ptsDespues) + '%',
+              width: pctAntes + '%',
               background: 'var(--t-dim)',
               transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
             }} />
-            {/* Tramo nuevo (naranja, arranca desde donde estaba) */}
+            {/* Segmento nuevo — arranca desde pctAntes y llega a barPct */}
             <div style={{
               position: 'absolute', left: 0, top: 0, bottom: 0,
               width: barPct + '%',
-              background: 'linear-gradient(90deg, var(--t-dim) 0%, var(--t-accent) 100%)',
+              background: `linear-gradient(90deg, var(--t-dim) 0%, var(--t-dim) ${(pctAntes / barPct) * 100}%, var(--t-accent) 100%)`,
               transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
-              boxShadow: '2px 0 8px rgba(249,115,22,0.6)',
+              boxShadow: '3px 0 10px rgba(249,115,22,0.55)',
             }} />
           </div>
 
-          {/* Delta label */}
           <div style={{ marginTop: 8, fontSize: 11, color: 'var(--t-muted)' }}>
             <span style={{ color: '#22C55E', fontWeight: 700 }}>+{delta} pts</span>
             {' '}sumados a tu semana
           </div>
         </div>
 
-        {/* Botón cerrar */}
-        <div style={{ padding: '0 20px' }}>
+        {/* Botones */}
+        <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button
-            onClick={handleClose}
+            onClick={handleVerEvolucion}
             style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: 'var(--t-accent)', color: 'var(--t-ground)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer' }}
           >
-            ¡Listo!
+            Ver evolución
+          </button>
+          <button
+            onClick={handleClose}
+            style={{ width: '100%', padding: '11px', borderRadius: 14, border: '1px solid var(--t-dim)', background: 'transparent', color: 'var(--t-muted)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer' }}
+          >
+            Cerrar
           </button>
         </div>
-
-        <style>{`
-          @keyframes toastPulse {
-            0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
-            50% { box-shadow: 0 0 0 8px rgba(249,115,22,0); }
-          }
-        `}</style>
       </div>
     </div>
   );

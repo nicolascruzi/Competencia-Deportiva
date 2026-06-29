@@ -38,138 +38,188 @@ export default function Login() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'var(--t-ground)' }}>
-      <div style={{ width: '100%', maxWidth: 360, borderRadius: 20, border: '1px solid var(--t-dim)', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 24, background: 'var(--t-surface)' }}>
+    <div style={{
+      minHeight: '100dvh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px 20px',
+      background: 'var(--t-ground)',
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: 400,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 28,
+      }}>
 
-        {/* Logo visual */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-          <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Logo */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <svg width="64" height="64" viewBox="0 0 56 56" fill="none">
             <circle cx="28" cy="28" r="27" stroke="var(--t-accent)" strokeWidth="1.5" fill="rgba(255,255,255,0.04)"/>
             <path d="M31 14l-10 16h9l-5 12 12-18h-9l3-10z" fill="var(--t-accent)"/>
           </svg>
-          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 22, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--t-accent)', lineHeight: 1 }}>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 28, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--t-accent)', lineHeight: 1 }}>
             PURA RACHA
           </div>
-          <div style={{ fontSize: 12, color: 'var(--t-muted)', letterSpacing: '0.02em' }}>
-            Seguí tu racha
+          <div style={{ fontSize: 13, color: 'var(--t-muted)', letterSpacing: '0.03em' }}>
+            Seguí tu racha deportiva
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="grid grid-cols-2 rounded-lg p-1 gap-1" style={{ background: 'var(--t-surface2)' }}>
-          {['login', 'register'].map(t => (
-            <button key={t} onClick={() => { setTab(t); setError(''); }}
-              className="py-2 rounded-md text-sm font-semibold transition-all"
-              style={{
-                background: tab === t ? 'var(--t-dim)' : 'transparent',
-                color: tab === t ? 'var(--t-text)' : 'var(--t-muted)',
-              }}>
-              {t === 'login' ? 'Ingresar' : 'Registrarse'}
-            </button>
-          ))}
-        </div>
+        {/* Card */}
+        <div style={{
+          background: 'var(--t-surface)',
+          border: '1px solid var(--t-dim)',
+          borderRadius: 20,
+          overflow: 'hidden',
+        }}>
 
-        {/* Error */}
-        {error && (
-          <div className="rounded-lg px-4 py-2 text-sm" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#F87171' }}>
-            {error}
+          {/* Tabs */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: 'var(--t-surface2)', borderBottom: '1px solid var(--t-dim)' }}>
+            {[{ id: 'login', label: 'Ingresar' }, { id: 'register', label: 'Registrarse' }].map(t => (
+              <button key={t.id} onClick={() => { setTab(t.id); setError(''); }}
+                style={{
+                  padding: '14px 0',
+                  border: 'none',
+                  borderBottom: tab === t.id ? '2px solid var(--t-accent)' : '2px solid transparent',
+                  background: tab === t.id ? 'var(--t-surface)' : 'transparent',
+                  color: tab === t.id ? 'var(--t-accent)' : 'var(--t-muted)',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 15,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  cursor: 'pointer',
+                  transition: 'color 0.15s, border-color 0.15s, background 0.15s',
+                }}>
+                {t.label}
+              </button>
+            ))}
           </div>
-        )}
 
-        {/* Login form */}
-        {tab === 'login' && (
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <Field label="Email">
-              <input type="email" required placeholder="tu@email.com"
-                value={loginForm.email}
-                onChange={e => setLoginForm(f => ({ ...f, email: e.target.value }))} />
-            </Field>
-            <Field label="Contraseña">
-              <input type="password" required placeholder="••••••"
-                value={loginForm.password}
-                onChange={e => setLoginForm(f => ({ ...f, password: e.target.value }))} />
-            </Field>
-            <SubmitBtn loading={loading}>Entrar</SubmitBtn>
-          </form>
-        )}
+          <div style={{ padding: '28px 24px 28px' }}>
+            {/* Error */}
+            {error && (
+              <div style={{ marginBottom: 20, padding: '12px 14px', borderRadius: 10, background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.3)', color: '#F87171', fontSize: 13, lineHeight: 1.5 }}>
+                {error}
+              </div>
+            )}
 
-        {/* Register form */}
-        {tab === 'register' && (
-          <form onSubmit={handleRegister} className="flex flex-col gap-4">
-            <Field label="Nombre">
-              <input type="text" required placeholder="Tu nombre"
-                value={registerForm.nombre}
-                onChange={e => setRegisterForm(f => ({ ...f, nombre: e.target.value }))} />
-            </Field>
-            <Field label="Email">
-              <input type="email" required placeholder="tu@email.com"
-                value={registerForm.email}
-                onChange={e => setRegisterForm(f => ({ ...f, email: e.target.value }))} />
-            </Field>
-            <Field label="Contraseña">
-              <input type="password" required placeholder="Mínimo 6 caracteres" minLength={6}
-                value={registerForm.password}
-                onChange={e => setRegisterForm(f => ({ ...f, password: e.target.value }))} />
-            </Field>
-            <SubmitBtn loading={loading}>Crear cuenta</SubmitBtn>
-          </form>
-        )}
+            {tab === 'login' ? (
+              <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <Field label="Email">
+                  <input
+                    type="email" required placeholder="tu@email.com"
+                    value={loginForm.email}
+                    onChange={e => setLoginForm(f => ({ ...f, email: e.target.value }))}
+                  />
+                </Field>
+                <Field label="Contraseña">
+                  <input
+                    type="password" required placeholder="••••••••"
+                    value={loginForm.password}
+                    onChange={e => setLoginForm(f => ({ ...f, password: e.target.value }))}
+                  />
+                </Field>
+                <SubmitBtn loading={loading}>Entrar</SubmitBtn>
+              </form>
+            ) : (
+              <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <Field label="Nombre">
+                  <input
+                    type="text" required placeholder="Tu nombre"
+                    value={registerForm.nombre}
+                    onChange={e => setRegisterForm(f => ({ ...f, nombre: e.target.value }))}
+                  />
+                </Field>
+                <Field label="Email">
+                  <input
+                    type="email" required placeholder="tu@email.com"
+                    value={registerForm.email}
+                    onChange={e => setRegisterForm(f => ({ ...f, email: e.target.value }))}
+                  />
+                </Field>
+                <Field label="Contraseña">
+                  <input
+                    type="password" required placeholder="Mínimo 6 caracteres" minLength={6}
+                    value={registerForm.password}
+                    onChange={e => setRegisterForm(f => ({ ...f, password: e.target.value }))}
+                  />
+                </Field>
+                <SubmitBtn loading={loading}>Crear cuenta</SubmitBtn>
+              </form>
+            )}
+          </div>
+        </div>
       </div>
+
+      <style>{`
+        .auth-field input {
+          width: 100%;
+          box-sizing: border-box;
+          background: var(--t-surface2);
+          border: 1.5px solid var(--t-dim);
+          color: var(--t-text);
+          padding: 14px 16px;
+          border-radius: 12px;
+          font-size: 16px;
+          outline: none;
+          transition: border-color 0.15s;
+          -webkit-appearance: none;
+        }
+        .auth-field input:focus {
+          border-color: var(--t-accent);
+        }
+        .auth-field input::placeholder {
+          color: var(--t-muted);
+        }
+      `}</style>
     </div>
   );
 }
 
 function Field({ label, children }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--t-muted)' }}>{label}</label>
-      <div style={{ all: 'unset', display: 'contents' }}>
-        {/* clone input with styles */}
-        {children && (
-          <StyledInput>{children}</StyledInput>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StyledInput({ children }) {
-  return (
-    <div style={{ display: 'contents' }}>
-      {/* Apply styles to the child input via CSS injection trick */}
-      <style>{`
-        .auth-input-wrap input {
-          width: 100%;
-          background: var(--t-surface2);
-          border: 1px solid var(--t-dim);
-          color: var(--t-text);
-          padding: 12px 14px;
-          border-radius: 8px;
-          font-size: 15px;
-          outline: none;
-          transition: border-color 0.15s;
-        }
-        .auth-input-wrap input:focus { border-color: var(--t-accent); }
-        .auth-input-wrap input::placeholder { color: var(--t-muted); }
-      `}</style>
-      <div className="auth-input-wrap">{children}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <label style={{
+        fontSize: 11,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.09em',
+        color: 'var(--t-muted)',
+      }}>
+        {label}
+      </label>
+      <div className="auth-field">{children}</div>
     </div>
   );
 }
 
 function SubmitBtn({ children, loading }) {
   return (
-    <button type="submit" disabled={loading}
-      className="w-full rounded-lg font-bold uppercase tracking-wider transition-opacity mt-1"
+    <button
+      type="submit"
+      disabled={loading}
       style={{
-        fontFamily: "'Barlow Condensed', sans-serif",
-        background: 'var(--t-accent)', color: 'var(--t-ground)',
-        opacity: loading ? 0.7 : 1,
-        padding: '14px 0',
-        fontSize: 16,
+        width: '100%',
+        padding: '15px 0',
+        borderRadius: 14,
         border: 'none',
+        background: 'var(--t-accent)',
+        color: 'var(--t-ground)',
+        fontFamily: "'Barlow Condensed', sans-serif",
+        fontWeight: 800,
+        fontSize: 17,
+        textTransform: 'uppercase',
+        letterSpacing: '0.07em',
+        opacity: loading ? 0.7 : 1,
         cursor: loading ? 'not-allowed' : 'pointer',
-      }}>
+        marginTop: 4,
+        transition: 'opacity 0.15s',
+      }}
+    >
       {loading ? 'Cargando…' : children}
     </button>
   );

@@ -288,14 +288,16 @@ function Evolucion({ actividades }) {
   const deportesPresentes = [...new Set(actividades.map(a => a.deporte_nombre))].sort();
   const mesesPresentes = [...new Set(actividades.map(a => a.fecha.slice(0,7)))].sort().reverse();
 
-  // Actividades filtradas por deporte y mes
+  // En modo mes no hay filtro de mes (mostramos los últimos 4 automáticamente)
+  // En modo semana sí se puede filtrar por mes para acotar las semanas
   const actsFiltradas = actividades
     .filter(a => deporteFiltro === '__all__' || a.deporte_nombre === deporteFiltro)
-    .filter(a => mesFiltro === '__all__' || a.fecha.slice(0,7) === mesFiltro);
+    .filter(a => granularidad === 'semana' && mesFiltro !== '__all__' ? a.fecha.slice(0,7) === mesFiltro : true);
 
   // Periodos según granularidad
+  // En modo mes: últimos 4 meses con actividad
   const periodos = granularidad === 'mes'
-    ? [...new Set(actsFiltradas.map(a => a.fecha.slice(0,7)))].sort()
+    ? [...new Set(actsFiltradas.map(a => a.fecha.slice(0,7)))].sort().slice(-4)
     : [...new Set(actsFiltradas.map(a => getISOWeek(a.fecha)))].sort();
 
   const draw = useCallback(() => {
@@ -303,13 +305,12 @@ function Evolucion({ actividades }) {
     if (!canvas || !periodos.length) return;
     const ctx = canvas.getContext('2d');
 
-    let acum = 0;
+    // pts por período (no acumulado)
     const data = periodos.map(p => {
       const pts = actsFiltradas
         .filter(a => (granularidad === 'mes' ? a.fecha.slice(0,7) : getISOWeek(a.fecha)) === p)
         .reduce((s, a) => s + parseFloat(a.puntos), 0);
-      acum += pts;
-      return { p, pts, acum };
+      return { p, pts };
     });
 
     const W = canvas.parentElement?.offsetWidth || 300;
@@ -324,7 +325,7 @@ function Evolucion({ actividades }) {
     const pad = { top:20, right:16, bottom:32, left:46 };
     const w = W - pad.left - pad.right;
     const h = H - pad.top - pad.bottom;
-    const maxVal = Math.max(...data.map(d => d.acum)) || 1;
+    const maxVal = Math.max(...data.map(d => d.pts)) || 1;
     const n = data.length;
 
     const accentR = getComputedStyle(document.documentElement).getPropertyValue('--t-accent-r').trim() || '249,115,22';
@@ -352,7 +353,7 @@ function Evolucion({ actividades }) {
     // Área
     if (n > 1) {
       ctx.beginPath();
-      data.forEach((d, i) => { const x = xOf(i), y = yOf(d.acum); i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+      data.forEach((d, i) => { const x = xOf(i), y = yOf(d.pts); i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
       ctx.lineTo(xOf(n-1), pad.top+h); ctx.lineTo(xOf(0), pad.top+h);
       ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
     }
@@ -361,13 +362,13 @@ function Evolucion({ actividades }) {
     if (n > 1) {
       ctx.beginPath();
       ctx.strokeStyle = `rgb(${accentR})`; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-      data.forEach((d, i) => { const x = xOf(i), y = yOf(d.acum); i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+      data.forEach((d, i) => { const x = xOf(i), y = yOf(d.pts); i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
       ctx.stroke();
     }
 
     // Puntos + etiquetas
     data.forEach((d, i) => {
-      const x = xOf(i), y = yOf(d.acum);
+      const x = xOf(i), y = yOf(d.pts);
       ctx.beginPath(); ctx.arc(x, y, i === n-1 ? 5 : 3.5, 0, Math.PI*2);
       ctx.fillStyle = `rgb(${accentR})`; ctx.fill();
       ctx.beginPath(); ctx.arc(x, y, i === n-1 ? 2.5 : 1.5, 0, Math.PI*2);
@@ -466,17 +467,19 @@ function Evolucion({ actividades }) {
         </select>
       </div>
 
-      {/* Controles fila 2: filtro de mes */}
-      <select
-        value={mesFiltro}
-        onChange={e => setMesFiltro(e.target.value)}
-        style={{ background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color: mesFiltro === '__all__' ? 'var(--t-muted)' : 'var(--t-text)', padding:'7px 12px', borderRadius:10, fontSize:12, fontWeight:600, appearance:'none', cursor:'pointer', width:'100%' }}>
-        <option value="__all__">Todos los meses</option>
-        {mesesPresentes.map(m => {
-          const [y, mo] = m.split('-');
-          return <option key={m} value={m}>{MONTHS_ES_FULL[parseInt(mo)-1]} {y}</option>;
-        })}
-      </select>
+      {/* Filtro de mes: solo visible en modo semana */}
+      {granularidad === 'semana' && (
+        <select
+          value={mesFiltro}
+          onChange={e => setMesFiltro(e.target.value)}
+          style={{ background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color: mesFiltro === '__all__' ? 'var(--t-muted)' : 'var(--t-text)', padding:'7px 12px', borderRadius:10, fontSize:12, fontWeight:600, appearance:'none', cursor:'pointer', width:'100%' }}>
+          <option value="__all__">Todos los meses</option>
+          {mesesPresentes.map(m => {
+            const [y, mo] = m.split('-');
+            return <option key={m} value={m}>{MONTHS_ES_FULL[parseInt(mo)-1]} {y}</option>;
+          })}
+        </select>
+      )}
 
       {/* Stats resumen */}
       <div style={{ display:'flex', gap:0, background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, overflow:'hidden' }}>
@@ -498,7 +501,7 @@ function Evolucion({ actividades }) {
       {actsFiltradas.length > 0 ? (
         <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'16px 12px 8px', overflow:'hidden' }}>
           <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:10 }}>
-            Puntos acumulados · {granularidad === 'mes' ? 'por mes' : 'por semana'}
+            Puntos · {granularidad === 'mes' ? 'por mes' : 'por semana'}
           </div>
           <canvas ref={canvasRef} style={{ display:'block', width:'100%', maxWidth:'100%' }} />
         </div>
@@ -855,7 +858,7 @@ function Objetivos({ actividades }) {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
-export default function MisActividades({ onNewActivity }) {
+export default function MisActividades({ onNewActivity, evolucionSignal }) {
   const [actividades, setActividades] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [detalle, setDetalle]         = useState(null);
@@ -868,6 +871,11 @@ export default function MisActividades({ onNewActivity }) {
   }
 
   useEffect(() => { load(); }, []);
+
+  // Cuando llega señal desde el toast, ir a evolución
+  useEffect(() => {
+    if (evolucionSignal) setSubtab('evolucion');
+  }, [evolucionSignal]);
 
   async function handleDelete(id) {
     await deleteActividad(id);
