@@ -814,7 +814,7 @@ export default function MisActividades({ onNewActivity }) {
                 </div>
 
                 {/* Días del mes */}
-                <div style={{ display:'flex', flexDirection:'column', gap:14, padding:'0 16px' }}>
+                <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                   {fechas.map(fecha => {
                     const acts = grouped[mes][fecha];
                     const date = new Date(fecha + 'T12:00:00');
@@ -825,7 +825,7 @@ export default function MisActividades({ onNewActivity }) {
                     return (
                       <div key={fecha}>
                         {/* Header del día */}
-                        <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:7 }}>
+                        <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:7, padding:'0 16px' }}>
                           <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:700, color:'var(--t-muted2)', textTransform:'capitalize' }}>
                             {dow} {day}
                           </span>

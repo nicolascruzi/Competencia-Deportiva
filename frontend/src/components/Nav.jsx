@@ -143,7 +143,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
         {/* Derecha: botón ajustes */}
         <div style={{ display:'flex', justifyContent:'flex-end' }}>
           <button onClick={() => { setSettingsOpen(o => !o); setPaletteOpen(false); }} aria-label="Configuración"
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: settingsOpen ? 'var(--t-accent)' : 'var(--t-muted)', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'color 0.15s' }}>
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'#f97316', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'color 0.15s' }}>
             <IconSettings />
           </button>
         </div>

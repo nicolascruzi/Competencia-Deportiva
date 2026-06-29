@@ -476,7 +476,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
                   {isMe && <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.12)', padding:'1px 5px', borderRadius:4, flexShrink:0 }}>tú</span>}
                 </div>
                 <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
-                  {p.actividades} sesiones {sportIcons && <span style={{ marginLeft:2 }}>{sportIcons}</span>}
+                  {p.actividades} ses · {Math.round(p.minutos)} min
                 </div>
               </div>
 
