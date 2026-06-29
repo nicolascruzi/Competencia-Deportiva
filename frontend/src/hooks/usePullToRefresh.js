@@ -1,17 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const THRESHOLD = 56;   // px de arrastre real para disparar (corto, como Instagram)
-const RESIST    = 0.5;  // resistencia: el círculo recorre la mitad del dedo
+const THRESHOLD = 56;
+const RESIST    = 0.5;
+
+// Sube por el DOM desde `node` y devuelve el scrollTop acumulado
+// de todos los ancestros scrollables. Si cualquiera > 0, el usuario
+// no está en el tope.
+function getTotalScrollTop(node) {
+  let total = 0;
+  let cur   = node;
+  while (cur && cur.tagName !== 'BODY') {
+    total += cur.scrollTop || 0;
+    cur    = cur.parentElement;
+  }
+  return total;
+}
 
 export function usePullToRefresh(onRefresh, enabled = true) {
-  const [pullY, setPullY]           = useState(0);   // 0..THRESHOLD (visual)
+  const [pullY, setPullY]           = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
-  const startY        = useRef(null);
-  const pullYRef      = useRef(0);
-  const refreshingRef = useRef(false);
-  const activeGesture = useRef(false);
-  const containerRef  = useRef(null);
+  const startY          = useRef(null);
+  const scrollAtStart   = useRef(0);   // scrollTop total capturado en touchstart
+  const pullYRef        = useRef(0);
+  const refreshingRef   = useRef(false);
+  const activeGesture   = useRef(false);
+  const containerRef    = useRef(null);
 
   useEffect(() => { pullYRef.current      = pullY;      }, [pullY]);
   useEffect(() => { refreshingRef.current = refreshing; }, [refreshing]);
@@ -23,31 +37,15 @@ export function usePullToRefresh(onRefresh, enabled = true) {
     const el = containerRef.current;
     if (!el) return;
 
-    // Recorre el DOM desde `node` hacia arriba buscando cualquier
-    // ancestro scrollable (overflowY auto/scroll) con contenido desplazado.
-    // Devuelve true si alguno tiene scrollTop > 0.
-    function anyAncestorScrolled(node) {
-      let cur = node;
-      while (cur && cur !== document.body) {
-        const st = cur.scrollTop;
-        if (st > 0) return true;
-        // También revisar scrollTop del elemento si tiene overflow scroll/auto
-        const style = window.getComputedStyle(cur);
-        const oy = style.overflowY;
-        if ((oy === 'auto' || oy === 'scroll') && cur.scrollHeight > cur.clientHeight && st > 0) {
-          return true;
-        }
-        cur = cur.parentElement;
-      }
-      return false;
-    }
-
     function onTouchStart(e) {
       if (refreshingRef.current) return;
-      const touch = e.touches[0];
-      // Elemento real bajo el dedo
-      const target = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (anyAncestorScrolled(target)) return;
+      const touch  = e.touches[0];
+      // Capturar el scroll total bajo el dedo en este instante exacto
+      const target = document.elementFromPoint(touch.clientX, touch.clientY) || e.target;
+      const total  = getTotalScrollTop(target);
+      // Si hay CUALQUIER scroll acumulado en la cadena DOM → no activar PTR
+      if (total > 0) return;
+      scrollAtStart.current = total;
       startY.current        = touch.clientY;
       activeGesture.current = false;
     }
@@ -55,14 +53,13 @@ export function usePullToRefresh(onRefresh, enabled = true) {
     function onTouchMove(e) {
       if (refreshingRef.current || startY.current === null) return;
       const dy = e.touches[0].clientY - startY.current;
-      if (dy <= 0) { activeGesture.current = false; return; }
-      // Re-verificar en cada frame: si el usuario scrolleó mientras arrastraba, cancelar
-      const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-      if (anyAncestorScrolled(target)) {
-        startY.current = null;
-        setPullY(0);
+      if (dy <= 0) {
+        // Arrastre hacia arriba — cancelar cualquier PTR iniciado
+        if (activeGesture.current) { activeGesture.current = false; setPullY(0); }
         return;
       }
+      // Solo activar si el scroll seguía en 0 cuando empezó el gesto
+      if (scrollAtStart.current > 0) return;
       activeGesture.current = true;
       const visual = Math.min(THRESHOLD, dy * RESIST);
       setPullY(visual);
@@ -72,19 +69,15 @@ export function usePullToRefresh(onRefresh, enabled = true) {
     function onTouchEnd() {
       if (!activeGesture.current) { startY.current = null; return; }
       activeGesture.current = false;
-      startY.current = null;
+      startY.current        = null;
 
       if (pullYRef.current >= THRESHOLD * 0.85) {
         setRefreshing(true);
-        const started = Date.now();
-        const MIN_SHOW = 1000; // mínimo 1 segundo girando, como Instagram
+        const started  = Date.now();
+        const MIN_SHOW = 1000;
         Promise.resolve(handleRefresh()).finally(() => {
-          const elapsed = Date.now() - started;
-          const wait = Math.max(0, MIN_SHOW - elapsed);
-          setTimeout(() => {
-            setRefreshing(false);
-            setPullY(0);
-          }, wait);
+          const wait = Math.max(0, MIN_SHOW - (Date.now() - started));
+          setTimeout(() => { setRefreshing(false); setPullY(0); }, wait);
         });
       } else {
         setPullY(0);
