@@ -12,8 +12,10 @@ import Calendario from './pages/Calendario';
 import Nav from './components/Nav';
 import BottomTabBar from './components/BottomTabBar';
 import ActivityModal from './components/ActivityModal';
+import ActivityToast from './components/ActivityToast';
 import CrearCompetenciaModal from './components/CrearCompetenciaModal';
 import { getCompetencia } from './api/competencias';
+import { getActividades } from './api/actividades';
 import { useLoading } from './context/LoadingContext';
 
 class ErrorBoundary extends Component {
@@ -73,6 +75,7 @@ function AppShell() {
   const [forceOpenSelector, setForceOpenSelector] = useState(0);
   const [adminSheetOpen, setAdminSheetOpen]   = useState(false);
   const [restoringComp, setRestoringComp]     = useState(true);
+  const [toast, setToast]                     = useState(null); // { actividad, ptsAntes, ptsDespues }
   // Estado de mes compartido entre Ranking y Calendario
   const _now = new Date();
   const [navYear,  setNavYear]  = useState(_now.getFullYear());
@@ -202,9 +205,41 @@ function AppShell() {
       <ActivityModal
         open={actModalOpen}
         onClose={() => setActModalOpen(false)}
-        onCreated={() => setRefreshKey(k => k + 1)}
+        onCreated={async (actividad) => {
+          setRefreshKey(k => k + 1);
+          if (!actividad) return;
+          // Calcular pts acumulados esta semana incluyendo la nueva actividad
+          try {
+            const allActs = await getActividades();
+            const now = new Date();
+            const day = now.getDay() === 0 ? 7 : now.getDay();
+            const monDate = new Date(now); monDate.setDate(now.getDate() - (day - 1)); monDate.setHours(0,0,0,0);
+            const sunDate = new Date(monDate); sunDate.setDate(monDate.getDate() + 6); sunDate.setHours(23,59,59,999);
+            const actsThisWeek = (Array.isArray(allActs) ? allActs : []).filter(a => {
+              const f = new Date(a.fecha + 'T12:00:00');
+              return f >= monDate && f <= sunDate;
+            });
+            const ptsDespues = actsThisWeek.reduce((s, a) => s + parseFloat(a.puntos), 0);
+            const pts_nueva  = parseFloat(actividad.puntos) || (parseFloat(actividad.minutos) * parseFloat(actividad.ponderador));
+            const ptsAntes   = Math.max(0, ptsDespues - pts_nueva);
+            setToast({ actividad, ptsAntes, ptsDespues });
+          } catch {
+            // si falla el fetch, mostrar toast sin barra semanal
+            const pts_nueva = parseFloat(actividad.puntos) || (parseFloat(actividad.minutos) * parseFloat(actividad.ponderador));
+            setToast({ actividad, ptsAntes: 0, ptsDespues: pts_nueva });
+          }
+        }}
         competenciaActiva={competenciaActiva}
       />
+
+      {toast && (
+        <ActivityToast
+          actividad={toast.actividad}
+          ptsAntes={toast.ptsAntes}
+          ptsDespues={toast.ptsDespues}
+          onClose={() => setToast(null)}
+        />
+      )}
       <CrearCompetenciaModal
         open={crearOpen}
         onClose={() => setCrearOpen(false)}

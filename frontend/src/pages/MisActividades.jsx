@@ -280,16 +280,18 @@ function getWeekMon(weekKey) {
 
 function Evolucion({ actividades }) {
   const canvasRef = useRef(null);
-  const [granularidad, setGranularidad] = useState('mes'); // 'mes' | 'semana'
+  const [granularidad, setGranularidad] = useState('semana'); // 'semana' | 'mes'
   const [deporteFiltro, setDeporteFiltro] = useState('__all__');
+  const [mesFiltro, setMesFiltro] = useState('__all__'); // 'YYYY-MM' | '__all__'
 
-  // Deportes presentes en las actividades
+  // Deportes y meses presentes
   const deportesPresentes = [...new Set(actividades.map(a => a.deporte_nombre))].sort();
+  const mesesPresentes = [...new Set(actividades.map(a => a.fecha.slice(0,7)))].sort().reverse();
 
-  // Actividades filtradas por deporte
-  const actsFiltradas = deporteFiltro === '__all__'
-    ? actividades
-    : actividades.filter(a => a.deporte_nombre === deporteFiltro);
+  // Actividades filtradas por deporte y mes
+  const actsFiltradas = actividades
+    .filter(a => deporteFiltro === '__all__' || a.deporte_nombre === deporteFiltro)
+    .filter(a => mesFiltro === '__all__' || a.fecha.slice(0,7) === mesFiltro);
 
   // Periodos según granularidad
   const periodos = granularidad === 'mes'
@@ -449,22 +451,32 @@ function Evolucion({ actividades }) {
   return (
     <div style={{ padding:'16px 16px 32px', display:'flex', flexDirection:'column', gap:16 }}>
 
-      {/* Controles */}
+      {/* Controles fila 1: granularidad + deporte */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
-        {/* Granularidad */}
         <div style={{ display:'flex', gap:4, background:'var(--t-surface2)', borderRadius:22, padding:3 }}>
-          <button style={pillBtn(granularidad==='mes')} onClick={() => setGranularidad('mes')}>Mes</button>
           <button style={pillBtn(granularidad==='semana')} onClick={() => setGranularidad('semana')}>Semana</button>
+          <button style={pillBtn(granularidad==='mes')} onClick={() => setGranularidad('mes')}>Mes</button>
         </div>
-        {/* Filtro deporte */}
         <select
           value={deporteFiltro}
           onChange={e => setDeporteFiltro(e.target.value)}
-          style={{ background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color: deporteFiltro === '__all__' ? 'var(--t-muted)' : 'var(--t-text)', padding:'6px 10px', borderRadius:10, fontSize:12, fontWeight:600, appearance:'none', cursor:'pointer', maxWidth:140 }}>
+          style={{ background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color: deporteFiltro === '__all__' ? 'var(--t-muted)' : 'var(--t-text)', padding:'6px 10px', borderRadius:10, fontSize:12, fontWeight:600, appearance:'none', cursor:'pointer', maxWidth:150 }}>
           <option value="__all__">Todos los deportes</option>
           {deportesPresentes.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
       </div>
+
+      {/* Controles fila 2: filtro de mes */}
+      <select
+        value={mesFiltro}
+        onChange={e => setMesFiltro(e.target.value)}
+        style={{ background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color: mesFiltro === '__all__' ? 'var(--t-muted)' : 'var(--t-text)', padding:'7px 12px', borderRadius:10, fontSize:12, fontWeight:600, appearance:'none', cursor:'pointer', width:'100%' }}>
+        <option value="__all__">Todos los meses</option>
+        {mesesPresentes.map(m => {
+          const [y, mo] = m.split('-');
+          return <option key={m} value={m}>{MONTHS_ES_FULL[parseInt(mo)-1]} {y}</option>;
+        })}
+      </select>
 
       {/* Stats resumen */}
       <div style={{ display:'flex', gap:0, background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, overflow:'hidden' }}>

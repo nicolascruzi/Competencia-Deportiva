@@ -114,6 +114,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
     e.preventDefault();
     setError(''); setLoading(true);
     try {
+      let savedActividad = null;
       await withLoading(async () => {
         const actividad = await createActividad({
           deporte_nombre: form.deporte_nombre,
@@ -125,8 +126,9 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
         if (foto && actividad.id) {
           await uploadFoto(actividad.id, foto).catch(() => {});
         }
+        savedActividad = actividad;
       });
-      onCreated?.();
+      onCreated?.(savedActividad);
       onClose();
     } catch (err) {
       setError(err.message);
