@@ -306,7 +306,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
               onClick={() => onOpenProfile?.(p.nombre)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 0,
-                padding: '9px 16px',
+                padding: '7px 14px',
                 borderBottom: '1px solid var(--t-surface2)',
                 background: isTop ? 'linear-gradient(90deg, rgba(var(--t-accent-r),0.07) 0%, transparent 60%)' : 'transparent',
                 cursor: 'pointer',
@@ -314,37 +314,35 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
               }}>
 
               {/* Posición */}
-              <div style={{ width:32, flexShrink:0 }}>
-                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, color: posColor(i), fontVariantNumeric:'tabular-nums', lineHeight:1, letterSpacing:'-0.04em' }}>{i + 1}</span>
+              <div style={{ width:26, flexShrink:0 }}>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, color: posColor(i), fontVariantNumeric:'tabular-nums', lineHeight:1, letterSpacing:'-0.04em' }}>{i + 1}</span>
               </div>
 
               {/* Avatar */}
-              <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-surface2)', border: isTop ? '1.5px solid rgba(var(--t-accent-r),0.4)' : '1.5px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', marginRight:10 }}>
+              <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-surface2)', border: isTop ? '1.5px solid rgba(var(--t-accent-r),0.4)' : '1.5px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', marginRight:8 }}>
                 {p.foto_perfil_url
                   ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, color: isTop ? 'var(--t-accent)' : 'var(--t-muted)' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
+                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:11, color: isTop ? 'var(--t-accent)' : 'var(--t-muted)' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
                 }
               </div>
 
-              {/* Nombre + deportes */}
+              {/* Nombre + sesiones + deportes en una sola línea */}
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, color:'var(--t-text)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                <div style={{ display:'flex', alignItems:'baseline', gap:5, overflow:'hidden' }}>
+                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, color:'var(--t-text)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flexShrink:1 }}>
                     {p.nombre}
                   </span>
-                  {isMe && <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.12)', padding:'1px 5px', borderRadius:4, flexShrink:0 }}>tú</span>}
-                </div>
-                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>
-                  {sportIcons || '—'}
+                  {isMe && <span style={{ fontSize:8, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.12)', padding:'1px 4px', borderRadius:3, flexShrink:0 }}>tú</span>}
+                  <span style={{ fontSize:10, color:'var(--t-muted)', whiteSpace:'nowrap', flexShrink:0 }}>· {p.actividades} ses {sportIcons}</span>
                 </div>
               </div>
 
               {/* Puntos */}
-              <div style={{ textAlign:'right', flexShrink:0, minWidth:52 }}>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, lineHeight:1, color: isTop ? 'var(--t-accent)' : 'var(--t-text)', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>
+              <div style={{ textAlign:'right', flexShrink:0, minWidth:48 }}>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:17, lineHeight:1, color: isTop ? 'var(--t-accent)' : 'var(--t-text)', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>
                   {Math.round(p.pts).toLocaleString('es')}
-                </div>
-                <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginTop:1 }}>pts</div>
+                </span>
+                <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginLeft:2 }}>pts</span>
               </div>
             </div>
           );
