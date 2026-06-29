@@ -187,36 +187,93 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
 
 // ─── Fila de actividad estilo feed ───────────────────────────────────────────
 
+const SPORT_ICONS_MA = {
+  'Bicicleta MTB':'🚵','Bicicleta Rodillo':'🚴','Ciclismo':'🚴','Escalada':'🧗',
+  'Fútbol':'⚽','Natación':'🏊','Paddle':'🏓','Running':'🏃','Senderismo':'🥾',
+  'Ski':'⛷️','Snowboard':'🏂','Tenis':'🎾','Triatlón':'🏅','Trote':'🏃',
+  'Yoga':'🧘','Crossfit':'🏋️','Gimnasio':'💪',
+};
+const sportIconMA = s => SPORT_ICONS_MA[s] || '🏅';
+
 function ActividadCard({ a, onClick }) {
+  const horas = Math.floor(parseFloat(a.minutos) / 60);
+  const mins  = Math.round(parseFloat(a.minutos) % 60);
+  const durLabel = horas > 0 ? `${horas}h ${mins}m` : `${mins} min`;
+  const horaLabel = a.created_at
+    ? new Date(a.created_at).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })
+    : null;
+  const ponderador = parseFloat(a.ponderador);
+
   return (
     <div onClick={onClick} style={{ borderBottom:'1px solid var(--t-surface2)', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
 
-      {/* Header: deporte + pts + hora */}
-      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px 8px' }}>
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', lineHeight:1 }}>
-            {a.deporte_nombre}
-          </div>
-          <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>
-            {Math.round(parseFloat(a.minutos))} min
-            {a.notas && <span style={{ marginLeft:6, fontStyle:'italic', color:'var(--t-muted2)' }}>· {a.notas}</span>}
-          </div>
-        </div>
-        <div style={{ textAlign:'right', flexShrink:0 }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, color:'var(--t-accent)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
-            {Math.round(parseFloat(a.puntos))}
-          </div>
-          <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:1 }}>pts</div>
-        </div>
-      </div>
-
-      {/* Foto full width */}
+      {/* Foto full-bleed (si existe) */}
       {a.foto_url && (
-        <div style={{ marginBottom:12, overflow:'hidden' }}>
+        <div style={{ position:'relative', overflow:'hidden' }}>
           <img src={a.foto_url} alt={a.deporte_nombre}
             style={{ width:'100%', aspectRatio:'4/3', objectFit:'cover', display:'block' }} />
+          {/* Gradiente + deporte encima de la foto */}
+          <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(5,10,18,0.82) 0%, rgba(5,10,18,0.15) 55%, transparent 100%)' }} />
+          <div style={{ position:'absolute', bottom:12, left:14, right:14, display:'flex', alignItems:'flex-end', justifyContent:'space-between' }}>
+            <div>
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'#fff', lineHeight:1, letterSpacing:'0.02em' }}>
+                {sportIconMA(a.deporte_nombre)} {a.deporte_nombre}
+              </div>
+              {horaLabel && <div style={{ fontSize:11, color:'rgba(255,255,255,0.6)', marginTop:2 }}>{horaLabel}</div>}
+            </div>
+            <div style={{ textAlign:'right' }}>
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, color:'var(--t-accent)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
+                {Math.round(parseFloat(a.puntos))}
+              </div>
+              <div style={{ fontSize:9, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</div>
+            </div>
+          </div>
         </div>
       )}
+
+      {/* Info (sin foto: todo aquí; con foto: métricas extra) */}
+      <div style={{ padding: a.foto_url ? '10px 14px 12px' : '12px 14px' }}>
+        {!a.foto_url && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
+              {sportIconMA(a.deporte_nombre)} {a.deporte_nombre}
+            </div>
+            <div style={{ textAlign:'right' }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>
+                {Math.round(parseFloat(a.puntos))}
+              </span>
+              <span style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginLeft:3 }}>pts</span>
+            </div>
+          </div>
+        )}
+
+        {/* Métricas en fila */}
+        <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span style={{ fontSize:12, color:'var(--t-muted)', fontVariantNumeric:'tabular-nums' }}>{durLabel}</span>
+          </div>
+          {ponderador > 0 && (
+            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span style={{ fontSize:12, color:'var(--t-muted)' }}>×{ponderador.toFixed(1)}</span>
+            </div>
+          )}
+          {!a.foto_url && horaLabel && (
+            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span style={{ fontSize:12, color:'var(--t-muted)' }}>{horaLabel}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Notas */}
+        {a.notas && (
+          <div style={{ marginTop:6, fontSize:12, color:'var(--t-muted2)', fontStyle:'italic', lineHeight:1.5, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+            "{a.notas}"
+          </div>
+        )}
+      </div>
     </div>
   );
 }
