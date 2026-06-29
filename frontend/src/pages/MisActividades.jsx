@@ -663,7 +663,7 @@ export default function MisActividades({ onNewActivity }) {
   const [actividades, setActividades] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [detalle, setDetalle]         = useState(null);
-  const [subtab, setSubtab]           = useState('evolucion');
+  const [subtab, setSubtab]           = useState('objetivos');
 
   async function load() {
     setLoading(true);
@@ -722,7 +722,7 @@ export default function MisActividades({ onNewActivity }) {
 
         {/* Subtabs */}
         <div style={{ display:'flex', padding:'0 16px', gap:4 }}>
-          {[{ id:'evolucion', label:'Evolución' }, { id:'historial', label:'Historial' }, { id:'objetivos', label:'Objetivos' }].map(t => (
+          {[{ id:'objetivos', label:'Objetivos' }, { id:'historial', label:'Historial' }, { id:'evolucion', label:'Evolución' }].map(t => (
             <button key={t.id} onClick={() => setSubtab(t.id)}
               style={{ padding:'7px 16px', borderRadius:'10px 10px 0 0', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', transition:'all 0.15s',
                 background: subtab === t.id ? 'var(--t-surface)' : 'transparent',
