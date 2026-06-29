@@ -244,10 +244,14 @@ function DaySheet({ fecha, acts, onClose, onSelectAct }) {
 
 // ─── Calendario ───────────────────────────────────────────────────────────────
 
-export default function Calendario({ competenciaActiva }) {
+export default function Calendario({ competenciaActiva, navYear, navMonth, onNavYear, onNavMonth }) {
   const now = new Date();
-  const [year, setYear]   = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth());
+  // Mes sincronizado con Ranking cuando se pasan las props externas
+  const year  = navYear  ?? now.getFullYear();
+  const month = navMonth ?? now.getMonth();
+  function setYear(v)  { onNavYear?.(typeof v === 'function' ? v(year)  : v); }
+  function setMonth(v) { onNavMonth?.(typeof v === 'function' ? v(month) : v); }
+
   const [acts, setActs]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -321,10 +325,10 @@ export default function Calendario({ competenciaActiva }) {
     <div style={{ paddingBottom:32 }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-      {/* Header competencia */}
+      {/* Header competencia — idéntico a Ranking Fila 1 */}
       {competenciaActiva && (
-        <div style={{ padding:'8px 20px 0' }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)' }}>
+        <div style={{ padding:'8px 20px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {competenciaActiva.nombre}
           </div>
           <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)', marginTop:2 }}>
@@ -333,20 +337,20 @@ export default function Calendario({ competenciaActiva }) {
         </div>
       )}
 
-      {/* Navegación de mes */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 20px 16px' }}>
+      {/* Navegación de mes — igual que Ranking */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 8px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
         <button onClick={prevMonth}
-          style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
         <div style={{ textAlign:'center' }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
             {MONTHS_ES[month]}
           </div>
-          <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:2 }}>{year}</div>
+          <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>{year}</div>
         </div>
         <button onClick={nextMonth}
-          style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
         </button>
       </div>

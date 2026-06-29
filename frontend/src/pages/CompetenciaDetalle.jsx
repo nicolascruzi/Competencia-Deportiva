@@ -70,23 +70,24 @@ function Spinner() {
 // ─── KPI STRIP ────────────────────────────────────────────────────────────────
 
 function KpiStrip({ acts }) {
-  const personas  = new Set(acts.map(a => a.nombre)).size;
-  const totalPts  = acts.reduce((s, a) => s + a.puntos, 0);
-  const totalMin  = acts.reduce((s, a) => s + parseFloat(a.minutos), 0);
+  const personas = new Set(acts.map(a => a.nombre)).size;
+  const totalPts = acts.reduce((s, a) => s + a.puntos, 0);
+  const totalMin = acts.reduce((s, a) => s + parseFloat(a.minutos), 0);
   const items = [
-    { label:'Participantes', val: personas },
-    { label:'Puntos totales', val: Math.round(totalPts).toLocaleString('es') },
-    { label:'Actividades', val: acts.length },
-    { label:'Horas', val: Math.round(totalMin/60)+'h' },
+    { label:'Participantes', val: personas,                              accent: false },
+    { label:'Puntos totales', val: Math.round(totalPts).toLocaleString('es'), accent: true  },
+    { label:'Actividades',   val: acts.length,                          accent: false },
+    { label:'Horas',         val: Math.round(totalMin / 60) + 'h',     accent: false },
   ];
   return (
-    <div style={{ display:'flex', gap:0, marginBottom:20, borderRadius:12, overflow:'hidden', border:'1px solid var(--t-dim)' }}>
-      {items.map(({ label, val }, i) => (
-        <div key={label} style={{ flex:1, padding:'10px 8px', textAlign:'center', borderRight: i < items.length-1 ? '1px solid var(--t-dim)' : 'none', background:'var(--t-surface)' }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:'clamp(16px,4vw,22px)', color:'var(--t-text)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:20 }}>
+      {items.map(({ label, val, accent }) => (
+        <div key={label} style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'12px 14px', position:'relative', overflow:'hidden' }}>
+          {accent && <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.7 }} />}
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:28, color: accent ? 'var(--t-accent)' : 'var(--t-text)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
             {val}
           </div>
-          <div style={{ fontSize:9, color:'var(--t-muted)', marginTop:3, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+          <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:4, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em' }}>
             {label}
           </div>
         </div>
@@ -1341,14 +1342,16 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved }) {
   );
 }
 
-export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved }) {
+export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, navYear, navMonth, onNavYear, onNavMonth }) {
   const { user } = useAuth();
   const { withLoading } = useLoading();
   const now = new Date();
 
-  // Navegación idéntica al Calendario: year + month (0-11), month=-1 = Acumulado
-  const [year,  setYear]  = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth()); // arranca en mes actual
+  // Navegación sincronizada con Calendario a través de props externas
+  const year  = navYear  ?? now.getFullYear();
+  const month = navMonth ?? now.getMonth();
+  function setYear(v)  { onNavYear?.(typeof v === 'function' ? v(year)  : v); }
+  function setMonth(v) { onNavMonth?.(typeof v === 'function' ? v(month) : v); }
 
   const isAcumulado = month === -1;
   // mes como string 'YYYY-MM' o '' para acumulado (lo que espera el backend)

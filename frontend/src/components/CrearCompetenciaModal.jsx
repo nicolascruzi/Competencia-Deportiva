@@ -154,11 +154,13 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
   if (!open) return null;
   if (paso === 'pin') return <PinDisplay nombre={pinData.nombre} pin={pinData.pin} onClose={onClose} />;
 
+  const isCentered = paso === 'elegir' || paso === 'unirse';
+
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', flexDirection:'column', justifyContent:'flex-end', background:'rgba(5,12,20,0.75)', backdropFilter:'blur(6px)' }}
+    <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', flexDirection:'column', justifyContent: isCentered ? 'center' : 'flex-end', padding: isCentered ? '0 16px' : 0, background:'rgba(5,12,20,0.75)', backdropFilter:'blur(6px)' }}
          onClick={e => e.target === e.currentTarget && onClose()}>
 
-      <div style={{ width:'100%', borderRadius:'20px 20px 0 0', background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderBottom:'none', maxHeight:'92dvh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ width:'100%', borderRadius: isCentered ? 20 : '20px 20px 0 0', background:'var(--t-surface)', border:'1px solid var(--t-dim)', maxHeight:'92dvh', display:'flex', flexDirection:'column', overflow: paso === 'crear' ? 'hidden' : 'visible' }}>
 
         {/* Handle */}
         <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px', flexShrink:0 }}>
@@ -192,7 +194,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
 
         {/* ── PASO: elegir ── */}
         {paso === 'elegir' && (
-          <div style={{ padding:'4px 18px', paddingBottom:'calc(1.5rem + env(safe-area-inset-bottom))', display:'flex', flexDirection:'column', gap:12 }}>
+          <div style={{ padding:'4px 18px 20px', display:'flex', flexDirection:'column', gap:12 }}>
             <button onClick={() => setPaso('crear')}
               style={{ width:'100%', padding:'18px', borderRadius:14, border:'1.5px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.06)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
               <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-accent)', lineHeight:1 }}>Crear competencia</div>
@@ -239,7 +241,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
 
         {/* ── PASO: unirse ── */}
         {paso === 'unirse' && (
-          <form onSubmit={handleUnirse} style={{ padding:'4px 18px', paddingBottom:'calc(1.5rem + env(safe-area-inset-bottom))', display:'flex', flexDirection:'column', gap:14 }}>
+          <form onSubmit={handleUnirse} style={{ padding:'4px 18px 20px', display:'flex', flexDirection:'column', gap:14 }}>
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>PIN de 6 dígitos</label>
               <input

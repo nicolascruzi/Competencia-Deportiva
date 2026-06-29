@@ -55,6 +55,10 @@ function AppShell() {
   const [forceOpenSelector, setForceOpenSelector] = useState(0);
   const [adminSheetOpen, setAdminSheetOpen]   = useState(false);
   const [restoringComp, setRestoringComp]     = useState(true);
+  // Estado de mes compartido entre Ranking y Calendario
+  const _now = new Date();
+  const [navYear,  setNavYear]  = useState(_now.getFullYear());
+  const [navMonth, setNavMonth] = useState(_now.getMonth()); // -1 = Acumulado
 
   // Restaurar última competencia cuando el usuario está listo
   useEffect(() => {
@@ -128,9 +132,13 @@ function AppShell() {
             setCompetenciaActiva(prev => ({ ...prev, deportes: deps }));
             setAdminSheetOpen(false);
           }}
+          navYear={navYear}
+          navMonth={navMonth}
+          onNavYear={setNavYear}
+          onNavMonth={setNavMonth}
         />
       : <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />,
-    calendario:  <Calendario   key={refreshKey} competenciaActiva={competenciaActiva} />,
+    calendario:  <Calendario   key={refreshKey} competenciaActiva={competenciaActiva} navYear={navYear} navMonth={navMonth} onNavYear={setNavYear} onNavMonth={setNavMonth} />,
     feed:        <FeedGrupal   key={competenciaActiva?.id} competencia={competenciaActiva} />,
     actividades: <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} />,
     perfil:      <MiPerfil     key={refreshKey} />,
