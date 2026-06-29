@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -79,8 +79,32 @@ function AppShell() {
     } catch { /* si falla, queda sin deportes — ponderador libre */ }
   }
 
+  const TAB_ORDER = ['ranking', 'calendario', 'feed', 'actividades', 'perfil'];
+
   function handleMainTab(id) {
     setMainTab(id);
+  }
+
+  // Swipe horizontal para cambiar de tab
+  const swipeStartX = useRef(null);
+  const swipeStartY = useRef(null);
+
+  function onSwipeTouchStart(e) {
+    swipeStartX.current = e.touches[0].clientX;
+    swipeStartY.current = e.touches[0].clientY;
+  }
+
+  function onSwipeTouchEnd(e) {
+    if (swipeStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - swipeStartX.current;
+    const dy = e.changedTouches[0].clientY - swipeStartY.current;
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+    // Solo actúa si el movimiento es predominantemente horizontal y supera 60px
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+    const idx = TAB_ORDER.indexOf(mainTab);
+    if (dx < 0 && idx < TAB_ORDER.length - 1) handleMainTab(TAB_ORDER[idx + 1]); // swipe izq → siguiente
+    if (dx > 0 && idx > 0)                    handleMainTab(TAB_ORDER[idx - 1]); // swipe der → anterior
   }
 
   function handleCreated() {
@@ -126,7 +150,10 @@ function AppShell() {
         forceOpenSelector={forceOpenSelector}
       />
 
-      <div style={{ paddingTop:'calc(env(safe-area-inset-top) + 52px)', paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
+      <div
+        onTouchStart={onSwipeTouchStart}
+        onTouchEnd={onSwipeTouchEnd}
+        style={{ paddingTop:'calc(env(safe-area-inset-top) + 52px)', paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
         {renderContent()}
       </div>
 
