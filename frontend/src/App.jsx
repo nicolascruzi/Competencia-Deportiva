@@ -50,6 +50,7 @@ function AppShell() {
   const [mainTab, setMainTab]                 = useState('ranking');
   const [compTab, setCompTab]                 = useState('ranking');
   const [forceOpenSelector, setForceOpenSelector] = useState(0);
+  const [adminSheetOpen, setAdminSheetOpen] = useState(false);
   // swipe state
   const swipeStartX  = useRef(null);
   const swipeStartY  = useRef(null);
@@ -151,6 +152,8 @@ function AppShell() {
     setCrearOpen(true);
   }
 
+  const isAdmin = user && competenciaActiva && user.id === competenciaActiva.creador_id;
+
   const tabContent = {
     ranking: competenciaActiva
       ? <CompetenciaDetalle
@@ -160,6 +163,12 @@ function AppShell() {
           onTab={setCompTab}
           onBack={() => setCompetenciaActiva(null)}
           onNewActivity={() => setActModalOpen(true)}
+          adminSheetOpen={adminSheetOpen}
+          onAdminSheetClose={() => setAdminSheetOpen(false)}
+          onAdminSaved={deps => {
+            setCompetenciaActiva(prev => ({ ...prev, deportes: deps }));
+            setAdminSheetOpen(false);
+          }}
         />
       : <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />,
     calendario:  <Calendario   key={refreshKey} competenciaActiva={competenciaActiva} />,
@@ -178,33 +187,35 @@ function AppShell() {
         onSelectCompetencia={handleSelectCompetencia}
         onCreateCompetencia={handleCreateCompetencia}
         forceOpenSelector={forceOpenSelector}
+        isAdmin={isAdmin}
+        onAdminPonderadores={() => setAdminSheetOpen(true)}
       />
 
-      {/* Viewport — sin overflow:hidden para no romper position:fixed de modales */}
+      {/* Viewport */}
       <div style={{ paddingTop:'calc(env(safe-area-inset-top) + 52px)',
-                    paddingBottom:'calc(80px + env(safe-area-inset-bottom))' }}>
-
-        {/* Clipper: solo este div oculta las tabs vecinas */}
-        <div style={{ overflow:'hidden' }}>
-          {/* Strip horizontal */}
-          <div
-            onTouchStart={onSwipeTouchStart}
-            onTouchMove={onSwipeTouchMove}
-            onTouchEnd={onSwipeTouchEnd}
-            style={{
-              display: 'flex',
-              width: `${TAB_ORDER.length * 100}%`,
-              transform: `translateX(calc(${-activeIdx * (100 / TAB_ORDER.length)}% + ${dragOffset}px))`,
+                    paddingBottom:'calc(80px + env(safe-area-inset-bottom))',
+                    position:'relative', overflow:'hidden' }}
+           onTouchStart={onSwipeTouchStart}
+           onTouchMove={onSwipeTouchMove}
+           onTouchEnd={onSwipeTouchEnd}>
+        {/* Cada tab se posiciona con left en lugar de transform para no crear stacking context */}
+        {TAB_ORDER.map((id, i) => {
+          const offsetPct = (i - activeIdx) * 100;
+          const dragPx    = dragOffset;
+          return (
+            <div key={id} style={{
+              position: i === activeIdx ? 'relative' : 'absolute',
+              top: 0, left: 0, width: '100%',
+              transform: `translateX(calc(${offsetPct}% + ${dragPx}px))`,
               transition: dragOffset === 0 ? 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none',
-              willChange: 'transform',
+              // las tabs inactivas no bloquean el scroll ni los eventos
+              pointerEvents: i === activeIdx ? 'auto' : 'none',
+              visibility: Math.abs(i - activeIdx) > 1 ? 'hidden' : 'visible',
             }}>
-            {TAB_ORDER.map(id => (
-              <div key={id} style={{ width: `${100 / TAB_ORDER.length}%`, flexShrink: 0, minWidth: 0 }}>
-                {tabContent[id]}
-              </div>
-            ))}
-          </div>
-        </div>
+              {tabContent[id]}
+            </div>
+          );
+        })}
       </div>
 
       <BottomTabBar activeTab={mainTab} onTab={handleMainTab} />

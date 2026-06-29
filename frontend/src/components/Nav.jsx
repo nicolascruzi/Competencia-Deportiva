@@ -44,7 +44,7 @@ const IconBack = () => (
   </svg>
 );
 
-export default function Nav({ onNewActivity, competenciaActiva, onSelectCompetencia, onCreateCompetencia, forceOpenSelector }) {
+export default function Nav({ onNewActivity, competenciaActiva, onSelectCompetencia, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores }) {
   const { themeId, setTheme, palettes } = useTheme();
   const [selectorOpen, setSelectorOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen]   = useState(false);
@@ -274,6 +274,20 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
               <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Paleta de colores</span>
               <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
             </button>
+            {isAdmin && competenciaActiva && (
+              <button
+                onClick={() => { setSettingsOpen(false); onAdminPonderadores?.(); }}
+                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                  </svg>
+                </span>
+                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Ponderadores</span>
+                <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{competenciaActiva.nombre}</span>
+              </button>
+            )}
           </div>
         </div>
 

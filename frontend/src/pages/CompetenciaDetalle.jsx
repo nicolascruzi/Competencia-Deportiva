@@ -1328,7 +1328,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved }) {
   );
 }
 
-export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab }) {
+export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved }) {
   const { user } = useAuth();
   const now = new Date();
 
@@ -1340,10 +1340,9 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   // mes como string 'YYYY-MM' o '' para acumulado (lo que espera el backend)
   const mes = isAcumulado ? '' : `${year}-${String(month + 1).padStart(2, '0')}`;
 
-  const [acts, setActs]           = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [profile, setProfile]     = useState(null);
-  const [adminSheet, setAdminSheet] = useState(false);
+  const [acts, setActs]       = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
   const [compConDeportes, setCompConDeportes] = useState(competencia);
 
   const isAdmin = user?.id === competencia.creador_id;
@@ -1409,7 +1408,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 52px)', zIndex:10, background:'var(--t-ground)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
 
         {/* Fila 1: nombre competencia + tab activo (estilo Feed) + acciones */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 14px 5px', borderBottom:'1px solid var(--t-surface2)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 14px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
           <button onClick={onBack}
             style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', flexShrink:0 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -1422,16 +1421,6 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
               {tab === 'ranking' ? 'Ranking' : tab === 'podio' ? 'Podio' : tab === 'calendar' ? 'Calendario' : tab === 'evolucion' ? 'Evolución' : tab === 'carrera' ? 'Carrera' : tab === 'deportes' ? 'Deportes' : tab === 'records' ? 'Récords' : tab === 'comparar' ? 'Comparar' : tab === 'insights' ? 'Insights' : 'Competencia'}
             </div>
           </div>
-          {isAdmin && (
-            <button onClick={() => setAdminSheet(true)}
-              title="Editar ponderadores"
-              style={{ width:26, height:26, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-              </svg>
-            </button>
-          )}
         </div>
 
         {/* Fila 2: navegación mes (idéntica al Calendario) */}
@@ -1469,16 +1458,16 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
         document.body
       )}
 
-      {adminSheet && createPortal(
+      {adminSheetOpen && createPortal(
         <AdminPonderadoresSheet
           competencia={compConDeportes}
-          onClose={() => setAdminSheet(false)}
+          onClose={onAdminSheetClose}
           onSaved={ponderadores => {
             setCompConDeportes(prev => ({
               ...prev,
               deportes: ponderadores.map(p => ({ deporte_nombre: p.deporte_nombre, ponderador: p.ponderador })),
             }));
-            setAdminSheet(false);
+            onAdminSaved?.(ponderadores.map(p => ({ deporte_nombre: p.deporte_nombre, ponderador: p.ponderador })));
           }}
         />,
         document.body
