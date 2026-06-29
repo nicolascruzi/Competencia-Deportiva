@@ -1408,7 +1408,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 52px)', zIndex:10, background:'var(--t-ground)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
 
         {/* Fila 1: nombre competencia + tab activo (estilo Feed) + acciones */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 14px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'2px 14px 2px', borderBottom:'1px solid var(--t-surface2)' }}>
           <button onClick={onBack}
             style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', flexShrink:0 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -1424,7 +1424,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
         </div>
 
         {/* Fila 2: navegación mes (idéntica al Calendario) */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 8px 8px', borderBottom:'1px solid var(--t-surface2)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 8px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
           <button onClick={prev}
             style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>

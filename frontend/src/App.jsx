@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -51,12 +51,6 @@ function AppShell() {
   const [compTab, setCompTab]                 = useState('ranking');
   const [forceOpenSelector, setForceOpenSelector] = useState(0);
   const [adminSheetOpen, setAdminSheetOpen] = useState(false);
-  // swipe state
-  const swipeStartX  = useRef(null);
-  const swipeStartY  = useRef(null);
-  const swipeLocked  = useRef(null); // 'h' | 'v' | null
-  const [dragOffset, setDragOffset] = useState(0); // px de arrastre live
-  const [animating,  setAnimating]  = useState(false);
 
   if (loading) {
     return (
@@ -88,58 +82,7 @@ function AppShell() {
   }
 
   function handleMainTab(id) {
-    setAnimating(true);
     setMainTab(id);
-    setTimeout(() => setAnimating(false), 320);
-  }
-
-  function onSwipeTouchStart(e) {
-    swipeStartX.current = e.touches[0].clientX;
-    swipeStartY.current = e.touches[0].clientY;
-    swipeLocked.current = null;
-    setDragOffset(0);
-  }
-
-  function onSwipeTouchMove(e) {
-    if (swipeStartX.current === null) return;
-    const dx = e.touches[0].clientX - swipeStartX.current;
-    const dy = e.touches[0].clientY - swipeStartY.current;
-
-    // Detecta la dirección dominante en los primeros 8px
-    if (!swipeLocked.current) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      swipeLocked.current = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
-    }
-    if (swipeLocked.current !== 'h') return;
-
-    // Atenúa en los bordes (primer y último tab)
-    const idx = TAB_ORDER.indexOf(mainTab);
-    const atLeft  = idx === 0;
-    const atRight = idx === TAB_ORDER.length - 1;
-    let offset = dx;
-    if ((dx > 0 && atLeft) || (dx < 0 && atRight)) offset = dx * 0.2; // resistencia
-
-    e.preventDefault(); // evita scroll vertical mientras arrastra horizontal
-    setDragOffset(offset);
-  }
-
-  function onSwipeTouchEnd(e) {
-    if (swipeStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - swipeStartX.current;
-    swipeStartX.current = null;
-    swipeStartY.current = null;
-
-    if (swipeLocked.current !== 'h') { setDragOffset(0); swipeLocked.current = null; return; }
-    swipeLocked.current = null;
-
-    const idx = TAB_ORDER.indexOf(mainTab);
-    const threshold = window.innerWidth * 0.28; // 28% del ancho
-    if (dx < -threshold && idx < TAB_ORDER.length - 1) {
-      handleMainTab(TAB_ORDER[idx + 1]);
-    } else if (dx > threshold && idx > 0) {
-      handleMainTab(TAB_ORDER[idx - 1]);
-    }
-    setDragOffset(0);
   }
 
   function handleCreated() {
@@ -194,21 +137,15 @@ function AppShell() {
       {/* Viewport */}
       <div style={{ paddingTop:'calc(env(safe-area-inset-top) + 52px)',
                     paddingBottom:'calc(80px + env(safe-area-inset-bottom))',
-                    position:'relative', overflow:'hidden' }}
-           onTouchStart={onSwipeTouchStart}
-           onTouchMove={onSwipeTouchMove}
-           onTouchEnd={onSwipeTouchEnd}>
-        {/* Cada tab se posiciona con left en lugar de transform para no crear stacking context */}
+                    position:'relative', overflow:'hidden' }}>
         {TAB_ORDER.map((id, i) => {
           const offsetPct = (i - activeIdx) * 100;
-          const dragPx    = dragOffset;
           return (
             <div key={id} style={{
               position: i === activeIdx ? 'relative' : 'absolute',
               top: 0, left: 0, width: '100%',
-              transform: `translateX(calc(${offsetPct}% + ${dragPx}px))`,
-              transition: dragOffset === 0 ? 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none',
-              // las tabs inactivas no bloquean el scroll ni los eventos
+              transform: `translateX(${offsetPct}%)`,
+              transition: 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)',
               pointerEvents: i === activeIdx ? 'auto' : 'none',
               visibility: Math.abs(i - activeIdx) > 1 ? 'hidden' : 'visible',
             }}>
