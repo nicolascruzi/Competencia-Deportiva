@@ -374,15 +374,15 @@ function RankingEvolucion({ acts, nombres }) {
 
   return (
     <div style={{ padding:'12px 0 24px' }}>
-      <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 12px 10px', margin:'0 16px' }}>
-        <canvas ref={canvasRef} style={{ display:'block', width:'100%' }} />
+      <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 12px 10px', margin:'0 16px', overflow:'hidden' }}>
+        <canvas ref={canvasRef} style={{ display:'block', width:'100%', maxWidth:'100%' }} />
         <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:12 }}>
           {people.map(p => (
             <button key={p}
               onClick={() => setHidden(h => { const n = new Set(h); n.has(p) ? n.delete(p) : n.add(p); return n; })}
-              style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, fontWeight:600, padding:'4px 9px', borderRadius:7, border:'1px solid var(--t-dim)', background: hidden.has(p) ? 'transparent' : 'rgba(var(--t-accent-r),0.04)', color: hidden.has(p) ? 'var(--t-muted)' : 'var(--t-text)', opacity: hidden.has(p) ? 0.4 : 1, cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+              style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, fontWeight:600, padding:'4px 9px', borderRadius:7, border:'1px solid var(--t-dim)', background: hidden.has(p) ? 'transparent' : 'rgba(var(--t-accent-r),0.04)', color: hidden.has(p) ? 'var(--t-muted)' : 'var(--t-text)', opacity: hidden.has(p) ? 0.4 : 1, cursor:'pointer', WebkitTapHighlightColor:'transparent', maxWidth:'100%' }}>
               <span style={{ width:8, height:8, borderRadius:'50%', background: getPersonColor(p, nombres), flexShrink:0, display:'inline-block', opacity: hidden.has(p) ? 0.3 : 1 }} />
-              {p.split(' ')[0]}
+              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.split(' ')[0]}</span>
             </button>
           ))}
         </div>
@@ -1543,7 +1543,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   const viewYear  = isAcumulado ? now.getFullYear() : year;
   const viewMonth = isAcumulado ? now.getMonth() : month;
 
-  const mesLabel = isAcumulado ? 'Acumulado' : MONTHS_ES[month] + ' ' + year;
+  const mesLabel = isAcumulado ? 'Acumulado' : MONTHS_ES[month];
   const mesSubLabel = isAcumulado ? 'todos los tiempos' : String(year);
 
   function renderTab() {
