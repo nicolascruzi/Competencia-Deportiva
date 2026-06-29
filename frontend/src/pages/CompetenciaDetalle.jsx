@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { getRankingComp, getActividadesComp, updatePonderadores } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 import { getDeportes as getAllDeportes } from '../api/actividades';
@@ -268,8 +269,6 @@ function PlayerDrawer({ person, acts, onClose }) {
   );
 }
 
-const MEDALS = ['🥇', '🥈', '🥉'];
-
 function Ranking({ acts, nombres, myId, onOpenProfile }) {
   const people = aggregateByPerson(acts);
   const maxPts = people[0]?.pts || 1;
@@ -284,7 +283,6 @@ function Ranking({ acts, nombres, myId, onOpenProfile }) {
           const pct   = Math.round((p.pts / maxPts) * 100);
           const isTop = i === 0;
           const isMe  = p.nombre === myId;
-          const medal = MEDALS[i] ?? null;
 
           return (
             <div key={p.nombre}
@@ -303,12 +301,9 @@ function Ranking({ acts, nombres, myId, onOpenProfile }) {
               {/* línea top del líder */}
               {isTop && <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.6 }} />}
 
-              {/* Posición / medalla */}
+              {/* Posición */}
               <div style={{ width:24, textAlign:'center', flexShrink:0 }}>
-                {medal
-                  ? <span style={{ fontSize:15, lineHeight:1 }}>{medal}</span>
-                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, color:'var(--t-dim2)', fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{i + 1}</span>
-                }
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, color: isTop ? 'var(--t-accent)' : 'var(--t-dim2)', fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{i + 1}</span>
               </div>
 
               {/* Avatar */}
@@ -1373,7 +1368,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       <div style={{ position:'sticky', top:'calc(env(safe-area-inset-top) + 52px)', zIndex:10, background:'var(--t-ground)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)' }}>
 
         {/* Fila 1: nombre competencia + tab activo (estilo Feed) + acciones */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px 8px', borderBottom:'1px solid var(--t-surface2)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 14px 5px', borderBottom:'1px solid var(--t-surface2)' }}>
           <button onClick={onBack}
             style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:7, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', flexShrink:0 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -1422,18 +1417,18 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
         {renderTab()}
       </div>
 
-      {/* Profile panel */}
-      {profile && (
+      {/* Profile panel y admin sheet via portal para escapar del stacking context del transform */}
+      {profile && createPortal(
         <ProfilePanel
           nombre={profile}
           acts={acts}
           nombres={nombres}
           onClose={() => setProfile(null)}
-        />
+        />,
+        document.body
       )}
 
-      {/* Admin ponderadores sheet */}
-      {adminSheet && (
+      {adminSheet && createPortal(
         <AdminPonderadoresSheet
           competencia={compConDeportes}
           onClose={() => setAdminSheet(false)}
@@ -1444,7 +1439,8 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
             }));
             setAdminSheet(false);
           }}
-        />
+        />,
+        document.body
       )}
     </>
   );

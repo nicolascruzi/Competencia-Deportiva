@@ -320,7 +320,7 @@ export default function Calendario({ competenciaActiva }) {
 
       {/* Header competencia */}
       {competenciaActiva && (
-        <div style={{ padding:'14px 20px 0' }}>
+        <div style={{ padding:'8px 20px 0' }}>
           <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)' }}>
             {competenciaActiva.nombre}
           </div>
