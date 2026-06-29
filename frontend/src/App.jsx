@@ -71,31 +71,36 @@ const PTR_THRESHOLD = 56;
 // Wrapper por tab: detecta el gesto, baja el contenido y notifica al padre
 function PullToRefreshTab({ active, onRefresh, onPullChange, children }) {
   const { containerRef, pullY, refreshing } = usePullToRefresh(onRefresh, active);
-  // `closing`: el refresh terminó y el contenido está volviendo arriba con animación
-  const [closing, setClosing] = useState(false);
-  const prevRefreshing = useRef(false);
+  const [closing, setClosing]  = useState(false);
+  const prevRefreshing         = useRef(false);
+  const closingTimer           = useRef(null);
+
+  // Reset completo al desactivar el tab
+  useEffect(() => {
+    if (!active) {
+      clearTimeout(closingTimer.current);
+      setClosing(false);
+      prevRefreshing.current = false;
+    }
+  }, [active]);
 
   useEffect(() => {
-    // Detectar el flanco descendente de refreshing (true → false)
-    if (prevRefreshing.current && !refreshing) {
+    // Flanco descendente: refreshing true → false, iniciar animación de cierre
+    if (prevRefreshing.current && !refreshing && active) {
       setClosing(true);
-      // Dar tiempo a que la transición CSS termine antes de limpiar
-      setTimeout(() => setClosing(false), 350);
+      clearTimeout(closingTimer.current);
+      closingTimer.current = setTimeout(() => setClosing(false), 400);
     }
     prevRefreshing.current = refreshing;
-  }, [refreshing]);
+  }, [refreshing, active]);
 
   useEffect(() => {
     onPullChange?.({ pullY, refreshing, closing });
   }, [pullY, refreshing, closing]);
 
-  const offsetY = refreshing || closing ? PTR_THRESHOLD : pullY;
-  // Durante el arrastre: sin transición (sigue al dedo en tiempo real)
-  // Durante closing: transición suave hacia arriba
-  // En reposo: sin transición
-  const transition = closing
-    ? 'transform 0.38s cubic-bezier(0.22,1,0.36,1)'
-    : 'none';
+  const PTR_THRESHOLD = 56;
+  const offsetY    = refreshing || closing ? PTR_THRESHOLD : pullY;
+  const transition = closing ? 'transform 0.38s cubic-bezier(0.22,1,0.36,1)' : 'none';
 
   return (
     <div
