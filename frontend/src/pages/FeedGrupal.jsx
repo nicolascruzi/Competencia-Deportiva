@@ -145,28 +145,21 @@ function TodosPopup({ comentarios, user, onDelete, onSend, onClose }) {
 // ─── Sección de comentarios ───────────────────────────────────────────────────
 
 function ComentariosSection({ actividadId, user }) {
-  const [comentarios, setComentarios] = useState(null);
-  const [loading, setLoading]         = useState(false);
+  const [comentarios, setComentarios] = useState([]);
   const [popupOpen, setPopupOpen]     = useState(false);
+  const [inputOpen, setInputOpen]     = useState(false);
   const inputRef = useRef(null);
 
-  async function load() {
-    setLoading(true);
-    try { setComentarios(await getComentarios(actividadId)); }
-    finally { setLoading(false); }
-  }
-
-  // Carga al primer toque del botón
-  async function handleToggle() {
-    if (comentarios === null) await load();
-    else setComentarios(c => c); // fuerza re-render para mostrar input
-    // Mostrar el input inline (sección abierta)
-    setTimeout(() => inputRef.current?.focus(), 150);
-  }
+  // Carga automática al montar
+  useEffect(() => {
+    getComentarios(actividadId)
+      .then(setComentarios)
+      .catch(() => {});
+  }, [actividadId]);
 
   async function handleSend(texto) {
     const nuevo = await createComentario(actividadId, texto);
-    setComentarios(prev => [...(prev || []), nuevo]);
+    setComentarios(prev => [...prev, nuevo]);
   }
 
   async function handleDelete(id) {
@@ -176,44 +169,50 @@ function ComentariosSection({ actividadId, user }) {
     } catch (err) { console.error(err); }
   }
 
-  const count  = comentarios?.length ?? 0;
-  const ultimo = comentarios?.[count - 1] ?? null;
+  function handleComentar() {
+    setInputOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 150);
+  }
+
+  const count   = comentarios.length;
+  // Mostrar siempre el último comentario; si hay más de 1 mostrar también "Ver todos"
+  const preview = count > 0 ? comentarios[count - 1] : null;
+  const hidden  = count - 1; // cuántos quedan ocultos (el preview ya muestra 1)
 
   return (
     <div style={{ borderTop:'1px solid var(--t-surface2)' }}>
 
-      {/* Fila acciones: Like · Comentar · Ver todos */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 14px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-          <LikeButton actividadId={actividadId} />
-          <button onClick={handleToggle}
-            style={{ display:'flex', alignItems:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', color:'var(--t-muted)', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent', padding:0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-            </svg>
-            Comentar
-            {loading && <div style={{ width:11, height:11, border:'1.5px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />}
-          </button>
-        </div>
-
-        {/* "Ver todos (N)" si hay más de 1 */}
-        {count > 1 && (
-          <button onClick={() => setPopupOpen(true)}
-            style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--t-accent)', fontSize:12, fontWeight:700, WebkitTapHighlightColor:'transparent', padding:0 }}>
-            Ver todos ({count})
-          </button>
-        )}
+      {/* Fila acciones: Like · Comentar */}
+      <div style={{ display:'flex', alignItems:'center', gap:14, padding:'8px 14px 6px' }}>
+        <LikeButton actividadId={actividadId} />
+        <button onClick={handleComentar}
+          style={{ display:'flex', alignItems:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', color:'var(--t-muted)', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent', padding:0 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+          </svg>
+          Comentar
+        </button>
       </div>
 
-      {/* Último comentario (si existe) */}
-      {ultimo && (
-        <div style={{ padding:'0 14px 10px' }}>
-          <BurbujaComentario c={ultimo} user={user} onDelete={handleDelete} />
+      {/* "Ver todos (N)" si hay más de 1 comentario */}
+      {hidden > 0 && (
+        <div style={{ padding:'0 14px 6px' }}>
+          <button onClick={() => setPopupOpen(true)}
+            style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--t-muted)', fontSize:12, fontWeight:600, WebkitTapHighlightColor:'transparent', padding:0 }}>
+            Ver los {count} comentarios
+          </button>
         </div>
       )}
 
-      {/* Input inline (siempre visible una vez cargado) */}
-      {comentarios !== null && (
+      {/* Preview: último comentario siempre visible */}
+      {preview && (
+        <div style={{ padding:'0 14px 8px' }}>
+          <BurbujaComentario c={preview} user={user} onDelete={handleDelete} />
+        </div>
+      )}
+
+      {/* Input inline */}
+      {inputOpen && (
         <div style={{ padding:'0 14px 12px' }}>
           <ComentarioInput user={user} onSend={handleSend} inputRef={inputRef} />
         </div>
@@ -225,7 +224,7 @@ function ComentariosSection({ actividadId, user }) {
           comentarios={comentarios}
           user={user}
           onDelete={handleDelete}
-          onSend={handleSend}
+          onSend={async (texto) => { await handleSend(texto); }}
           onClose={() => setPopupOpen(false)}
         />,
         document.body
