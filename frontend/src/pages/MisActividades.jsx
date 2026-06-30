@@ -329,12 +329,13 @@ function Evolucion({ actividades }) {
     const n = data.length;
 
     const accentR = getComputedStyle(document.documentElement).getPropertyValue('--t-accent-r').trim() || '249,115,22';
-    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + h);
-    grad.addColorStop(0, `rgba(${accentR},0.22)`);
-    grad.addColorStop(1, `rgba(${accentR},0.0)`);
 
-    const xOf = i => pad.left + (n === 1 ? w / 2 : (i / (n - 1)) * w);
-    const yOf = v => pad.top + h * (1 - v / maxVal);
+    const barGap   = Math.max(2, Math.floor(w / n * 0.18));
+    const barW     = Math.max(4, Math.floor(w / n) - barGap);
+    const slotW    = w / n;
+    const barX     = i => pad.left + i * slotW + (slotW - barW) / 2;
+    const barH     = v => Math.max(2, Math.round(h * (v / maxVal)));
+    const isLast   = i => i === n - 1;
 
     // Gridlines
     [0, 0.25, 0.5, 0.75, 1].forEach(t => {
@@ -350,31 +351,40 @@ function Evolucion({ actividades }) {
       ctx.fillText(Math.round(maxVal * t).toLocaleString('es'), pad.left - 6, y + 4);
     });
 
-    // Área
-    if (n > 1) {
-      ctx.beginPath();
-      data.forEach((d, i) => { const x = xOf(i), y = yOf(d.pts); i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
-      ctx.lineTo(xOf(n-1), pad.top+h); ctx.lineTo(xOf(0), pad.top+h);
-      ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
-    }
-
-    // Línea
-    if (n > 1) {
-      ctx.beginPath();
-      ctx.strokeStyle = `rgb(${accentR})`; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-      data.forEach((d, i) => { const x = xOf(i), y = yOf(d.pts); i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
-      ctx.stroke();
-    }
-
-    // Puntos + etiquetas
+    // Barras
     data.forEach((d, i) => {
-      const x = xOf(i), y = yOf(d.pts);
-      ctx.beginPath(); ctx.arc(x, y, i === n-1 ? 5 : 3.5, 0, Math.PI*2);
-      ctx.fillStyle = `rgb(${accentR})`; ctx.fill();
-      ctx.beginPath(); ctx.arc(x, y, i === n-1 ? 2.5 : 1.5, 0, Math.PI*2);
-      ctx.fillStyle = '#050C14'; ctx.fill();
+      const x  = barX(i);
+      const bh = barH(d.pts);
+      const y  = pad.top + h - bh;
+      const r  = Math.min(4, barW / 2);
 
-      const showLabel = n <= 8 || i % Math.ceil(n / 6) === 0 || i === n-1;
+      // Gradiente por barra
+      const grad = ctx.createLinearGradient(0, y, 0, y + bh);
+      grad.addColorStop(0, `rgba(${accentR},${isLast(i) ? 0.95 : 0.7})`);
+      grad.addColorStop(1, `rgba(${accentR},${isLast(i) ? 0.55 : 0.35})`);
+
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + barW - r, y);
+      ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+      ctx.lineTo(x + barW, y + bh);
+      ctx.lineTo(x, y + bh);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Valor encima de la barra (solo si hay espacio)
+      if (d.pts > 0 && bh > 14) {
+        ctx.fillStyle = `rgba(${accentR},0.9)`;
+        ctx.font = `bold 9px JetBrains Mono, monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(Math.round(d.pts), x + barW / 2, y - 4);
+      }
+
+      // Etiqueta eje X
+      const showLabel = n <= 10 || i % Math.ceil(n / 8) === 0 || isLast(i);
       if (showLabel) {
         let label;
         if (granularidad === 'mes') {
@@ -384,10 +394,10 @@ function Evolucion({ actividades }) {
           const mon = getWeekMon(d.p);
           label = `${mon.getDate()}/${mon.getMonth()+1}`;
         }
-        ctx.fillStyle = 'rgba(120,145,180,0.8)';
-        ctx.font = `9px Inter, sans-serif`;
-        ctx.textAlign = i === 0 ? 'left' : i === n-1 ? 'right' : 'center';
-        ctx.fillText(label, x, H - 6);
+        ctx.fillStyle = isLast(i) ? `rgba(${accentR},0.9)` : 'rgba(120,145,180,0.8)';
+        ctx.font = `${isLast(i) ? 'bold ' : ''}9px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(label, x + barW / 2, H - 6);
       }
     });
   }, [actsFiltradas, periodos, granularidad]);
