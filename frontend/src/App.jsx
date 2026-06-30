@@ -164,6 +164,14 @@ function AppShell() {
     ).finally(() => setRestoringComp(false));
   }, [loading, user?.id]);
 
+  // Si es superadmin y el tab activo no es de admin, redirigir — debe ir ANTES de los returns condicionales
+  const isGlobalAdmin = user?.role === 'admin';
+  useEffect(() => {
+    if (isGlobalAdmin && !mainTab.startsWith('admin_') && mainTab !== 'perfil') {
+      setMainTab('admin_usuarios');
+    }
+  }, [isGlobalAdmin]);
+
   if (loading || restoringComp) {
     return (
       <div style={{ minHeight:'100dvh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, background:'var(--t-ground)' }}>
@@ -206,15 +214,7 @@ function AppShell() {
     setCrearOpen(true);
   }
 
-  const isAdmin        = user && competenciaActiva && user.id === competenciaActiva.creador_id;
-  const isGlobalAdmin  = user?.role === 'admin';
-
-  // Si es superadmin, resetear a tab admin al montar
-  useEffect(() => {
-    if (isGlobalAdmin && !mainTab.startsWith('admin_') && mainTab !== 'perfil') {
-      setMainTab('admin_usuarios');
-    }
-  }, [isGlobalAdmin]);
+  const isAdmin = user && competenciaActiva && user.id === competenciaActiva.creador_id;
 
   const tabContent = {
     ranking: competenciaActiva
