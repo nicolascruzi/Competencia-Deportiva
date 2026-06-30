@@ -9,6 +9,7 @@ import MisActividades from './pages/MisActividades';
 import FeedGrupal from './pages/FeedGrupal';
 import MiPerfil from './pages/MiPerfil';
 import Calendario from './pages/Calendario';
+import AdminPanel from './pages/AdminPanel';
 import Nav from './components/Nav';
 import BottomTabBar from './components/BottomTabBar';
 import ActivityModal from './components/ActivityModal';
@@ -205,7 +206,15 @@ function AppShell() {
     setCrearOpen(true);
   }
 
-  const isAdmin = user && competenciaActiva && user.id === competenciaActiva.creador_id;
+  const isAdmin        = user && competenciaActiva && user.id === competenciaActiva.creador_id;
+  const isGlobalAdmin  = user?.role === 'admin';
+
+  // Si es superadmin, resetear a tab admin al montar
+  useEffect(() => {
+    if (isGlobalAdmin && !mainTab.startsWith('admin_') && mainTab !== 'perfil') {
+      setMainTab('admin_usuarios');
+    }
+  }, [isGlobalAdmin]);
 
   const tabContent = {
     ranking: competenciaActiva
@@ -232,9 +241,18 @@ function AppShell() {
     feed:        <FeedGrupal   key={(competenciaActiva?.id ?? 'noc') + '_' + refreshKey} competencia={competenciaActiva} />,
     actividades: <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} evolucionSignal={evolucionSignal} />,
     perfil:      <MiPerfil     key={refreshKey} />,
+    // Tabs de superadmin — todos renderizan AdminPanel con su tab interno
+    admin_usuarios:     <AdminPanel key="admin" defaultTab="usuarios" />,
+    admin_competencias: <AdminPanel key="admin" defaultTab="competencias" />,
+    admin_actividades:  <AdminPanel key="admin" defaultTab="actividades" />,
+    admin_deportes:     <AdminPanel key="admin" defaultTab="deportes" />,
   };
 
-  const activeIdx = TAB_ORDER.indexOf(mainTab);
+  const CURRENT_TAB_ORDER = isGlobalAdmin
+    ? ['admin_usuarios','admin_competencias','admin_actividades','admin_deportes','perfil']
+    : TAB_ORDER;
+
+  const activeIdx = CURRENT_TAB_ORDER.indexOf(mainTab);
 
   return (
     <>
@@ -246,6 +264,7 @@ function AppShell() {
         forceOpenSelector={forceOpenSelector}
         isAdmin={isAdmin}
         onAdminPonderadores={() => setAdminSheetOpen(true)}
+        isGlobalAdmin={isGlobalAdmin}
       />
 
       {/* Indicador PTR fijo debajo de la navbar */}
@@ -259,7 +278,7 @@ function AppShell() {
         left: 0, right: 0,
         overflow: 'hidden',
       }}>
-        {TAB_ORDER.map((id, i) => {
+        {CURRENT_TAB_ORDER.map((id, i) => {
           const offsetPct = (i - activeIdx) * 100;
           const isActive  = i === activeIdx;
           return (
@@ -283,7 +302,7 @@ function AppShell() {
         })}
       </div>
 
-      <BottomTabBar activeTab={mainTab} onTab={handleMainTab} />
+      <BottomTabBar activeTab={mainTab} onTab={handleMainTab} isGlobalAdmin={isGlobalAdmin} />
 
       <ActivityModal
         open={actModalOpen}

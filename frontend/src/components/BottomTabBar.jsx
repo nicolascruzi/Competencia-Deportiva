@@ -15,14 +15,11 @@ const TabActividades = ({ active }) => (
     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
   </svg>
 );
-// Feed: burbujas de conversación (más ad-hoc que "grupo de personas")
 const TabFeed = ({ active }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
   </svg>
 );
-
-// Perfil: silueta de persona individual (sin el segundo usuario)
 const TabPerfil = ({ active }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="8" r="4"/>
@@ -30,15 +27,55 @@ const TabPerfil = ({ active }) => (
   </svg>
 );
 
-const TABS = [
-  { id:'ranking',      label:'Ranking',      Icon: TabRanking },
-  { id:'calendario',   label:'Calendario',   Icon: TabCalendario },
-  { id:'feed',         label:'Feed',         Icon: TabFeed },
-  { id:'actividades',  label:'Actividades',  Icon: TabActividades },
-  { id:'perfil',       label:'Perfil',       Icon: TabPerfil },
+// Tabs admin
+const TabUsuarios = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+  </svg>
+);
+const TabCompetencias = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9H4.5a2.5 2.5 0 000 5H6"/><path d="M18 9h1.5a2.5 2.5 0 010 5H18"/>
+    <path d="M8 9h8"/><path d="M8 15h8"/>
+  </svg>
+);
+const TabActividadesAdmin = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+  </svg>
+);
+const TabDeportes = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M12 2a14.5 14.5 0 000 20M12 2a14.5 14.5 0 010 20M2 12h20"/>
+  </svg>
+);
+const TabAdminPerfil = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="4"/>
+    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+  </svg>
+);
+
+const TABS_USER = [
+  { id:'ranking',     label:'Ranking',     Icon: TabRanking },
+  { id:'calendario',  label:'Calendario',  Icon: TabCalendario },
+  { id:'feed',        label:'Feed',        Icon: TabFeed },
+  { id:'actividades', label:'Actividades', Icon: TabActividades },
+  { id:'perfil',      label:'Perfil',      Icon: TabPerfil },
 ];
 
-export default function BottomTabBar({ activeTab, onTab }) {
+const TABS_ADMIN = [
+  { id:'admin_usuarios',     label:'Usuarios',     Icon: TabUsuarios },
+  { id:'admin_competencias', label:'Competencias', Icon: TabCompetencias },
+  { id:'admin_actividades',  label:'Actividades',  Icon: TabActividadesAdmin },
+  { id:'admin_deportes',     label:'Deportes',     Icon: TabDeportes },
+  { id:'perfil',             label:'Perfil',       Icon: TabAdminPerfil },
+];
+
+export default function BottomTabBar({ activeTab, onTab, isGlobalAdmin }) {
+  const TABS = isGlobalAdmin ? TABS_ADMIN : TABS_USER;
   return (
     <>
       <div style={{ position:'fixed', bottom:0, left:0, right:0, height:'env(safe-area-inset-bottom)', background:'var(--t-ground)', zIndex:59 }} />
@@ -47,9 +84,9 @@ export default function BottomTabBar({ activeTab, onTab }) {
         bottom: 'calc(env(safe-area-inset-bottom) + 12px)',
         left: '50%', transform: 'translateX(-50%)',
         zIndex: 60,
-        background: 'var(--t-tab-bg)',
+        background: isGlobalAdmin ? 'color-mix(in srgb, var(--t-tab-bg) 92%, var(--t-accent) 8%)' : 'var(--t-tab-bg)',
         backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid var(--t-dim)',
+        border: isGlobalAdmin ? '1px solid rgba(var(--t-accent-r),0.3)' : '1px solid var(--t-dim)',
         borderRadius: 32,
         boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
         display: 'flex', alignItems: 'center',

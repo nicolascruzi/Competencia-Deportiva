@@ -43,7 +43,7 @@ const IconBack = () => (
   </svg>
 );
 
-export default function Nav({ onNewActivity, competenciaActiva, onSelectCompetencia, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores }) {
+export default function Nav({ onNewActivity, competenciaActiva, onSelectCompetencia, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, isGlobalAdmin }) {
   const { themeId, setTheme, palettes } = useTheme();
   const [selectorOpen, setSelectorOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen]   = useState(false);
@@ -120,26 +120,39 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
         borderBottom: '1px solid var(--t-nav-border)',
         marginTop: 'env(safe-area-inset-top)',
       }}>
-        {/* Izquierda: botón + */}
-        <button onClick={onNewActivity} aria-label="Registrar actividad"
-          style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-accent)', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
-          <IconPlus />
-        </button>
+        {/* Izquierda: botón + (oculto para superadmin) */}
+        {isGlobalAdmin
+          ? <div />
+          : <button onClick={onNewActivity} aria-label="Registrar actividad"
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-accent)', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+              <IconPlus />
+            </button>
+        }
 
         {/* Centro: título */}
-        <button
-          onMouseDown={onTitlePressStart}
-          onMouseUp={onTitlePressEnd}
-          onMouseLeave={onTitlePressEnd}
-          onTouchStart={onTitlePressStart}
-          onTouchEnd={onTitlePressEnd}
-          onClick={onTitleClick}
-          style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'transparent', border:'none', cursor:'pointer', padding:'4px 0', WebkitTapHighlightColor:'transparent', minWidth:0 }}>
-          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--t-accent)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'calc(100vw - 120px)' }}>
-            Pura Racha
-          </span>
-          <span style={{ color:'var(--t-muted)', flexShrink:0, marginTop:1 }}><IconChevron /></span>
-        </button>
+        {isGlobalAdmin
+          ? <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--t-accent)' }}>
+                Admin
+              </span>
+              <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.08em', color:'var(--t-ground)', background:'var(--t-accent)', padding:'2px 6px', borderRadius:5 }}>
+                SUPER
+              </span>
+            </div>
+          : <button
+              onMouseDown={onTitlePressStart}
+              onMouseUp={onTitlePressEnd}
+              onMouseLeave={onTitlePressEnd}
+              onTouchStart={onTitlePressStart}
+              onTouchEnd={onTitlePressEnd}
+              onClick={onTitleClick}
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'transparent', border:'none', cursor:'pointer', padding:'4px 0', WebkitTapHighlightColor:'transparent', minWidth:0 }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--t-accent)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'calc(100vw - 120px)' }}>
+                Pura Racha
+              </span>
+              <span style={{ color:'var(--t-muted)', flexShrink:0, marginTop:1 }}><IconChevron /></span>
+            </button>
+        }
 
         {/* Derecha: botón ajustes */}
         <div style={{ display:'flex', justifyContent:'flex-end' }}>
