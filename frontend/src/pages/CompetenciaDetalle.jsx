@@ -152,7 +152,7 @@ function Podio({ acts, nombres }) {
 
 function PlayerDrawer({ person, acts, onClose }) {
   const myActs = acts
-    .filter(a => a.nombre === person.nombre)
+    .filter(a => (a.nombre_display || a.nombre) === person.nombre)
     .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
   const sportMap = {};
@@ -163,6 +163,16 @@ function PlayerDrawer({ person, acts, onClose }) {
     sportMap[a.deporte_nombre].n++;
   });
   const sports = Object.entries(sportMap).sort((a,b) => b[1].pts - a[1].pts);
+
+  // Últimas 8 semanas de evolución
+  const N_WEEKS = 8;
+  const now = new Date();
+  const weekLabels = Array.from({ length: N_WEEKS }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(now.getDate() - (N_WEEKS - 1 - i) * 7);
+    return `${d.getDate()}/${d.getMonth() + 1}`;
+  });
+  const weekPts = weeklyPts(acts, person.nombre, N_WEEKS);
 
   return (
     <>
@@ -239,6 +249,36 @@ function PlayerDrawer({ person, acts, onClose }) {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Evolución semanal */}
+        {weekPts.some(v => v > 0) && (
+          <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--t-dim)' }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:12 }}>
+              Evolución — últimas {N_WEEKS} semanas
+            </div>
+            {/* Barras */}
+            <div style={{ display:'flex', alignItems:'flex-end', gap:4, height:64 }}>
+              {weekPts.map((pts, i) => {
+                const maxW = Math.max(...weekPts, 1);
+                const h = Math.max(2, Math.round((pts / maxW) * 56));
+                return (
+                  <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+                    <div style={{ width:'100%', height:h, background: pts > 0 ? 'var(--t-accent)' : 'var(--t-dim)', borderRadius:'3px 3px 0 0', opacity: pts > 0 ? 0.85 : 0.3 }} />
+                    <span style={{ fontSize:8, color:'var(--t-muted)', fontVariantNumeric:'tabular-nums' }}>{weekLabels[i]}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Totales debajo */}
+            <div style={{ display:'flex', gap:4, marginTop:2 }}>
+              {weekPts.map((pts, i) => (
+                <div key={i} style={{ flex:1, textAlign:'center' }}>
+                  {pts > 0 && <span style={{ fontSize:8, fontWeight:700, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{Math.round(pts)}</span>}
+                </div>
+              ))}
             </div>
           </div>
         )}
