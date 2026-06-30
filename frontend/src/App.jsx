@@ -241,11 +241,11 @@ function AppShell() {
     feed:        <FeedGrupal   key={(competenciaActiva?.id ?? 'noc') + '_' + refreshKey} competencia={competenciaActiva} />,
     actividades: <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} evolucionSignal={evolucionSignal} />,
     perfil:      <MiPerfil     key={refreshKey} />,
-    // Tabs de superadmin — todos renderizan AdminPanel con su tab interno
-    admin_usuarios:     <AdminPanel key="admin" defaultTab="usuarios" />,
-    admin_competencias: <AdminPanel key="admin" defaultTab="competencias" />,
-    admin_actividades:  <AdminPanel key="admin" defaultTab="actividades" />,
-    admin_deportes:     <AdminPanel key="admin" defaultTab="deportes" />,
+    // Tabs de superadmin — misma instancia de AdminPanel, tab controlado por prop
+    admin_usuarios:     <AdminPanel key="admin" tab="usuarios" />,
+    admin_competencias: <AdminPanel key="admin" tab="competencias" />,
+    admin_actividades:  <AdminPanel key="admin" tab="actividades" />,
+    admin_deportes:     <AdminPanel key="admin" tab="deportes" />,
   };
 
   const CURRENT_TAB_ORDER = isGlobalAdmin

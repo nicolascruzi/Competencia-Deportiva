@@ -407,16 +407,13 @@ function TabDeportes() {
 
 // ─── AdminPanel principal ─────────────────────────────────────────────────────
 
-const ADMIN_TABS = [
-  { id:'usuarios',     label:'Usuarios' },
-  { id:'competencias', label:'Competencias' },
-  { id:'actividades',  label:'Actividades' },
-  { id:'deportes',     label:'Deportes' },
-];
+const TAB_LABELS = {
+  usuarios: 'Usuarios', competencias: 'Competencias',
+  actividades: 'Actividades', deportes: 'Deportes',
+};
 
-export default function AdminPanel({ defaultTab = 'usuarios' }) {
-  const [tab, setTab]       = useState(defaultTab);
-  const [stats, setStats]   = useState(null);
+export default function AdminPanel({ tab = 'usuarios' }) {
+  const [stats, setStats] = useState(null);
 
   useEffect(() => { getAdminStats().then(setStats).catch(() => {}); }, []);
 
@@ -425,34 +422,19 @@ export default function AdminPanel({ defaultTab = 'usuarios' }) {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Header */}
-      <div style={{ padding:'18px 16px 10px', background:'var(--t-ground)', borderBottom:'1px solid var(--t-surface2)', flexShrink:0 }}>
-        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', marginBottom:4 }}>Superadmin</div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:28, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
-          Panel de control
+      <div style={{ padding:'18px 16px 8px', background:'var(--t-ground)', borderBottom:'1px solid var(--t-surface2)', flexShrink:0 }}>
+        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', marginBottom:3 }}>Superadmin</div>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
+          {TAB_LABELS[tab] ?? 'Panel'}
         </div>
       </div>
 
-      {/* Stats */}
-      <div style={{ padding:'12px 0 0', background:'var(--t-ground)', flexShrink:0 }}>
-        <StatsBanner stats={stats} />
-
-        {/* Pill tabs */}
-        <div style={{ display:'flex', gap:4, padding:'0 16px 12px', overflowX:'auto' }}>
-          {ADMIN_TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{
-                padding:'6px 14px', borderRadius:20, border:'none', cursor:'pointer', flexShrink:0,
-                fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12,
-                textTransform:'uppercase', letterSpacing:'0.05em',
-                background: tab === t.id ? 'var(--t-accent)' : 'var(--t-surface2)',
-                color: tab === t.id ? 'var(--t-ground)' : 'var(--t-muted)',
-                transition:'background 0.15s, color 0.15s',
-              }}>
-              {t.label}
-            </button>
-          ))}
+      {/* Stats — solo en usuarios */}
+      {tab === 'usuarios' && (
+        <div style={{ padding:'12px 0 4px', background:'var(--t-ground)', flexShrink:0 }}>
+          <StatsBanner stats={stats} />
         </div>
-      </div>
+      )}
 
       {/* Contenido scrollable */}
       <div style={{ flex:1, overflowY:'auto', background:'var(--t-ground)' }}>
