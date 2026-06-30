@@ -66,7 +66,7 @@ function SinCompetencia({ onOpen }) {
 
 const TAB_ORDER = ['ranking', 'calendario', 'feed', 'actividades', 'perfil'];
 
-const PTR_THRESHOLD = 56;
+const PTR_THRESHOLD = 60;
 
 // Wrapper por tab: detecta el gesto, baja el contenido y notifica al padre
 function PullToRefreshTab({ active, onRefresh, onPullChange, children }) {
@@ -98,7 +98,6 @@ function PullToRefreshTab({ active, onRefresh, onPullChange, children }) {
     onPullChange?.({ pullY, refreshing, closing });
   }, [pullY, refreshing, closing]);
 
-  const PTR_THRESHOLD = 56;
   const offsetY    = refreshing || closing ? PTR_THRESHOLD : pullY;
   const transition = closing ? 'transform 0.38s cubic-bezier(0.22,1,0.36,1)' : 'none';
 
@@ -211,7 +210,7 @@ function AppShell() {
   const tabContent = {
     ranking: competenciaActiva
       ? <CompetenciaDetalle
-          key={competenciaActiva.id + compTab}
+          key={competenciaActiva.id + compTab + '_' + refreshKey}
           competencia={competenciaActiva}
           tab={compTab}
           onTab={setCompTab}

@@ -61,15 +61,22 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   const { withLoading } = useLoading();
 
   // Mapa de ponderadores de la competencia activa: { deporte_nombre → ponderador }
-  const compPondMap = competenciaActiva?.deportes
-    ? Object.fromEntries((competenciaActiva.deportes).filter(Boolean).map(d => [d.deporte_nombre, parseFloat(d.ponderador)]))
-    : null;
+  // Solo se considera "activo" si la competencia tiene deportes configurados con al menos un valor
+  const compPondMap = (() => {
+    const deps = competenciaActiva?.deportes;
+    if (!Array.isArray(deps) || deps.length === 0) return null;
+    const map = Object.fromEntries(deps.filter(Boolean).map(d => [d.deporte_nombre, parseFloat(d.ponderador)]));
+    return Object.keys(map).length > 0 ? map : null;
+  })();
 
   // Devuelve el ponderador correcto para un deporte dado el contexto
   function getPonderador(nombre, dep) {
-    if (compPondMap && compPondMap[nombre] != null) return compPondMap[nombre];
+    if (compPondMap && compPondMap[nombre] != null && !isNaN(compPondMap[nombre])) return compPondMap[nombre];
     return dep?.ponderador_default ?? 1;
   }
+
+  // Ponderador bloqueado solo si el deporte actual tiene un valor configurado en la competencia
+  const pondBloqueado = compPondMap && form.deporte_nombre && compPondMap[form.deporte_nombre] != null && !isNaN(compPondMap[form.deporte_nombre]);
 
   useEffect(() => { getDeportes().then(setDeportes).catch(() => {}); }, []);
 
@@ -189,8 +196,8 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
               <Input type="number" inputMode="numeric" min="1" required placeholder="60"
                 value={form.minutos} onChange={e => setForm(f => ({ ...f, minutos: e.target.value }))} />
             </Field>
-            <Field label={compPondMap ? 'Ponderador (comp.)' : 'Ponderador'}>
-              {compPondMap ? (
+            <Field label={pondBloqueado ? 'Ponderador (comp.)' : 'Ponderador'}>
+              {pondBloqueado ? (
                 <div style={{ ...S.input, display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'default', opacity:0.7 }}>
                   <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}>
                     {form.ponderador}
@@ -205,7 +212,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
               )}
             </Field>
           </div>
-          {compPondMap && (
+          {pondBloqueado && (
             <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:-6 }}>
               Ponderador fijado por <span style={{ color:'var(--t-accent)', fontWeight:600 }}>{competenciaActiva.nombre}</span>. Solo el admin puede modificarlo.
             </div>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const THRESHOLD = 56;
-const RESIST    = 0.5;
+const THRESHOLD = 60;
+const RESIST    = 0.55;
 
 export function usePullToRefresh(onRefresh, enabled = true) {
   const [pullY, setPullY]           = useState(0);
@@ -68,7 +68,7 @@ export function usePullToRefresh(onRefresh, enabled = true) {
       startY.current  = null;
       blocked.current = false;
 
-      if (current >= THRESHOLD * 0.85) {
+      if (current >= THRESHOLD * 0.75) {
         setRefreshing(true);
         const started = Date.now();
         Promise.resolve(handleRefresh()).finally(() => {
