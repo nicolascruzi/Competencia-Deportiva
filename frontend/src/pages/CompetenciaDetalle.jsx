@@ -461,8 +461,8 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
               <div key={p.nombre}
                 onClick={() => onOpenProfile?.(p.nombre)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '14px 18px',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '11px 12px',
                   borderTop: i === 0 ? 'none' : '1px solid var(--t-dim)',
                   background: isMe ? 'rgba(var(--t-accent-r),0.06)' : 'transparent',
                   cursor: 'pointer',
@@ -470,35 +470,30 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
                 }}>
 
                 {/* Posición */}
-                <div style={{ width:22, textAlign:'center', flexShrink:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, lineHeight:1, color: i === 0 ? 'var(--t-accent)' : 'var(--t-muted)', fontVariantNumeric:'tabular-nums' }}>
+                <div style={{ width:18, textAlign:'center', flexShrink:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, lineHeight:1, color: i === 0 ? 'var(--t-accent)' : 'var(--t-muted)', fontVariantNumeric:'tabular-nums' }}>
                   {i + 1}
                 </div>
 
                 {/* Avatar */}
-                <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:color, boxShadow:'0 2px 6px rgba(0,0,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <div style={{ width:36, height:36, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:color, boxShadow:'0 2px 6px rgba(0,0,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   {p.foto_perfil_url
                     ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                    : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, color:'#fff' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
+                    : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:15, color:'#fff' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
                   }
                 </div>
 
                 {/* Nombre + stats */}
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:17, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                    <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:15, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                       {p.nombre}
                     </span>
-                    {isMe && <span style={{ background:'var(--t-accent)', color:'#fff', fontSize:9, fontWeight:800, letterSpacing:'0.04em', padding:'2px 6px', borderRadius:5, flexShrink:0 }}>TÚ</span>}
+                    {isMe && <span style={{ background:'var(--t-accent)', color:'#fff', fontSize:8, fontWeight:800, letterSpacing:'0.04em', padding:'2px 5px', borderRadius:4, flexShrink:0 }}>TÚ</span>}
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:3 }}>
-                    <svg width="10" height="12" viewBox="0 0 24 24" style={{ display:'block', flexShrink:0 }}>
-                      <path d="M12 23a7 7 0 0 0 7-7c0-2.5-1.2-4.6-3.2-6.8.2 1.7-.6 2.8-1.6 3.3.5-2.2-.6-4.9-2.7-6.5.1 3-1.9 4.2-3.4 6.7A7 7 0 0 0 12 23z" fill="var(--t-accent)" />
-                    </svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--t-accent)' }}>{p.actividades}</span>
-                    <span style={{ fontSize:11, color:'var(--t-dim2)', opacity:0.5 }}>·</span>
-                    <span style={{ fontSize:11, fontWeight:600, color:'var(--t-muted)' }}>{p.actividades} ses</span>
-                    <span style={{ fontSize:11, color:'var(--t-dim2)', opacity:0.5 }}>·</span>
-                    <span style={{ fontSize:11, fontWeight:600, color:'var(--t-muted)' }}>{horas}h</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:2 }}>
+                    <span style={{ fontSize:10, fontWeight:600, color:'var(--t-muted)' }}>{p.actividades} ses</span>
+                    <span style={{ fontSize:10, color:'var(--t-dim2)', opacity:0.5 }}>·</span>
+                    <span style={{ fontSize:10, fontWeight:600, color:'var(--t-muted)' }}>{horas}h</span>
                   </div>
                 </div>
 
@@ -508,11 +503,11 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
                 </div>
 
                 {/* Puntos */}
-                <div style={{ textAlign:'right', flexShrink:0, minWidth:40 }}>
-                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, lineHeight:0.9, color:'var(--t-text)', fontVariantNumeric:'tabular-nums' }}>
+                <div style={{ textAlign:'right', flexShrink:0, minWidth:36 }}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, lineHeight:0.9, color:'var(--t-text)', fontVariantNumeric:'tabular-nums' }}>
                     {Math.round(p.pts).toLocaleString('es')}
                   </div>
-                  <div style={{ fontSize:9.5, fontWeight:700, letterSpacing:'0.05em', color:'var(--t-muted)', marginTop:2 }}>PTS</div>
+                  <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.05em', color:'var(--t-muted)', marginTop:2 }}>PTS</div>
                 </div>
               </div>
             );
