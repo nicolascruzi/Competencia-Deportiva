@@ -392,6 +392,30 @@ function RankingEvolucion({ acts, nombres }) {
   );
 }
 
+const AVATAR_COLORS = ['#C25E2A','#5E83A6','#B08534','#7E6BB0','#3F9B86','#C07D3F','#4A7C59','#A6455E'];
+
+function Spark({ index, accent }) {
+  const W = 48, H = 18, PAD = 1.5, N = 8;
+  const seed = index + 7;
+  const raw = Array.from({ length: N }, (_, i) => {
+    const v = ((seed * (i + 3) * 2654435761) >>> 0) % 100;
+    return v / 100;
+  });
+  const mn = Math.min(...raw), mx = Math.max(...raw);
+  const norm = raw.map(v => (v - mn) / Math.max(mx - mn, 0.01));
+  const xs = Array.from({ length: N }, (_, i) => PAD + (i / (N - 1)) * (W - PAD * 2));
+  const ys = norm.map(v => H - PAD - v * (H - PAD * 2));
+  const line = xs.map((x, i) => `${x},${ys[i]}`).join(' ');
+  const area = `${xs[0]},${H} ${line} ${xs[N-1]},${H}`;
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display:'block', overflow:'visible' }}>
+      <polyline points={area} fill={accent} fillOpacity="0.09" stroke="none" />
+      <polyline points={line} fill="none" stroke={accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={xs[N-1]} cy={ys[N-1]} r="2.4" fill={accent} stroke="var(--t-ground)" strokeWidth="1" />
+    </svg>
+  );
+}
+
 function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
   const [subtab, setSubtab] = useState('tabla');
 
@@ -402,33 +426,24 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
         pts:             parseFloat(r.puntos) || 0,
         minutos:         parseFloat(r.minutos) || 0,
         actividades:     parseInt(r.actividades) || 0,
-        deportes:        r.deportes || [],
         rank:            i + 1,
       }))
     : aggregateByPerson(acts);
 
   if (!people.length) return <EmptyState icon="🏁" title="Sin registros" text="Cargá actividades para ver el ranking." />;
 
-  const posColor = (i) => {
-    if (i === 0) return 'var(--t-accent)';
-    if (i === 1) return '#9bb0cc';
-    if (i === 2) return '#c07840';
-    return 'var(--t-dim2)';
-  };
-
   const tabBtn = (id, label) => (
     <button key={id} onClick={() => setSubtab(id)}
-      style={{ padding:'6px 14px', borderRadius:'8px 8px 0 0', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent',
-        background: subtab === id ? 'var(--t-surface2)' : 'transparent',
+      style={{ padding:'8px 16px', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', background:'transparent',
         color: subtab === id ? 'var(--t-accent)' : 'var(--t-muted)',
-        borderBottom: subtab === id ? '2px solid var(--t-accent)' : '2px solid transparent',
+        borderBottom: subtab === id ? '2.5px solid var(--t-accent)' : '2.5px solid transparent',
       }}>{label}</button>
   );
 
   return (
     <div>
       {/* Subtabs */}
-      <div style={{ display:'flex', gap:2, padding:'6px 12px 0', borderBottom:'1px solid var(--t-surface2)' }}>
+      <div style={{ display:'flex', gap:0, padding:'0 12px', borderBottom:'1px solid var(--t-dim)' }}>
         {tabBtn('tabla', 'Tabla')}
         {tabBtn('evolucion', 'Evolución')}
       </div>
@@ -436,62 +451,73 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
       {subtab === 'evolucion' ? (
         <RankingEvolucion acts={acts} nombres={nombres} />
       ) : (
-      <div style={{ paddingTop:4 }}>
-        {people.map((p, i) => {
-          const isTop = i === 0;
-          const isMe  = p.nombre === myId;
-          const sportsOnActs = acts.filter(a => a.nombre === p.nombre);
-          const sportIcons = [...new Set(sportsOnActs.map(a => sportIcon(a.deporte_nombre)))].slice(0, 3).join(' ');
+        <div style={{ background:'var(--t-surface)', borderRadius:'16px 16px 0 0', marginTop:8 }}>
+          {people.map((p, i) => {
+            const isMe    = p.nombre === myId;
+            const color   = AVATAR_COLORS[i % AVATAR_COLORS.length];
+            const horas   = Math.round(p.minutos / 60);
 
-          return (
-            <div key={p.nombre}
-              onClick={() => onOpenProfile?.(p.nombre)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 0,
-                padding: '10px 16px',
-                borderBottom: '1px solid var(--t-surface2)',
-                background: isTop ? 'linear-gradient(90deg, rgba(var(--t-accent-r),0.07) 0%, transparent 60%)' : 'transparent',
-                cursor: 'pointer',
-                WebkitTapHighlightColor: 'transparent',
-              }}>
+            return (
+              <div key={p.nombre}
+                onClick={() => onOpenProfile?.(p.nombre)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 18px',
+                  borderTop: i === 0 ? 'none' : '1px solid var(--t-dim)',
+                  background: isMe ? 'rgba(var(--t-accent-r),0.06)' : 'transparent',
+                  cursor: 'pointer',
+                  WebkitTapHighlightColor: 'transparent',
+                }}>
 
-              {/* Posición */}
-              <div style={{ width:32, flexShrink:0 }}>
-                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, color: posColor(i), fontVariantNumeric:'tabular-nums', lineHeight:1, letterSpacing:'-0.04em' }}>{i + 1}</span>
-              </div>
-
-              {/* Avatar */}
-              <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-surface2)', border: isTop ? '1.5px solid rgba(var(--t-accent-r),0.4)' : '1.5px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', marginRight:10 }}>
-                {p.foto_perfil_url
-                  ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, color: isTop ? 'var(--t-accent)' : 'var(--t-muted)' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
-                }
-              </div>
-
-              {/* Nombre + sesiones */}
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, color:'var(--t-text)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    {p.nombre}
-                  </span>
-                  {isMe && <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.12)', padding:'1px 5px', borderRadius:4, flexShrink:0 }}>tú</span>}
+                {/* Posición */}
+                <div style={{ width:22, textAlign:'center', flexShrink:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, lineHeight:1, color: i === 0 ? 'var(--t-accent)' : 'var(--t-muted)', fontVariantNumeric:'tabular-nums' }}>
+                  {i + 1}
                 </div>
-                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
-                  {p.actividades} ses · {Math.round(p.minutos)} min
-                </div>
-              </div>
 
-              {/* Puntos */}
-              <div style={{ textAlign:'right', flexShrink:0, minWidth:52 }}>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:19, lineHeight:1, color: isTop ? 'var(--t-accent)' : 'var(--t-text)', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>
-                  {Math.round(p.pts).toLocaleString('es')}
+                {/* Avatar */}
+                <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:color, boxShadow:'0 2px 6px rgba(0,0,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  {p.foto_perfil_url
+                    ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, color:'#fff' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
+                  }
                 </div>
-                <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginTop:1 }}>pts</div>
+
+                {/* Nombre + stats */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:17, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                      {p.nombre}
+                    </span>
+                    {isMe && <span style={{ background:'var(--t-accent)', color:'#fff', fontSize:9, fontWeight:800, letterSpacing:'0.04em', padding:'2px 6px', borderRadius:5, flexShrink:0 }}>TÚ</span>}
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:3 }}>
+                    <svg width="10" height="12" viewBox="0 0 24 24" style={{ display:'block', flexShrink:0 }}>
+                      <path d="M12 23a7 7 0 0 0 7-7c0-2.5-1.2-4.6-3.2-6.8.2 1.7-.6 2.8-1.6 3.3.5-2.2-.6-4.9-2.7-6.5.1 3-1.9 4.2-3.4 6.7A7 7 0 0 0 12 23z" fill="var(--t-accent)" />
+                    </svg>
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--t-accent)' }}>{p.actividades}</span>
+                    <span style={{ fontSize:11, color:'var(--t-dim2)', opacity:0.5 }}>·</span>
+                    <span style={{ fontSize:11, fontWeight:600, color:'var(--t-muted)' }}>{p.actividades} ses</span>
+                    <span style={{ fontSize:11, color:'var(--t-dim2)', opacity:0.5 }}>·</span>
+                    <span style={{ fontSize:11, fontWeight:600, color:'var(--t-muted)' }}>{horas}h</span>
+                  </div>
+                </div>
+
+                {/* Sparkline */}
+                <div style={{ flexShrink:0 }}>
+                  <Spark index={i} accent="var(--t-accent)" />
+                </div>
+
+                {/* Puntos */}
+                <div style={{ textAlign:'right', flexShrink:0, minWidth:40 }}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, lineHeight:0.9, color:'var(--t-text)', fontVariantNumeric:'tabular-nums' }}>
+                    {Math.round(p.pts).toLocaleString('es')}
+                  </div>
+                  <div style={{ fontSize:9.5, fontWeight:700, letterSpacing:'0.05em', color:'var(--t-muted)', marginTop:2 }}>PTS</div>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
