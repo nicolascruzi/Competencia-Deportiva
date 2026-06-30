@@ -1334,7 +1334,7 @@ function Insights({ acts }) {
 
 function ProfilePanel({ nombre, acts, nombres, onClose }) {
   if (!nombre) return null;
-  const data = acts.filter(a => a.nombre === nombre);
+  const data = acts.filter(a => (a.nombre_display || a.nombre) === nombre);
   const pts  = data.reduce((s, a) => s + a.puntos, 0);
   const min  = data.reduce((s, a) => s + parseFloat(a.minutos), 0);
 
@@ -1384,6 +1384,44 @@ function ProfilePanel({ nombre, acts, nombres, onClose }) {
               </div>
             ))}
           </div>
+
+          {/* Evolución semanal */}
+          {(() => {
+            const N = 8;
+            const now = new Date();
+            const wPts = weeklyPts(acts, nombre, N);
+            const wLabels = Array.from({ length: N }, (_, i) => {
+              const d = new Date(now); d.setDate(now.getDate() - (N - 1 - i) * 7);
+              return `${d.getDate()}/${d.getMonth() + 1}`;
+            });
+            const maxW = Math.max(...wPts, 1);
+            if (!wPts.some(v => v > 0)) return null;
+            return (
+              <div>
+                <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:10 }}>
+                  Evolución — últimas {N} semanas
+                </div>
+                <div style={{ display:'flex', alignItems:'flex-end', gap:3, height:64 }}>
+                  {wPts.map((v, i) => {
+                    const h = Math.max(2, Math.round((v / maxW) * 56));
+                    return (
+                      <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+                        <div style={{ width:'100%', height:h, background: v > 0 ? 'var(--t-accent)' : 'var(--t-dim)', borderRadius:'3px 3px 0 0', opacity: v > 0 ? 0.85 : 0.3 }} />
+                        <span style={{ fontSize:7, color:'var(--t-muted)', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap' }}>{wLabels[i]}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ display:'flex', gap:3, marginTop:1 }}>
+                  {wPts.map((v, i) => (
+                    <div key={i} style={{ flex:1, textAlign:'center' }}>
+                      {v > 0 && <span style={{ fontSize:7, fontWeight:700, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{Math.round(v)}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Deportes */}
           {sportRows.length > 0 && (
