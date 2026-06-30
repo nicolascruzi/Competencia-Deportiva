@@ -151,15 +151,15 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
               <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'11px 13px', position:'relative', overflow:'hidden' }}>
                 <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.7 }} />
                 <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, color:'var(--t-accent)', lineHeight:1 }}>
-                  {Math.round(parseFloat(actividad.puntos))}
-                </div>
-                <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Puntos</div>
-              </div>
-              <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'11px 13px' }}>
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, color:'var(--t-text)', lineHeight:1 }}>
                   {Math.round(parseFloat(actividad.minutos))}
                 </div>
                 <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Minutos</div>
+              </div>
+              <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'11px 13px' }}>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, color:'var(--t-text)', lineHeight:1 }}>
+                  {(Math.round(parseFloat(actividad.minutos) / 60 * 10) / 10).toFixed(1)}h
+                </div>
+                <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Horas</div>
               </div>
             </div>
 
@@ -226,23 +226,13 @@ function ActividadCard({ a, onClick }) {
           style={{ width:'100%', aspectRatio:'4/3', objectFit:'cover', display:'block' }} />
       )}
 
-      {/* Stats: pts · min · fecha */}
+      {/* Stats: min · fecha */}
       <div style={{ display:'flex', alignItems:'center', gap:0, padding:'10px 14px 4px' }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
           <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:'var(--t-accent)', lineHeight:1 }}>
-            {Math.round(parseFloat(a.puntos))}
-          </span>
-          <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</span>
-        </div>
-        <div style={{ width:1, height:16, background:'var(--t-surface2)', margin:'0 12px' }} />
-        <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:16, color:'var(--t-muted)', lineHeight:1 }}>
             {Math.round(parseFloat(a.minutos))}
           </span>
           <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
-        </div>
-        <div style={{ marginLeft:'auto', fontSize:12, color:'var(--t-muted2)' }}>
-          ×{parseFloat(a.ponderador).toFixed(1)}
         </div>
       </div>
 
@@ -305,11 +295,11 @@ function Evolucion({ actividades }) {
     if (!canvas || !periodos.length) return;
     const ctx = canvas.getContext('2d');
 
-    // pts por período (no acumulado)
+    // mins por período (no acumulado)
     const data = periodos.map(p => {
       const pts = actsFiltradas
         .filter(a => (granularidad === 'mes' ? a.fecha.slice(0,7) : getISOWeek(a.fecha)) === p)
-        .reduce((s, a) => s + parseFloat(a.puntos), 0);
+        .reduce((s, a) => s + parseFloat(a.minutos), 0);
       return { p, pts };
     });
 
@@ -416,7 +406,7 @@ function Evolucion({ actividades }) {
   );
 
   // Stats sobre las actividades filtradas
-  const totalPts  = actsFiltradas.reduce((s, a) => s + parseFloat(a.puntos), 0);
+  const totalPts  = actsFiltradas.reduce((s, a) => s + parseFloat(a.minutos), 0);
   const totalMin  = actsFiltradas.reduce((s, a) => s + parseFloat(a.minutos), 0);
   const totalActs = actsFiltradas.length;
 
@@ -425,7 +415,7 @@ function Evolucion({ actividades }) {
     const byP = {};
     actsFiltradas.forEach(a => {
       const p = granularidad === 'mes' ? a.fecha.slice(0,7) : getISOWeek(a.fecha);
-      byP[p] = (byP[p] || 0) + parseFloat(a.puntos);
+      byP[p] = (byP[p] || 0) + parseFloat(a.minutos);
     });
     const best = Object.entries(byP).sort((a,b) => b[1]-a[1])[0];
     if (!best) return null;
@@ -447,7 +437,7 @@ function Evolucion({ actividades }) {
   const lblStyle  = { fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em' };
 
   const maxPtsPeriodo = periodos.length
-    ? Math.max(...periodos.map(p => actsFiltradas.filter(a => (granularidad==='mes'?a.fecha.slice(0,7):getISOWeek(a.fecha))===p).reduce((s,a)=>s+parseFloat(a.puntos),0)))
+    ? Math.max(...periodos.map(p => actsFiltradas.filter(a => (granularidad==='mes'?a.fecha.slice(0,7):getISOWeek(a.fecha))===p).reduce((s,a)=>s+parseFloat(a.minutos),0)))
     : 1;
 
   const pillBtn = (active) => ({
@@ -495,7 +485,7 @@ function Evolucion({ actividades }) {
       <div style={{ display:'flex', gap:0, background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, overflow:'hidden' }}>
         <div style={{ ...statStyle, padding:'14px 8px', borderRight:'1px solid var(--t-dim)' }}>
           <span style={{ ...valStyle, color:'var(--t-accent)' }}>{Math.round(totalPts).toLocaleString('es')}</span>
-          <span style={lblStyle}>Pts totales</span>
+          <span style={lblStyle}>Min totales</span>
         </div>
         <div style={{ ...statStyle, padding:'14px 8px', borderRight:'1px solid var(--t-dim)' }}>
           <span style={{ ...valStyle, color:'var(--t-text)' }}>{totalActs}</span>
@@ -511,7 +501,7 @@ function Evolucion({ actividades }) {
       {actsFiltradas.length > 0 ? (
         <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'16px 12px 8px', overflow:'hidden' }}>
           <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:10 }}>
-            Puntos · {granularidad === 'mes' ? 'por mes' : 'por semana'}
+            Minutos · {granularidad === 'mes' ? 'por mes' : 'por semana'}
           </div>
           <canvas ref={canvasRef} style={{ display:'block', width:'100%', maxWidth:'100%' }} />
         </div>
@@ -532,7 +522,7 @@ function Evolucion({ actividades }) {
           </div>
           <div style={{ textAlign:'right' }}>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, color:'var(--t-accent)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>{mejorPeriodo.pts.toLocaleString('es')}</div>
-            <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</div>
+            <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</div>
           </div>
         </div>
       )}
@@ -545,9 +535,8 @@ function Evolucion({ actividades }) {
           </div>
           {[...periodos].reverse().map(p => {
             const actsP = actsFiltradas.filter(a => (granularidad==='mes'?a.fecha.slice(0,7):getISOWeek(a.fecha))===p);
-            const pts   = Math.round(actsP.reduce((s,a) => s+parseFloat(a.puntos),0));
             const mins  = Math.round(actsP.reduce((s,a) => s+parseFloat(a.minutos),0));
-            const pct   = Math.round((pts / (maxPtsPeriodo || 1)) * 100);
+            const pct   = Math.round((mins / (maxPtsPeriodo || 1)) * 100);
             let label;
             if (granularidad === 'mes') {
               const [y, m] = p.split('-');
@@ -563,15 +552,15 @@ function Evolucion({ actividades }) {
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
                   <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, color:'var(--t-text)' }}>{label}</span>
                   <div>
-                    <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{pts.toLocaleString('es')}</span>
-                    <span style={{ fontSize:9, color:'var(--t-muted)', marginLeft:3, textTransform:'uppercase' }}>pts</span>
+                    <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{mins.toLocaleString('es')}</span>
+                    <span style={{ fontSize:9, color:'var(--t-muted)', marginLeft:3, textTransform:'uppercase' }}>min</span>
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <div style={{ flex:1, height:3, background:'var(--t-surface2)', borderRadius:2, overflow:'hidden' }}>
                     <div style={{ height:'100%', width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.7 }} />
                   </div>
-                  <span style={{ fontSize:10, color:'var(--t-muted)', whiteSpace:'nowrap' }}>{actsP.length} ses · {mins} min</span>
+                  <span style={{ fontSize:10, color:'var(--t-muted)', whiteSpace:'nowrap' }}>{actsP.length} ses</span>
                 </div>
               </div>
             );
@@ -917,7 +906,7 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
   const now      = new Date();
   const mesKey   = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const actsMes  = actividades.filter(a => a.fecha.slice(0,7) === mesKey);
-  const ptosMes  = actsMes.reduce((s, a) => s + parseFloat(a.puntos), 0);
+  const ptosMes  = actsMes.reduce((s, a) => s + parseFloat(a.minutos), 0);
   const minsMes  = actsMes.reduce((s, a) => s + parseFloat(a.minutos), 0);
 
   return (
@@ -978,7 +967,7 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
             const [y, m] = mes.split('-');
             const mesLabel = `${MONTHS_ES[parseInt(m)-1]} ${y}`;
             const fechas = Object.keys(grouped[mes]).sort((a, b) => b.localeCompare(a));
-            const ptsMes = Object.values(grouped[mes]).flat().reduce((s, a) => s + parseFloat(a.puntos), 0);
+            const ptsMes = Object.values(grouped[mes]).flat().reduce((s, a) => s + parseFloat(a.minutos), 0);
 
             return (
               <div key={mes}>
@@ -989,7 +978,7 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
                   </div>
                   <div style={{ flex:1, height:1, background:'var(--t-surface2)' }} />
                   <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, fontWeight:700, color:'var(--t-accent)', flexShrink:0 }}>
-                    {Math.round(ptsMes)} pts
+                    {Math.round(ptsMes)} min
                   </div>
                 </div>
 
@@ -1000,7 +989,7 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
                     const date = new Date(fecha + 'T12:00:00');
                     const dow  = date.toLocaleDateString('es', { weekday:'long' });
                     const day  = date.getDate();
-                    const ptsDia = acts.reduce((s, a) => s + parseFloat(a.puntos), 0);
+                    const ptsDia = acts.reduce((s, a) => s + parseFloat(a.minutos), 0);
 
                     return (
                       <div key={fecha}>
@@ -1010,7 +999,7 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
                             {dow} {day}
                           </span>
                           <span style={{ fontSize:10, color:'var(--t-muted)', fontFamily:"'JetBrains Mono', monospace" }}>
-                            · {Math.round(ptsDia)} pts
+                            · {Math.round(ptsDia)} min
                           </span>
                         </div>
                         {acts.map(a => (
