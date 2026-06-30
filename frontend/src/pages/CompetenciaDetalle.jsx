@@ -394,15 +394,33 @@ function RankingEvolucion({ acts, nombres }) {
 
 const AVATAR_COLORS = ['#C25E2A','#5E83A6','#B08534','#7E6BB0','#3F9B86','#C07D3F','#4A7C59','#A6455E'];
 
-function Spark({ index, accent }) {
-  const W = 48, H = 18, PAD = 1.5, N = 8;
-  const seed = index + 7;
-  const raw = Array.from({ length: N }, (_, i) => {
-    const v = ((seed * (i + 3) * 2654435761) >>> 0) % 100;
-    return v / 100;
-  });
-  const mn = Math.min(...raw), mx = Math.max(...raw);
-  const norm = raw.map(v => (v - mn) / Math.max(mx - mn, 0.01));
+// Calcula puntos por semana (últimas N semanas) para un nombre dado
+function weeklyPts(acts, nombre, n = 4) {
+  const now = new Date();
+  const weeks = Array.from({ length: n }, (_, i) => {
+    const end   = new Date(now); end.setDate(now.getDate() - i * 7); end.setHours(23,59,59,999);
+    const start = new Date(end); start.setDate(end.getDate() - 6);   start.setHours(0,0,0,0);
+    return { start, end };
+  }).reverse(); // cronológico: semana más antigua primero
+
+  return weeks.map(({ start, end }) =>
+    acts
+      .filter(a => {
+        const key = a.nombre_display || a.nombre;
+        if (key !== nombre) return false;
+        const d = new Date(a.fecha + 'T12:00:00');
+        return d >= start && d <= end;
+      })
+      .reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0)
+  );
+}
+
+function Spark({ values, accent }) {
+  const W = 48, H = 18, PAD = 1.5;
+  const N = values.length;
+  if (N < 2) return null;
+  const mn = Math.min(...values), mx = Math.max(...values);
+  const norm = values.map(v => (v - mn) / Math.max(mx - mn, 0.01));
   const xs = Array.from({ length: N }, (_, i) => PAD + (i / (N - 1)) * (W - PAD * 2));
   const ys = norm.map(v => H - PAD - v * (H - PAD * 2));
   const line = xs.map((x, i) => `${x},${ys[i]}`).join(' ');
@@ -456,6 +474,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
             const isMe    = p.nombre === myId;
             const color   = AVATAR_COLORS[i % AVATAR_COLORS.length];
             const horas   = Math.round(p.minutos / 60);
+            const sparkValues = weeklyPts(acts, p.nombre);
 
             return (
               <div key={p.nombre}
@@ -497,9 +516,9 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
                   </div>
                 </div>
 
-                {/* Sparkline */}
+                {/* Sparkline — últimas 4 semanas */}
                 <div style={{ flexShrink:0 }}>
-                  <Spark index={i} accent="var(--t-accent)" />
+                  <Spark values={sparkValues} accent="var(--t-accent)" />
                 </div>
 
                 {/* Puntos */}
