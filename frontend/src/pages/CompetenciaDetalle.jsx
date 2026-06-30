@@ -475,7 +475,8 @@ function Spark({ values, accent }) {
 }
 
 function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
-  const [subtab, setSubtab] = useState('tabla');
+  const [subtab, setSubtab]       = useState('tabla');
+  const [lightboxFoto, setLightboxFoto] = useState(null); // url
 
   const people = rankingData.length
     ? rankingData.map((r, i) => ({
@@ -506,6 +507,14 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
         {tabBtn('evolucion', 'Evolución')}
       </div>
 
+      {/* Lightbox foto ranking */}
+      {lightboxFoto && createPortal(
+        <div onClick={() => setLightboxFoto(null)} style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <img src={lightboxFoto} alt="" style={{ width:240, height:240, borderRadius:'50%', objectFit:'cover', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' }} />
+        </div>,
+        document.body
+      )}
+
       {subtab === 'evolucion' ? (
         <RankingEvolucion acts={acts} nombres={nombres} />
       ) : (
@@ -534,7 +543,9 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
                 </div>
 
                 {/* Avatar */}
-                <div style={{ width:36, height:36, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:color, boxShadow:'0 2px 6px rgba(0,0,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <div
+                  onClick={p.foto_perfil_url ? (e) => { e.stopPropagation(); setLightboxFoto(p.foto_perfil_url); } : undefined}
+                  style={{ width:36, height:36, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:color, boxShadow:'0 2px 6px rgba(0,0,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center', cursor: p.foto_perfil_url ? 'pointer' : 'default' }}>
                   {p.foto_perfil_url
                     ? <img src={p.foto_perfil_url} alt={p.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                     : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:15, color:'#fff' }}>{p.nombre?.charAt(0).toUpperCase()}</span>
@@ -1334,6 +1345,7 @@ function Insights({ acts }) {
 
 function ProfilePanel({ nombre, acts, rankingData = [], nombres, onClose }) {
   if (!nombre) return null;
+  const [fotoLightbox, setFotoLightbox] = useState(false);
   const data = acts.filter(a => (a.nombre_display || a.nombre) === nombre);
   const pts  = data.reduce((s, a) => s + a.puntos, 0);
   const min  = data.reduce((s, a) => s + parseFloat(a.minutos), 0);
@@ -1358,12 +1370,22 @@ function ProfilePanel({ nombre, acts, rankingData = [], nombres, onClose }) {
          onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{ width:'min(400px,100vw)', height:'100dvh', background:'var(--t-surface)', borderLeft:'1px solid var(--t-dim)', overflowY:'auto', WebkitOverflowScrolling:'touch', display:'flex', flexDirection:'column' }}>
 
+        {/* Lightbox foto */}
+        {fotoLightbox && fotoUrl && createPortal(
+          <div onClick={() => setFotoLightbox(false)} style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <img src={fotoUrl} alt={nombre} style={{ width:240, height:240, borderRadius:'50%', objectFit:'cover', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' }} />
+          </div>,
+          document.body
+        )}
+
         {/* Header */}
         <div style={{ padding:'16px 16px 14px', borderBottom:'1px solid var(--t-dim)', display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
-          <div style={{ width:44, height:44, borderRadius:12, flexShrink:0, overflow:'hidden', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div
+            onClick={() => fotoUrl && setFotoLightbox(true)}
+            style={{ width:52, height:52, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', cursor: fotoUrl ? 'pointer' : 'default' }}>
             {fotoUrl
               ? <img src={fotoUrl} alt={nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-              : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, color:'var(--t-muted)' }}>{nombre.charAt(0).toUpperCase()}</span>
+              : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'var(--t-muted)' }}>{nombre.charAt(0).toUpperCase()}</span>
             }
           </div>
           <div style={{ flex:1, minWidth:0 }}>
@@ -1453,27 +1475,6 @@ function ProfilePanel({ nombre, acts, rankingData = [], nombres, onClose }) {
             </div>
           )}
 
-          {/* Últimas actividades */}
-          <div>
-            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:8 }}>Últimas actividades</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-              {[...data].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 8).map((a, i) => (
-                <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8 }}>
-                  <span style={{ fontSize:15, flexShrink:0 }}>{sportIcon(a.deporte_nombre)}</span>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.deporte_nombre}</div>
-                    <div style={{ fontSize:10, color:'var(--t-muted)' }}>
-                      {new Date(a.fecha + 'T12:00:00').toLocaleDateString('es', { day:'numeric', month:'short' })}
-                    </div>
-                  </div>
-                  <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace" }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)' }}>{Math.round(a.puntos)} pts</div>
-                    <div style={{ fontSize:10, color:'var(--t-muted)' }}>{Math.round(parseFloat(a.minutos))} min</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>
