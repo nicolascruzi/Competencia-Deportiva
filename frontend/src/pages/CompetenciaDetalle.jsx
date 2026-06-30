@@ -1497,7 +1497,7 @@ function EmptyState({ icon, title, text }) {
 
 // ─── SHEET ADMIN: editar ponderadores ────────────────────────────────────────
 
-function AdminPonderadoresSheet({ competencia, onClose, onSaved }) {
+function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = false }) {
   const [deportes, setDeportes] = useState([]);
   const [ponders, setPonders]   = useState({});
   const [saving, setSaving]     = useState(false);
@@ -1556,7 +1556,9 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved }) {
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
               Ponderadores
             </div>
-            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>{competencia.nombre}</div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>
+              {competencia.nombre}{readOnly && <span style={{ marginLeft:6, color:'var(--t-dim2)', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em' }}>· Solo lectura</span>}
+            </div>
           </div>
           <button onClick={onClose}
             style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
@@ -1579,25 +1581,32 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved }) {
             <div key={d.nombre} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px' }}>
               <span style={{ fontSize:18, flexShrink:0 }}>{d.icono}</span>
               <span style={{ flex:1, fontSize:14, fontWeight:500, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.nombre}</span>
-              <input
-                type="number" inputMode="decimal" min="0.1" step="0.1"
-                value={ponders[d.nombre] ?? d.ponderador_default}
-                onChange={e => setPonders(p => ({ ...p, [d.nombre]: e.target.value }))}
-                style={{ width:58, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-accent)', padding:'5px 7px', borderRadius:8, fontSize:15, outline:'none', textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}
-                onFocus={e => { e.target.style.borderColor = 'var(--t-accent)'; }}
-                onBlur={e => { e.target.style.borderColor = 'var(--t-dim)'; }}
-              />
+              {readOnly
+                ? <span style={{ width:58, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)' }}>
+                    {ponders[d.nombre] ?? d.ponderador_default}
+                  </span>
+                : <input
+                    type="number" inputMode="decimal" min="0.1" step="0.1"
+                    value={ponders[d.nombre] ?? d.ponderador_default}
+                    onChange={e => setPonders(p => ({ ...p, [d.nombre]: e.target.value }))}
+                    style={{ width:58, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-accent)', padding:'5px 7px', borderRadius:8, fontSize:15, outline:'none', textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}
+                    onFocus={e => { e.target.style.borderColor = 'var(--t-accent)'; }}
+                    onBlur={e => { e.target.style.borderColor = 'var(--t-dim)'; }}
+                  />
+              }
             </div>
           ))}
         </div>
 
-        {/* Guardar */}
-        <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
-          <button onClick={handleSave} disabled={saving}
-            style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
-            {saving ? 'Guardando…' : 'Guardar cambios'}
-          </button>
-        </div>
+        {/* Guardar — solo admin */}
+        {!readOnly && (
+          <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
+            <button onClick={handleSave} disabled={saving}
+              style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
@@ -1742,6 +1751,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       {adminSheetOpen && createPortal(
         <AdminPonderadoresSheet
           competencia={compConDeportes}
+          readOnly={user?.id !== competencia.creador_id}
           onClose={onAdminSheetClose}
           onSaved={ponderadores => {
             setCompConDeportes(prev => ({

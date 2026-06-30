@@ -263,7 +263,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
               <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Paleta de colores</span>
               <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
             </button>
-            {isAdmin && competenciaActiva && (
+            {competenciaActiva && (
               <button
                 onClick={() => { setSettingsOpen(false); onAdminPonderadores?.(); }}
                 style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
@@ -274,7 +274,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
                   </svg>
                 </span>
                 <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Ponderadores</span>
-                <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{competenciaActiva.nombre}</span>
+                <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
               </button>
             )}
           </div>
