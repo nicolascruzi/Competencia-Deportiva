@@ -50,6 +50,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
   const [paletteOpen, setPaletteOpen]     = useState(false);
   const [competencias, setCompetencias]   = useState([]);
   const [loadingComps, setLoadingComps]   = useState(false);
+  const [pinCopied, setPinCopied]         = useState(false);
 
   const selectorRef = useRef(null);
   const settingsRef = useRef(null);
@@ -275,6 +276,33 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
                 </span>
                 <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Ponderadores</span>
                 <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
+              </button>
+            )}
+            {competenciaActiva?.pin && (
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(competenciaActiva.pin).then(() => {
+                    setPinCopied(true);
+                    setTimeout(() => setPinCopied(false), 2000);
+                  });
+                }}
+                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="2" width="13" height="13" rx="2"/><path d="M5 9H4a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-1"/>
+                  </svg>
+                </span>
+                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>
+                  PIN de acceso
+                </span>
+                <span style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:15, fontWeight:700, color:'var(--t-accent)', letterSpacing:'0.12em' }}>
+                    {competenciaActiva.pin}
+                  </span>
+                  <span style={{ fontSize:10, fontWeight:700, color: pinCopied ? 'var(--t-accent)' : 'var(--t-muted)' }}>
+                    {pinCopied ? '✓' : 'Copiar'}
+                  </span>
+                </span>
               </button>
             )}
           </div>
