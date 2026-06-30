@@ -229,7 +229,7 @@ function AppShell() {
         />
       : <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />,
     calendario:  <Calendario   key={refreshKey} competenciaActiva={competenciaActiva} navYear={navYear} navMonth={navMonth} onNavYear={setNavYear} onNavMonth={setNavMonth} />,
-    feed:        <FeedGrupal   key={competenciaActiva?.id} competencia={competenciaActiva} />,
+    feed:        <FeedGrupal   key={(competenciaActiva?.id ?? 'noc') + '_' + refreshKey} competencia={competenciaActiva} />,
     actividades: <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} evolucionSignal={evolucionSignal} />,
     perfil:      <MiPerfil     key={refreshKey} />,
   };

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { getRankingComp, getActividadesComp, updatePonderadores } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
-import { getDeportes as getAllDeportes } from '../api/actividades';
+import { getDeportes as getAllDeportes, createDeporte } from '../api/actividades';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -1498,29 +1498,60 @@ function EmptyState({ icon, title, text }) {
 // ─── SHEET ADMIN: editar ponderadores ────────────────────────────────────────
 
 function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = false }) {
-  const [deportes, setDeportes] = useState([]);
-  const [ponders, setPonders]   = useState({});
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState('');
+  const [deportes, setDeportes]   = useState([]);
+  const [ponders, setPonders]     = useState({});
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState('');
+  // Estado para nuevo deporte
+  const [nuevoNombre, setNuevoNombre]   = useState('');
+  const [nuevoIcono, setNuevoIcono]     = useState('🏅');
+  const [nuevoPond, setNuevoPond]       = useState('1.0');
+  const [addingDeporte, setAddingDeporte] = useState(false);
+  const [addError, setAddError]         = useState('');
   const startY = useRef(null);
   const { withLoading } = useLoading();
 
-  useEffect(() => {
-    withLoading(() =>
-      getAllDeportes().then(deps => {
-        setDeportes(deps);
+  function loadDeportes() {
+    return getAllDeportes().then(deps => {
+      setDeportes(deps);
+      setPonders(prev => {
         const map = {};
-        deps.forEach(d => { map[d.nombre] = d.ponderador_default; });
-        (competencia.deportes || []).forEach(cd => { map[cd.deporte_nombre] = cd.ponderador; });
-        setPonders(map);
-      })
-    );
-  }, []);
+        deps.forEach(d => { map[d.nombre] = prev[d.nombre] ?? d.ponderador_default; });
+        (competencia.deportes || []).forEach(cd => { map[cd.deporte_nombre] = prev[cd.deporte_nombre] ?? cd.ponderador; });
+        return map;
+      });
+    });
+  }
+
+  useEffect(() => { withLoading(loadDeportes); }, []);
 
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
   function onTouchEnd(e) {
     if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 80) onClose();
     startY.current = null;
+  }
+
+  async function handleAddDeporte() {
+    const nombre = nuevoNombre.trim();
+    if (!nombre) { setAddError('El nombre es obligatorio'); return; }
+    if (deportes.some(d => d.nombre.toLowerCase() === nombre.toLowerCase())) {
+      setAddError('Ya existe ese deporte'); return;
+    }
+    setAddingDeporte(true); setAddError('');
+    try {
+      await createDeporte({ nombre, icono: nuevoIcono || '🏅', ponderador_default: parseFloat(nuevoPond) || 1 });
+      // Agregar al ponderador map local con el valor ingresado
+      setPonders(p => ({ ...p, [nombre]: parseFloat(nuevoPond) || 1 }));
+      // Recargar lista de deportes
+      await loadDeportes();
+      setNuevoNombre('');
+      setNuevoIcono('🏅');
+      setNuevoPond('1.0');
+    } catch (err) {
+      setAddError(err.message || 'Error al crear deporte');
+    } finally {
+      setAddingDeporte(false);
+    }
   }
 
   async function handleSave() {
@@ -1539,11 +1570,13 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
     }
   }
 
+  const inputBase = { background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none', fontFamily:'inherit' };
+
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
       <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-        style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'85dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
+        style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'90dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
 
         {/* Handle */}
         <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px', flexShrink:0 }}>
@@ -1577,6 +1610,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
           <div style={{ fontSize:11, color:'var(--t-muted)', marginBottom:4 }}>
             Puntos = minutos × ponderador. Los cambios afectan el cálculo desde ahora.
           </div>
+
           {deportes.map(d => (
             <div key={d.nombre} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px' }}>
               <span style={{ fontSize:18, flexShrink:0 }}>{d.icono}</span>
@@ -1596,6 +1630,47 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
               }
             </div>
           ))}
+
+          {/* Agregar nuevo deporte — solo admin */}
+          {!readOnly && (
+            <div style={{ marginTop:10, border:'1px dashed var(--t-dim)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>
+                Nuevo deporte
+              </div>
+              <div style={{ display:'flex', gap:8 }}>
+                {/* Emoji */}
+                <input
+                  type="text"
+                  value={nuevoIcono}
+                  onChange={e => setNuevoIcono(e.target.value)}
+                  maxLength={4}
+                  style={{ ...inputBase, width:48, textAlign:'center', fontSize:20, padding:'5px 6px' }}
+                />
+                {/* Nombre */}
+                <input
+                  type="text"
+                  placeholder="Nombre del deporte"
+                  value={nuevoNombre}
+                  onChange={e => { setNuevoNombre(e.target.value); setAddError(''); }}
+                  style={{ ...inputBase, flex:1 }}
+                />
+                {/* Ponderador */}
+                <input
+                  type="number" inputMode="decimal" min="0.1" step="0.1"
+                  value={nuevoPond}
+                  onChange={e => setNuevoPond(e.target.value)}
+                  style={{ ...inputBase, width:58, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}
+                />
+              </div>
+              {addError && (
+                <div style={{ fontSize:12, color:'#F87171' }}>{addError}</div>
+              )}
+              <button onClick={handleAddDeporte} disabled={addingDeporte || !nuevoNombre.trim()}
+                style={{ alignSelf:'flex-start', padding:'7px 16px', borderRadius:8, border:'1.5px solid var(--t-accent)', background:'transparent', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', cursor: nuevoNombre.trim() ? 'pointer' : 'default', opacity: nuevoNombre.trim() ? 1 : 0.5 }}>
+                {addingDeporte ? 'Agregando…' : '+ Agregar'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Guardar — solo admin */}
