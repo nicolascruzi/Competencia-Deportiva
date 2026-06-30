@@ -1332,14 +1332,17 @@ function Insights({ acts }) {
 
 // ─── PROFILE PANEL ────────────────────────────────────────────────────────────
 
-function ProfilePanel({ nombre, acts, nombres, onClose }) {
+function ProfilePanel({ nombre, acts, rankingData = [], nombres, onClose }) {
   if (!nombre) return null;
   const data = acts.filter(a => (a.nombre_display || a.nombre) === nombre);
   const pts  = data.reduce((s, a) => s + a.puntos, 0);
   const min  = data.reduce((s, a) => s + parseFloat(a.minutos), 0);
 
-  // foto de perfil del jugador (primera actividad que la tenga)
-  const fotoUrl = data.find(a => a.foto_perfil_url)?.foto_perfil_url ?? null;
+  // foto: primero desde rankingData (siempre disponible), luego desde actividades
+  const rankEntry = rankingData.find(r => (r.nombre_display || r.nombre) === nombre);
+  const fotoUrl = rankEntry?.foto_perfil_url
+    ?? data.find(a => a.foto_perfil_url)?.foto_perfil_url
+    ?? null;
 
   const sportMap = {};
   data.forEach(a => {
@@ -1728,6 +1731,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
         <ProfilePanel
           nombre={profile}
           acts={acts}
+          rankingData={rankingData}
           nombres={nombres}
           onClose={() => setProfile(null)}
         />,
