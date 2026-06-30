@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ranking — Opción A (referencia)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     RANKING — OPCIÓN A  ·  referencia de diseño
+     "Hoja blanca": una sola superficie blanca a sangre completa,
+     filas separadas por hairlines. Fila del usuario con tinte.
+     Paleta:  crema #F2ECE2 · hoja #FFFFFF · acento #C25E2A
+              tinta #221C16 · texto sec. #A99A86 · muted #B9AC9A
+     Fuentes: Anton (rank + números) · Archivo Black (nombres)
+              Figtree (todo lo demás)
+     ============================================================ */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #E7E2D8; font-family: 'Figtree', system-ui, sans-serif;
+         -webkit-font-smoothing: antialiased; display: flex; justify-content: center;
+         padding: 32px 12px; }
+
+  /* Lienzo de la pantalla — 402px de ancho (iPhone lógico) */
+  .screen { width: 402px; background: #F2ECE2; border-radius: 28px; overflow: hidden;
+            box-shadow: 0 24px 60px rgba(0,0,0,.16); }
+
+  /* ---- Cabecera fija ---- */
+  .chrome { background: #F5F0E8; box-shadow: 0 1px 0 rgba(34,28,22,.06); }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 10px; }
+  .brand  { font-family: 'Anton', sans-serif; font-size: 22px; letter-spacing: 1px; color: #C25E2A;
+            display: flex; align-items: center; gap: 7px; }
+  .title-block { padding: 8px 18px 14px; }
+  .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 2px; color: #C25E2A; }
+  .title   { font-family: 'Anton', sans-serif; font-size: 40px; line-height: .95; letter-spacing: .5px;
+             color: #221C16; margin-top: 2px; }
+  .month   { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px;
+             border-top: 1px solid rgba(34,28,22,.07); }
+  .month-c { text-align: center; }
+  .month-c .m { font-family: 'Anton', sans-serif; font-size: 24px; letter-spacing: 1px; color: #221C16; }
+  .month-c .y { font-size: 12px; font-weight: 600; color: #A99A86; margin-top: 1px; }
+  .tabs    { display: flex; gap: 26px; padding: 0 18px; border-top: 1px solid rgba(34,28,22,.07); }
+  .tab     { padding: 13px 2px; font-size: 13px; font-weight: 700; letter-spacing: .5px; color: #B9AC9A; }
+  .tab.is-active { font-weight: 800; color: #C25E2A; border-bottom: 2.5px solid #C25E2A; }
+
+  /* ---- Hoja blanca + filas ---- */
+  .sheet { background: #fff; border-radius: 24px 24px 0 0; margin-top: 10px; padding: 6px 0 10px; }
+  .row  { display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+          border-top: 1px solid rgba(34,28,22,.06); background: transparent; }
+  .row--you { background: rgba(194,94,42,.07); }                  /* fila del usuario: tinte, sin borde */
+  .rank { width: 22px; text-align: center; font-family: 'Anton', sans-serif; font-size: 22px; flex-shrink: 0; }
+  .avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; font-family: 'Archivo Black', sans-serif; font-size: 19px; color: #fff;
+            flex-shrink: 0; box-shadow: 0 3px 8px rgba(34,28,22,.12); }
+  .meta { flex: 1; min-width: 0; }
+  .meta-top { display: flex; align-items: center; gap: 7px; }
+  .name { font-family: 'Archivo Black', sans-serif; font-size: 16px; color: #221C16;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .you-badge { background: #C25E2A; color: #fff; font-size: 9px; font-weight: 800; letter-spacing: .5px;
+               padding: 2px 6px; border-radius: 5px; flex-shrink: 0; }
+  .delta { font-size: 10.5px; font-weight: 800; padding: 2px 6px; border-radius: 6px; flex-shrink: 0;
+           display: inline-flex; align-items: center; gap: 1px; }
+  .meta-sub { display: flex; align-items: center; gap: 7px; margin-top: 3px; font-size: 12px;
+              font-weight: 600; color: #A99A86; white-space: nowrap; }
+  .meta-sub .streak { display: inline-flex; align-items: center; gap: 2px; color: #C25E2A; font-weight: 800; }
+  .meta-sub .dot { opacity: .45; }
+  .spark { flex-shrink: 0; }
+  .pts { text-align: right; flex-shrink: 0; min-width: 40px; }
+  .pts-num { font-family: 'Anton', sans-serif; font-size: 26px; line-height: .9; color: #221C16; }
+  .pts-label { font-size: 9.5px; font-weight: 700; letter-spacing: .5px; color: #A99A86; }
+
+  /* ---- Navegación inferior ---- */
+  .nav-wrap { padding: 8px 12px 18px; }
+  .nav { background: #fff; border-radius: 26px; box-shadow: 0 6px 20px rgba(34,28,22,.12);
+         display: flex; align-items: center; justify-content: space-around; padding: 9px 6px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 4px;
+              font-size: 10px; font-weight: 600; color: #A99A86; }
+  .nav-item.is-active { color: #C25E2A; font-weight: 700; gap: 3px; padding-top: 0; }
+  .nav-item.is-active .ico { background: #F6E3D2; border-radius: 12px; padding: 5px 14px; }
+</style>
+</head>
+<body>
+  <div class="screen">
+    <!-- Cabecera -->
+    <div class="chrome">
+      <div class="topbar">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#C25E2A" stroke-width="2.6" stroke-linecap="round"/></svg>
+        <div class="brand">PURA RACHA
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#C25E2A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" stroke="#C25E2A" stroke-width="2"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4L5.3 5.3" stroke="#C25E2A" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="title-block">
+        <div class="eyebrow">NANAO CUP</div>
+        <div class="title">RANKING</div>
+      </div>
+      <div class="month">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="#A99A86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="month-c"><div class="m">JUNIO</div><div class="y">2026</div></div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#A99A86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="tabs">
+        <div class="tab is-active">TABLA</div>
+        <div class="tab">EVOLUCIÓN</div>
+      </div>
+    </div>
+
+    <!-- Hoja blanca con la lista -->
+    <div class="sheet">
+        <div class="row row--you">
+          <div class="rank" style="color:#C25E2A">1</div>
+          <div class="avatar" style="background:#C25E2A">N</div>
+          <div class="meta">
+            <div class="meta-top">
+              <span class="name">Nico</span>
+              <span class="you-badge">TÚ</span>
+              <span class="delta" style="background:rgba(169,154,134,0.16);color:#A99A86">=</span>
+            </div>
+            <div class="meta-sub">
+              <span class="streak"><svg width="10" height="12" viewBox="0 0 24 24"><path d="M12 23a7 7 0 0 0 7-7c0-2.5-1.2-4.6-3.2-6.8.2 1.7-.6 2.8-1.6 3.3.5-2.2-.6-4.9-2.7-6.5.1 3-1.9 4.2-3.4 6.7A7 7 0 0 0 12 23z" fill="#C25E2A"/></svg>8</span>
+              <span class="dot">·</span><span>14 ses</span>
+              <span class="dot">·</span><span>12h</span>
+            </div>
+          </div>
+          <div class="spark"><svg width="48" height="18" viewBox="0 0 48 18" style="display:block;overflow:visible">
+    <polyline points="1.5,18 1.5,15.5 7.9,12.9 14.4,13.8 20.8,10.1 27.2,9.0 33.6,9.4 40.1,6.0 46.5,2.5 46.5,18" fill="#C25E2A" fill-opacity="0.09" stroke="none"/>
+    <polyline points="1.5,15.5 7.9,12.9 14.4,13.8 20.8,10.1 27.2,9.0 33.6,9.4 40.1,6.0 46.5,2.5" fill="none" stroke="#C25E2A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="46.5" cy="2.5" r="2.4" fill="#C25E2A" stroke="#fff" stroke-width="1"/>
+  </svg></div>
+          <div class="pts"><div class="pts-num">312</div><div class="pts-label">PTS</div></div>
+        </div>
+        <div class="row">
+          <div class="rank" style="color:#B9AC9A">2</div>
+          <div class="avatar" style="background:#5E83A6">C</div>
+          <div class="meta">
+            <div class="meta-top">
+              <span class="name">Chola</span>
+              
+              <span class="delta" style="background:rgba(63,143,94,0.13);color:#3F8F5E">▲1</span>
+            </div>
+            <div class="meta-sub">
+              <span class="streak"><svg width="10" height="12" viewBox="0 0 24 24"><path d="M12 23a7 7 0 0 0 7-7c0-2.5-1.2-4.6-3.2-6.8.2 1.7-.6 2.8-1.6 3.3.5-2.2-.6-4.9-2.7-6.5.1 3-1.9 4.2-3.4 6.7A7 7 0 0 0 12 23z" fill="#C25E2A"/></svg>5</span>
+              <span class="dot">·</span><span>12 ses</span>
+              <span class="dot">·</span><span>10h</span>
+            </div>
+          </div>
+          <div class="spark"><svg width="48" height="18" viewBox="0 0 48 18" style="display:block;overflow:visible">
+    <polyline points="1.5,18 1.5,15.5 7.9,11.6 14.4,9.0 20.8,10.3 27.2,6.4 33.6,4.6 40.1,5.6 46.5,2.5 46.5,18" fill="#C25E2A" fill-opacity="0.09" stroke="none"/>
+    <polyline points="1.5,15.5 7.9,11.6 14.4,9.0 20.8,10.3 27.2,6.4 33.6,4.6 40.1,5.6 46.5,2.5" fill="none" stroke="#C25E2A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="46.5" cy="2.5" r="2.4" fill="#C25E2A" stroke="#fff" stroke-width="1"/>
+  </svg></div>
+          <div class="pts"><div class="pts-num">287</div><div class="pts-label">PTS</div></div>
+        </div>
+        <div class="row">
+          <div class="rank" style="color:#B9AC9A">3</div>
+          <div class="avatar" style="background:#B08534">P</div>
+          <div class="meta">
+            <div class="meta-top">
+              <span class="name">Pollo A.</span>
+              
+              <span class="delta" style="background:rgba(199,80,58,0.13);color:#C7503A">▼1</span>
+            </div>
+            <div class="meta-sub">
+              <span class="streak"><svg width="10" height="12" viewBox="0 0 24 24"><path d="M12 23a7 7 0 0 0 7-7c0-2.5-1.2-4.6-3.2-6.8.2 1.7-.6 2.8-1.6 3.3.5-2.2-.6-4.9-2.7-6.5.1 3-1.9 4.2-3.4 6.7A7 7 0 0 0 12 23z" fill="#C25E2A"/></svg>6</span>
+              <span class="dot">·</span><span>11 ses</span>
+              <span class="dot">·</span><span>9h</span>
+            </div>
+          </div>
+          <div class="spark"><svg width="48" height="18" viewBox="0 0 48 18" style="display:block;overflow:visible">
+    <polyline points="1.5,18 1.5,14.1 7.9,10.4 14.4,15.5 20.8,6.8 27.2,12.6 33.6,3.9 40.1,8.3 46.5,2.5 46.5,18" fill="#C25E2A" fill-opacity="0.09" stroke="none"/>
+    <polyline points="1.5,14.1 7.9,10.4 14.4,15.5 20.8,6.8 27.2,12.6 33.6,3.9 40.1,8.3 46.5,2.5" fill="none" stroke="#C25E2A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="46.5" cy="2.5" r="2.4" fill="#C25E2A" stroke="#fff" stroke-width="1"/>
+  </svg></div>
+          <div class="pts"><div class="pts-num">264</div><div class="pts-label">PTS</div></div>
+        </div>
+        <div class="row">
+          <div class="rank" style="color:#B9AC9A">4</div>
+          <div class="avatar" style="background:#7E6BB0">A</div>
+          <div class="meta">
+            <div class="meta-top">
+              <span class="name">Augusto</span>
+              
+              <span class="delta" style="background:rgba(63,143,94,0.13);color:#3F8F5E">▲2</span>
+            </div>
+            <div class="meta-sub">
+              <span class="streak"><svg width="10" height="12" viewBox="0 0 24 24"><path d="M12 23a7 7 0 0 0 7-7c0-2.5-1.2-4.6-3.2-6.8.2 1.7-.6 2.8-1.6 3.3.5-2.2-.6-4.9-2.7-6.5.1 3-1.9 4.2-3.4 6.7A7 7 0 0 0 12 23z" fill="#C25E2A"/></svg>3</span>
+              <span class="dot">·</span><span>9 ses</span>
+              <span class="dot">·</span><span>7h</span>
+            </div>
+          </div>
+          <div class="spark"><svg width="48" height="18" viewBox="0 0 48 18" style="display:block;overflow:visible">
+    <polyline points="1.5,18 1.5,15.5 7.9,12.9 14.4,13.4 20.8,10.3 27.2,7.7 33.6,8.2 40.1,4.6 46.5,2.5 46.5,18" fill="#C25E2A" fill-opacity="0.09" stroke="none"/>
+    <polyline points="1.5,15.5 7.9,12.9 14.4,13.4 20.8,10.3 27.2,7.7 33.6,8.2 40.1,4.6 46.5,2.5" fill="none" stroke="#C25E2A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="46.5" cy="2.5" r="2.4" fill="#C25E2A" stroke="#fff" stroke-width="1"/>
+  </svg></div>
+          <div class="pts"><div class="pts-num">198</div><div class="pts-label">PTS</div></div>
+        </div>
+        <div class="row">
+          <div class="rank" style="color:#B9AC9A">5</div>
+          <div class="avatar" style="background:#3F9B86">N</div>
+          <div class="meta">
+            <div class="meta-top">
+              <span class="name">Nano Rock</span>
+              
+              <span class="delta" style="background:rgba(199,80,58,0.13);color:#C7503A">▼1</span>
+            </div>
+            <div class="meta-sub">
+              <span class="streak"><svg width="10" height="12" viewBox="0 0 24 24"><path d="M12 23a7 7 0 0 0 7-7c0-2.5-1.2-4.6-3.2-6.8.2 1.7-.6 2.8-1.6 3.3.5-2.2-.6-4.9-2.7-6.5.1 3-1.9 4.2-3.4 6.7A7 7 0 0 0 12 23z" fill="#C25E2A"/></svg>4</span>
+              <span class="dot">·</span><span>8 ses</span>
+              <span class="dot">·</span><span>7h</span>
+            </div>
+          </div>
+          <div class="spark"><svg width="48" height="18" viewBox="0 0 48 18" style="display:block;overflow:visible">
+    <polyline points="1.5,18 1.5,8.1 7.9,11.8 14.4,13.6 20.8,9.9 27.2,15.5 33.6,4.4 40.1,8.1 46.5,2.5 46.5,18" fill="#C25E2A" fill-opacity="0.09" stroke="none"/>
+    <polyline points="1.5,8.1 7.9,11.8 14.4,13.6 20.8,9.9 27.2,15.5 33.6,4.4 40.1,8.1 46.5,2.5" fill="none" stroke="#C25E2A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="46.5" cy="2.5" r="2.4" fill="#C25E2A" stroke="#fff" stroke-width="1"/>
+  </svg></div>
+          <div class="pts"><div class="pts-num">176</div><div class="pts-label">PTS</div></div>
+        </div>
+        <div class="row">
+          <div class="rank" style="color:#B9AC9A">6</div>
+          <div class="avatar" style="background:#C07D3F">W</div>
+          <div class="meta">
+            <div class="meta-top">
+              <span class="name">Weo</span>
+              
+              <span class="delta" style="background:rgba(63,143,94,0.13);color:#3F8F5E">▲1</span>
+            </div>
+            <div class="meta-sub">
+              <span class="streak"><svg width="10" height="12" viewBox="0 0 24 24"><path d="M12 23a7 7 0 0 0 7-7c0-2.5-1.2-4.6-3.2-6.8.2 1.7-.6 2.8-1.6 3.3.5-2.2-.6-4.9-2.7-6.5.1 3-1.9 4.2-3.4 6.7A7 7 0 0 0 12 23z" fill="#C25E2A"/></svg>2</span>
+              <span class="dot">·</span><span>7 ses</span>
+              <span class="dot">·</span><span>5h</span>
+            </div>
+          </div>
+          <div class="spark"><svg width="48" height="18" viewBox="0 0 48 18" style="display:block;overflow:visible">
+    <polyline points="1.5,18 1.5,15.5 7.9,13.3 14.4,10.8 20.8,11.9 27.2,9.0 33.6,7.6 40.1,5.4 46.5,2.5 46.5,18" fill="#C25E2A" fill-opacity="0.09" stroke="none"/>
+    <polyline points="1.5,15.5 7.9,13.3 14.4,10.8 20.8,11.9 27.2,9.0 33.6,7.6 40.1,5.4 46.5,2.5" fill="none" stroke="#C25E2A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="46.5" cy="2.5" r="2.4" fill="#C25E2A" stroke="#fff" stroke-width="1"/>
+  </svg></div>
+          <div class="pts"><div class="pts-num">154</div><div class="pts-label">PTS</div></div>
+        </div>
+        <div class="row">
+          <div class="rank" style="color:#B9AC9A">7</div>
+          <div class="avatar" style="background:#4A4641">T</div>
+          <div class="meta">
+            <div class="meta-top">
+              <span class="name">Toms</span>
+              
+              <span class="delta" style="background:rgba(199,80,58,0.13);color:#C7503A">▼2</span>
+            </div>
+            <div class="meta-sub">
+              <span class="streak"><svg width="10" height="12" viewBox="0 0 24 24"><path d="M12 23a7 7 0 0 0 7-7c0-2.5-1.2-4.6-3.2-6.8.2 1.7-.6 2.8-1.6 3.3.5-2.2-.6-4.9-2.7-6.5.1 3-1.9 4.2-3.4 6.7A7 7 0 0 0 12 23z" fill="#C25E2A"/></svg>1</span>
+              <span class="dot">·</span><span>6 ses</span>
+              <span class="dot">·</span><span>4h</span>
+            </div>
+          </div>
+          <div class="spark"><svg width="48" height="18" viewBox="0 0 48 18" style="display:block;overflow:visible">
+    <polyline points="1.5,18 1.5,2.5 7.9,6.1 14.4,8.3 20.8,9.7 27.2,11.9 33.6,13.3 40.1,14.1 46.5,15.5 46.5,18" fill="#C25E2A" fill-opacity="0.09" stroke="none"/>
+    <polyline points="1.5,2.5 7.9,6.1 14.4,8.3 20.8,9.7 27.2,11.9 33.6,13.3 40.1,14.1 46.5,15.5" fill="none" stroke="#C25E2A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="46.5" cy="15.5" r="2.4" fill="#C25E2A" stroke="#fff" stroke-width="1"/>
+  </svg></div>
+          <div class="pts"><div class="pts-num">121</div><div class="pts-label">PTS</div></div>
+        </div>
+    </div>
+
+    <!-- Navegación -->
+    <div class="nav-wrap">
+      <div class="nav">
+        <div class="nav-item is-active">
+          <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="11" width="3.5" height="9" rx="1" fill="#C25E2A"/><rect x="10.2" y="6" width="3.5" height="14" rx="1" fill="#C25E2A"/><rect x="16.5" y="14" width="3.5" height="6" rx="1" fill="#C25E2A"/></svg></span>
+          Ranking
+        </div>
+        <div class="nav-item"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="16" rx="3" stroke="#A99A86" stroke-width="1.8"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#A99A86" stroke-width="1.8" stroke-linecap="round"/></svg>Calendario</div>
+        <div class="nav-item"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H9l-4.5 4V7A1.5 1.5 0 0 1 4 5.5z" stroke="#A99A86" stroke-width="1.8" stroke-linejoin="round"/></svg>Feed</div>
+        <div class="nav-item"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 12h4l2.5 6 5-12 2.5 6H21" stroke="#A99A86" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Actividades</div>
+        <div class="nav-item"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.6" stroke="#A99A86" stroke-width="1.8"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="#A99A86" stroke-width="1.8" stroke-linecap="round"/></svg>Perfil</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
