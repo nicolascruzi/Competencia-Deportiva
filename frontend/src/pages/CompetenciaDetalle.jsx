@@ -1570,7 +1570,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
     }
   }
 
-  const inputBase = { background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none', fontFamily:'inherit' };
+  const inputBase = { background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none', fontFamily:'inherit', boxSizing:'border-box', minWidth:0 };
 
   return (
     <>
@@ -1633,33 +1633,33 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
 
           {/* Agregar nuevo deporte — solo admin */}
           {!readOnly && (
-            <div style={{ marginTop:10, border:'1px dashed var(--t-dim)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{ marginTop:10, border:'1px dashed var(--t-dim)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, boxSizing:'border-box', width:'100%', overflow:'hidden' }}>
               <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>
                 Nuevo deporte
               </div>
-              <div style={{ display:'flex', gap:8 }}>
+              <div style={{ display:'flex', gap:8, width:'100%', overflow:'hidden' }}>
                 {/* Emoji */}
                 <input
                   type="text"
                   value={nuevoIcono}
                   onChange={e => setNuevoIcono(e.target.value)}
                   maxLength={4}
-                  style={{ ...inputBase, width:48, textAlign:'center', fontSize:20, padding:'5px 6px' }}
+                  style={{ ...inputBase, width:48, flexShrink:0, textAlign:'center', fontSize:20, padding:'5px 6px' }}
                 />
                 {/* Nombre */}
                 <input
                   type="text"
-                  placeholder="Nombre del deporte"
+                  placeholder="Nombre"
                   value={nuevoNombre}
                   onChange={e => { setNuevoNombre(e.target.value); setAddError(''); }}
-                  style={{ ...inputBase, flex:1 }}
+                  style={{ ...inputBase, flex:1, minWidth:0 }}
                 />
                 {/* Ponderador */}
                 <input
                   type="number" inputMode="decimal" min="0.1" step="0.1"
                   value={nuevoPond}
                   onChange={e => setNuevoPond(e.target.value)}
-                  style={{ ...inputBase, width:58, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}
+                  style={{ ...inputBase, width:54, flexShrink:0, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}
                 />
               </div>
               {addError && (
