@@ -84,9 +84,10 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   }, [open]);
 
   useEffect(() => {
-    if (deportes.length && !form.deporte_nombre) {
-      const first = deportes[0];
-      setForm(f => ({ ...f, deporte_nombre: first.nombre, ponderador: getPonderador(first.nombre, first) }));
+    if (deportes.length) {
+      const nombre = form.deporte_nombre || deportes[0].nombre;
+      const dep    = deportes.find(d => d.nombre === nombre) || deportes[0];
+      setForm(f => ({ ...f, deporte_nombre: dep.nombre, ponderador: getPonderador(dep.nombre, dep) }));
     }
   }, [deportes, competenciaActiva]);
 
@@ -139,9 +140,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
 
   if (!open) return null;
 
-  const pts = form.minutos && form.ponderador
-    ? Math.round(parseFloat(form.minutos) * parseFloat(form.ponderador))
-    : null;
+  const minutos = form.minutos ? parseFloat(form.minutos) : null;
 
   return (
     <div
@@ -250,12 +249,12 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
               onChange={handleFotoChange} style={{ display:'none' }} />
           </Field>
 
-          {/* Preview puntos */}
-          {pts !== null && (
+          {/* Preview minutos */}
+          {minutos !== null && (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderRadius:10, background:'rgba(var(--t-accent-r),0.07)', border:'1px solid rgba(var(--t-accent-r),0.18)' }}>
-              <span style={{ fontSize:12, color:'var(--t-muted)', fontWeight:600 }}>Puntos estimados</span>
+              <span style={{ fontSize:12, color:'var(--t-muted)', fontWeight:600 }}>Duración</span>
               <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-accent)' }}>
-                {pts}
+                {minutos} min
               </span>
             </div>
           )}
