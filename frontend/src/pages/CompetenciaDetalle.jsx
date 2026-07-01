@@ -434,6 +434,21 @@ function RankingEvolucion({ acts, nombres }) {
 
 const AVATAR_COLORS = ['#C25E2A','#5E83A6','#B08534','#7E6BB0','#3F9B86','#C07D3F','#4A7C59','#A6455E'];
 
+// Calcula puntos por semana sobre un array de actividades ya filtrado
+function weeklyPtsFromData(data, n = 4) {
+  const now = new Date();
+  const weeks = Array.from({ length: n }, (_, i) => {
+    const end   = new Date(now); end.setDate(now.getDate() - i * 7); end.setHours(23,59,59,999);
+    const start = new Date(end); start.setDate(end.getDate() - 6);   start.setHours(0,0,0,0);
+    return { start, end };
+  }).reverse();
+  return weeks.map(({ start, end }) =>
+    data
+      .filter(a => { const d = new Date(a.fecha + 'T12:00:00'); return d >= start && d <= end; })
+      .reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0)
+  );
+}
+
 // Calcula puntos por semana (últimas N semanas) para un nombre dado
 function weeklyPts(acts, nombre, n = 4) {
   const now = new Date();
@@ -480,6 +495,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
 
   const people = rankingData.length
     ? rankingData.map((r, i) => ({
+        id:              r.id,
         nombre:          r.nombre_display || r.nombre,
         foto_perfil_url: r.foto_perfil_url,
         pts:             parseFloat(r.puntos) || 0,
@@ -527,7 +543,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
 
             return (
               <div key={p.nombre}
-                onClick={() => onOpenProfile?.(p.nombre)}
+                onClick={() => onOpenProfile?.(p.nombre, p.id)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '11px 12px',
@@ -1343,15 +1359,17 @@ function Insights({ acts }) {
 
 // ─── PROFILE PANEL ────────────────────────────────────────────────────────────
 
-function ProfilePanel({ nombre, acts, rankingData = [], nombres, onClose }) {
+function ProfilePanel({ nombre, userId, acts, rankingData = [], nombres, onClose }) {
   if (!nombre) return null;
   const [fotoLightbox, setFotoLightbox] = useState(false);
-  const data = acts.filter(a => (a.nombre_display || a.nombre) === nombre);
+  // Filtrar por user_id si está disponible (evita confusión apodo/nombre), sino por nombre
+  const data = acts.filter(a =>
+    userId != null ? a.user_id == userId : (a.nombre_display || a.nombre) === nombre
+  );
   const pts  = data.reduce((s, a) => s + a.puntos, 0);
   const min  = data.reduce((s, a) => s + parseFloat(a.minutos), 0);
 
-  // foto: primero desde rankingData (siempre disponible), luego desde actividades
-  const rankEntry = rankingData.find(r => (r.nombre_display || r.nombre) === nombre);
+  const rankEntry = rankingData.find(r => userId != null ? r.id == userId : (r.nombre_display || r.nombre) === nombre);
   const fotoUrl = rankEntry?.foto_perfil_url
     ?? data.find(a => a.foto_perfil_url)?.foto_perfil_url
     ?? null;
@@ -1414,7 +1432,8 @@ function ProfilePanel({ nombre, acts, rankingData = [], nombres, onClose }) {
           {(() => {
             const N = 8;
             const now = new Date();
-            const wPts = weeklyPts(acts, nombre, N);
+            // Usar data (ya filtrado por user_id) directamente para evitar confusión apodo/nombre
+            const wPts = weeklyPtsFromData(data, N);
             const wLabels = Array.from({ length: N }, (_, i) => {
               const d = new Date(now); d.setDate(now.getDate() - (N - 1 - i) * 7);
               return `${d.getDate()}/${d.getMonth() + 1}`;
@@ -1758,7 +1777,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
     if (loading) return <Spinner />;
     switch (tab) {
       case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
-      case 'ranking':  return <Ranking  acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={n => setProfile(n)} />;
+      case 'ranking':  return <Ranking  acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} />;
       case 'calendar': return <Calendario acts={acts.filter(a => (a.nombre_display || a.nombre) === (user?.nombre_display || user?.nombre))} mes={mes} meses={[]} onMes={() => {}} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
@@ -1814,7 +1833,8 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       {/* Profile panel y admin sheet via portal para escapar del stacking context del transform */}
       {profile && createPortal(
         <ProfilePanel
-          nombre={profile}
+          nombre={profile.nombre ?? profile}
+          userId={profile.id ?? null}
           acts={acts}
           rankingData={rankingData}
           nombres={nombres}
