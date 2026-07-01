@@ -1430,14 +1430,28 @@ function ProfilePanel({ nombre, userId, acts, rankingData = [], nombres, onClose
 
           {/* Evolución semanal */}
           {(() => {
+            if (data.length === 0) return null;
             const N = 8;
-            const now = new Date();
-            // Usar data (ya filtrado por user_id) directamente para evitar confusión apodo/nombre
-            const wPts = weeklyPtsFromData(data, N);
-            const wLabels = Array.from({ length: N }, (_, i) => {
-              const d = new Date(now); d.setDate(now.getDate() - (N - 1 - i) * 7);
-              return `${d.getDate()}/${d.getMonth() + 1}`;
-            });
+            // Anclar la ventana a la última actividad del jugador (no al día de hoy)
+            // para que siempre haya barras visibles aunque no haya entrenado recientemente
+            const lastDate = data.reduce((mx, a) => {
+              const d = new Date(a.fecha + 'T12:00:00');
+              return d > mx ? d : mx;
+            }, new Date(0));
+            const anchor = lastDate > new Date() ? new Date() : lastDate;
+
+            const weeks = Array.from({ length: N }, (_, i) => {
+              const end   = new Date(anchor); end.setDate(anchor.getDate() - i * 7); end.setHours(23,59,59,999);
+              const start = new Date(end);    start.setDate(end.getDate() - 6);      start.setHours(0,0,0,0);
+              return { start, end };
+            }).reverse();
+
+            const wPts = weeks.map(({ start, end }) =>
+              data
+                .filter(a => { const d = new Date(a.fecha + 'T12:00:00'); return d >= start && d <= end; })
+                .reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0)
+            );
+            const wLabels = weeks.map(({ end }) => `${end.getDate()}/${end.getMonth() + 1}`);
             const maxW = Math.max(...wPts, 1);
             if (!wPts.some(v => v > 0)) return null;
             return (
