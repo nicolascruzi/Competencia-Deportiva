@@ -1359,14 +1359,30 @@ function Insights({ acts }) {
 
 // ─── PROFILE PANEL ────────────────────────────────────────────────────────────
 
-function ProfilePanel({ nombre, userId, acts, rankingData = [], nombres, onClose }) {
+function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], nombres, onClose }) {
   if (!nombre) return null;
   const [fotoLightbox, setFotoLightbox] = useState(false);
-  // Filtrar por user_id si está disponible (evita confusión apodo/nombre), sino por nombre
+  // allData: actividades acumuladas del jugador (sin filtro de mes) para la evolución
+  const [allData, setAllData] = useState(null); // null = cargando
+
+  useEffect(() => {
+    if (!competenciaId) { setAllData([]); return; }
+    getActividadesComp(competenciaId).then(rows => {
+      const filtered = (Array.isArray(rows) ? rows : []).filter(a =>
+        userId != null ? a.user_id == userId : (a.nombre_display || a.nombre) === nombre
+      );
+      setAllData(filtered);
+    }).catch(() => setAllData([]));
+  }, [competenciaId, userId, nombre]);
+
+  // Filtrar acts del período visible para los stats de la vista actual
   const data = acts.filter(a =>
     userId != null ? a.user_id == userId : (a.nombre_display || a.nombre) === nombre
   );
-  const pts  = data.reduce((s, a) => s + a.puntos, 0);
+  // Para evolución usamos allData (acumulado) si ya cargó, sino data del período
+  const evoData = allData ?? data;
+
+  const pts  = data.reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0);
   const min  = data.reduce((s, a) => s + parseFloat(a.minutos), 0);
 
   const rankEntry = rankingData.find(r => userId != null ? r.id == userId : (r.nombre_display || r.nombre) === nombre);
@@ -1430,11 +1446,9 @@ function ProfilePanel({ nombre, userId, acts, rankingData = [], nombres, onClose
 
           {/* Evolución semanal */}
           {(() => {
-            if (data.length === 0) return null;
+            if (evoData.length === 0) return null;
             const N = 8;
-            // Anclar la ventana a la última actividad del jugador (no al día de hoy)
-            // para que siempre haya barras visibles aunque no haya entrenado recientemente
-            const lastDate = data.reduce((mx, a) => {
+            const lastDate = evoData.reduce((mx, a) => {
               const d = new Date(a.fecha + 'T12:00:00');
               return d > mx ? d : mx;
             }, new Date(0));
@@ -1447,7 +1461,7 @@ function ProfilePanel({ nombre, userId, acts, rankingData = [], nombres, onClose
             }).reverse();
 
             const wPts = weeks.map(({ start, end }) =>
-              data
+              evoData
                 .filter(a => { const d = new Date(a.fecha + 'T12:00:00'); return d >= start && d <= end; })
                 .reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0)
             );
@@ -1849,6 +1863,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
         <ProfilePanel
           nombre={profile.nombre ?? profile}
           userId={profile.id ?? null}
+          competenciaId={competencia.id}
           acts={acts}
           rankingData={rankingData}
           nombres={nombres}
