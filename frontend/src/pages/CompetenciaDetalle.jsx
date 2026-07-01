@@ -449,28 +449,29 @@ function weeklyPtsFromData(data, n = 4) {
   );
 }
 
+// Convierte fecha 'YYYY-MM-DD' a un número entero YYYYMMDD para comparar sin zonas horarias
+function fechaNum(s) {
+  const clean = (s || '').slice(0, 10).replace(/-/g, '');
+  return parseInt(clean, 10) || 0;
+}
+
 // Calcula puntos por semana (últimas N semanas) anclado a la última actividad del jugador
 function weeklyPts(acts, nombre, n = 4) {
-  const mine = acts.filter(a => (a.nombre_display || a.nombre) === nombre);
+  const mine = acts.filter(a => (a.nombre_display || a.nombre) === nombre || String(a.user_id) === String(nombre));
   if (!mine.length) return Array(n).fill(0);
 
-  // Anclar al último día con actividad del jugador, no a hoy
-  const anchor = mine.reduce((mx, a) => {
-    const d = new Date(a.fecha + 'T12:00:00');
-    return d > mx ? d : mx;
-  }, new Date(0));
+  // Anclar al último día con actividad, comparando fechas como YYYYMMDD
+  const anchorNum = mine.reduce((mx, a) => Math.max(mx, fechaNum(a.fecha)), 0);
+  const anchorStr = String(anchorNum); // YYYYMMDD
 
-  const weeks = Array.from({ length: n }, (_, i) => {
-    const end   = new Date(anchor); end.setDate(anchor.getDate() - i * 7); end.setHours(23,59,59,999);
-    const start = new Date(end); start.setDate(end.getDate() - 6); start.setHours(0,0,0,0);
-    return { start, end };
-  }).reverse();
-
-  return weeks.map(({ start, end }) =>
-    mine
-      .filter(a => { const d = new Date(a.fecha + 'T12:00:00'); return d >= start && d <= end; })
-      .reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0)
-  );
+  return Array.from({ length: n }, (_, i) => {
+    // semana i=0 es la más reciente (termina en anchor), i=n-1 la más antigua
+    const endNum   = anchorNum - i * 7;
+    const startNum = endNum - 6;
+    return mine
+      .filter(a => { const fn = fechaNum(a.fecha); return fn >= startNum && fn <= endNum; })
+      .reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0);
+  }).reverse(); // cronológico: semana más antigua primero
 }
 
 function Spark({ values, accent }) {
@@ -1454,33 +1455,37 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
           {allData !== null && (() => {
             if (evoData.length === 0) return null;
             const N = 8;
-            const lastDate = evoData.reduce((mx, a) => {
-              const d = new Date(a.fecha + 'T12:00:00');
-              return d > mx ? d : mx;
-            }, new Date(0));
-            const anchor = lastDate > new Date() ? new Date() : lastDate;
 
-            const weeks = Array.from({ length: N }, (_, i) => {
-              const end   = new Date(anchor); end.setDate(anchor.getDate() - i * 7); end.setHours(23,59,59,999);
-              const start = new Date(end);    start.setDate(end.getDate() - 6);      start.setHours(0,0,0,0);
-              return { start, end };
+            // Comparar fechas como YYYYMMDD para evitar problemas de zona horaria
+            const anchorNum = evoData.reduce((mx, a) => Math.max(mx, fechaNum(a.fecha)), 0);
+
+            const weeksData = Array.from({ length: N }, (_, i) => {
+              const endNum   = anchorNum - i * 7;
+              const startNum = endNum - 6;
+              const slice = evoData.filter(a => { const fn = fechaNum(a.fecha); return fn >= startNum && fn <= endNum; });
+              return {
+                pts: slice.reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0),
+                min: slice.reduce((s, a) => s + (parseFloat(a.minutos) || 0), 0),
+                endNum,
+              };
             }).reverse();
 
-            const wPts = weeks.map(({ start, end }) =>
-              evoData
-                .filter(a => { const d = new Date(a.fecha + 'T12:00:00'); return d >= start && d <= end; })
-                .reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0)
-            );
-            const wLabels = weeks.map(({ end }) => `${end.getDate()}/${end.getMonth() + 1}`);
-            const maxW = Math.max(...wPts, 1);
-            if (!wPts.some(v => v > 0)) return null;
+            // Si todos los puntos son 0, mostrar minutos en su lugar
+            const usarMin = weeksData.every(w => w.pts === 0);
+            const wVals   = weeksData.map(w => usarMin ? w.min : w.pts);
+            const wLabels = weeksData.map(w => {
+              const s = String(w.endNum);
+              return `${s.slice(6)}/${s.slice(4,6)}`;
+            });
+            const maxW = Math.max(...wVals, 1);
+
             return (
               <div>
                 <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:10 }}>
-                  Evolución — últimas {N} semanas
+                  Evolución · {usarMin ? 'minutos' : 'puntos'} — últimas {N} semanas
                 </div>
                 <div style={{ display:'flex', alignItems:'flex-end', gap:3, height:64 }}>
-                  {wPts.map((v, i) => {
+                  {wVals.map((v, i) => {
                     const h = Math.max(2, Math.round((v / maxW) * 56));
                     return (
                       <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
@@ -1491,7 +1496,7 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
                   })}
                 </div>
                 <div style={{ display:'flex', gap:3, marginTop:1 }}>
-                  {wPts.map((v, i) => (
+                  {wVals.map((v, i) => (
                     <div key={i} style={{ flex:1, textAlign:'center' }}>
                       {v > 0 && <span style={{ fontSize:7, fontWeight:700, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{Math.round(v)}</span>}
                     </div>
