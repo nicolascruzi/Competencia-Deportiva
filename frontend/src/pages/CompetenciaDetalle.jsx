@@ -449,23 +449,26 @@ function weeklyPtsFromData(data, n = 4) {
   );
 }
 
-// Calcula puntos por semana (últimas N semanas) para un nombre dado
+// Calcula puntos por semana (últimas N semanas) anclado a la última actividad del jugador
 function weeklyPts(acts, nombre, n = 4) {
-  const now = new Date();
+  const mine = acts.filter(a => (a.nombre_display || a.nombre) === nombre);
+  if (!mine.length) return Array(n).fill(0);
+
+  // Anclar al último día con actividad del jugador, no a hoy
+  const anchor = mine.reduce((mx, a) => {
+    const d = new Date(a.fecha + 'T12:00:00');
+    return d > mx ? d : mx;
+  }, new Date(0));
+
   const weeks = Array.from({ length: n }, (_, i) => {
-    const end   = new Date(now); end.setDate(now.getDate() - i * 7); end.setHours(23,59,59,999);
-    const start = new Date(end); start.setDate(end.getDate() - 6);   start.setHours(0,0,0,0);
+    const end   = new Date(anchor); end.setDate(anchor.getDate() - i * 7); end.setHours(23,59,59,999);
+    const start = new Date(end); start.setDate(end.getDate() - 6); start.setHours(0,0,0,0);
     return { start, end };
-  }).reverse(); // cronológico: semana más antigua primero
+  }).reverse();
 
   return weeks.map(({ start, end }) =>
-    acts
-      .filter(a => {
-        const key = a.nombre_display || a.nombre;
-        if (key !== nombre) return false;
-        const d = new Date(a.fecha + 'T12:00:00');
-        return d >= start && d <= end;
-      })
+    mine
+      .filter(a => { const d = new Date(a.fecha + 'T12:00:00'); return d >= start && d <= end; })
       .reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0)
   );
 }
@@ -1445,7 +1448,10 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
           </div>
 
           {/* Evolución semanal */}
-          {(() => {
+          {allData === null && (
+            <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t-muted)', fontSize:12 }}>Cargando evolución…</div>
+          )}
+          {allData !== null && (() => {
             if (evoData.length === 0) return null;
             const N = 8;
             const lastDate = evoData.reduce((mx, a) => {
