@@ -140,7 +140,7 @@ function AppShell() {
   // Estado de mes compartido entre Ranking y Calendario
   const _now = new Date();
   const [navYear,  setNavYear]  = useState(_now.getFullYear());
-  const [navMonth, setNavMonth] = useState(_now.getMonth()); // -1 = Acumulado
+  const [navMonth, setNavMonth] = useState(-1); // -1 = Acumulado (default)
 
   // Mostrar onboarding a usuarios nuevos (sin apodo ni fecha de nacimiento)
   useEffect(() => {
