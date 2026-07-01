@@ -1454,7 +1454,7 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
           )}
           {allData !== null && (() => {
             if (evoData.length === 0) return null;
-            const N = 8;
+            const N = 4;
 
             // Comparar fechas como YYYYMMDD para evitar problemas de zona horaria
             const anchorNum = evoData.reduce((mx, a) => Math.max(mx, fechaNum(a.fecha)), 0);
@@ -1482,7 +1482,7 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
             return (
               <div>
                 <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:10 }}>
-                  Evolución · {usarMin ? 'minutos' : 'puntos'} — últimas {N} semanas
+                  Evolución · {usarMin ? 'minutos' : 'puntos'} — últimas 4 semanas
                 </div>
                 <div style={{ display:'flex', alignItems:'flex-end', gap:3, height:64 }}>
                   {wVals.map((v, i) => {

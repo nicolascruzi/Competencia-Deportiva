@@ -284,15 +284,30 @@ function Evolucion({ actividades }) {
     .filter(a => deporteFiltro === '__all__' || a.deporte_nombre === deporteFiltro)
     .filter(a => granularidad === 'semana' && mesFiltro !== '__all__' ? a.fecha.slice(0,7) === mesFiltro : true);
 
-  // Periodos según granularidad
-  // En modo mes: últimos 4 meses con actividad
-  const periodos = granularidad === 'mes'
-    ? [...new Set(actsFiltradas.map(a => a.fecha.slice(0,7)))].sort().slice(-4)
-    : [...new Set(actsFiltradas.map(a => getISOWeek(a.fecha)))].sort();
+  // Siempre 4 períodos fijos, anclados a hoy (o a la última actividad si no hay recientes)
+  const periodos = (() => {
+    if (granularidad === 'mes') {
+      // Últimos 4 meses calendario desde hoy
+      const now = new Date();
+      return Array.from({ length: 4 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (3 - i), 1);
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      });
+    } else {
+      // Últimas 4 semanas ISO ancladas a la última actividad (o hoy si no hay)
+      const fechas = actsFiltradas.map(a => a.fecha).sort();
+      const anchorDate = fechas.length ? new Date(fechas[fechas.length-1] + 'T12:00:00') : new Date();
+      return Array.from({ length: 4 }, (_, i) => {
+        const d = new Date(anchorDate);
+        d.setDate(d.getDate() - (3 - i) * 7);
+        return getISOWeek(d.toISOString().slice(0,10));
+      });
+    }
+  })();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !periodos.length) return;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
     // mins por período (no acumulado)
