@@ -26,14 +26,14 @@ router.get('/', async (req, res) => {
         u.id,
         u.nombre,
         u.foto_perfil_url,
-        COUNT(a.id)::int              AS actividades,
-        COALESCE(SUM(a.minutos), 0)   AS minutos,
-        COALESCE(SUM(a.puntos),  0)   AS puntos,
-        MAX(a.fecha)                  AS ultima_fecha
+        COUNT(a.id)::int                           AS actividades,
+        COALESCE(SUM(a.minutos), 0)                AS minutos,
+        COALESCE(SUM(a.minutos * a.ponderador), 0) AS puntos,
+        MAX(a.fecha)                               AS ultima_fecha
       FROM users u
       LEFT JOIN actividades a ON a.user_id = u.id ${where}
       GROUP BY u.id, u.nombre, u.foto_perfil_url
-      HAVING COALESCE(SUM(a.puntos), 0) > 0
+      HAVING COALESCE(SUM(a.minutos), 0) > 0
       ORDER BY puntos DESC
     `, params);
 
