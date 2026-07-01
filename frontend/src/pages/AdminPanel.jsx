@@ -261,10 +261,15 @@ function CompRow({ c, onDelete }) {
 function TabCompetencias() {
   const [comps, setComps]     = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
 
   function load() {
     setLoading(true);
-    getAdminCompetencias().then(setComps).finally(() => setLoading(false));
+    setError(null);
+    getAdminCompetencias()
+      .then(data => setComps(Array.isArray(data) ? data : []))
+      .catch(e => setError(e.message || 'Error al cargar'))
+      .finally(() => setLoading(false));
   }
   useEffect(load, []);
 
@@ -276,7 +281,11 @@ function TabCompetencias() {
   return (
     <div>
       <SectionHeader title="Competencias" count={comps.length} onRefresh={load} loading={loading} />
-      {loading ? <Spinner /> : (
+      {loading ? <Spinner /> : error ? (
+        <div style={{ margin:'16px', padding:'14px', background:'rgba(248,113,113,0.1)', border:'1px solid rgba(248,113,113,0.3)', borderRadius:12, color:'#F87171', fontSize:13 }}>
+          Error: {error}
+        </div>
+      ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
           {comps.map(c => <CompRow key={c.id} c={c} onDelete={handleDelete} />)}
           {comps.length === 0 && (
