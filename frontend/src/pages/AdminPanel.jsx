@@ -190,6 +190,74 @@ function TabUsuarios() {
 
 // ─── Tab: Competencias ────────────────────────────────────────────────────────
 
+function CompRow({ c, onDelete }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderTop:'1px solid var(--t-surface2)' }}>
+      {/* Fila principal */}
+      <div style={{ padding:'10px 16px', display:'flex', alignItems:'center', gap:10 }}>
+        {/* Icono trofeo */}
+        <div style={{ width:34, height:34, borderRadius:10, background:'rgba(var(--t-accent-r),0.10)', border:'1px solid rgba(var(--t-accent-r),0.18)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--t-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 000 5H6"/><path d="M18 9h1.5a2.5 2.5 0 010 5H18"/>
+            <path d="M8 9h8"/><path d="M8 15h8"/>
+          </svg>
+        </div>
+        {/* Info */}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, color:'var(--t-text)', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+            {c.nombre}
+          </div>
+          <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
+            por <strong>{c.creador_display}</strong>
+          </div>
+          <div style={{ fontSize:10, color:'var(--t-dim2)', marginTop:1, display:'flex', gap:6, alignItems:'center' }}>
+            <button onClick={() => setOpen(o => !o)} style={{ display:'flex', alignItems:'center', gap:3, background:'none', border:'none', cursor:'pointer', padding:0, color:'var(--t-muted)', fontSize:10 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: open ? 'rotate(90deg)' : 'none', transition:'transform 0.18s' }}>
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+              {c.participantes} jugadores
+            </button>
+            <span>·</span>
+            <span style={{ fontFamily:"'JetBrains Mono', monospace", color:'var(--t-accent)', fontWeight:600 }}>PIN {c.pin}</span>
+            <span>·</span>
+            <span>{new Date(c.created_at).toLocaleDateString('es',{day:'numeric',month:'short',year:'2-digit'})}</span>
+          </div>
+        </div>
+        <ConfirmBtn label="Eliminar" onConfirm={() => onDelete(c.id)} />
+      </div>
+
+      {/* Lista de participantes expandida */}
+      {open && (
+        <div style={{ margin:'0 16px 10px', background:'var(--t-surface)', borderRadius:12, border:'1px solid var(--t-dim)', overflow:'hidden' }}>
+          {(!c.jugadores || c.jugadores.length === 0) ? (
+            <div style={{ padding:'12px 14px', fontSize:12, color:'var(--t-muted)' }}>Sin participantes aún</div>
+          ) : c.jugadores.map((j, idx) => (
+            <div key={j.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 14px', borderTop: idx > 0 ? '1px solid var(--t-surface2)' : 'none' }}>
+              {/* Avatar */}
+              <div style={{ width:28, height:28, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.10)', border:'1px solid rgba(var(--t-accent-r),0.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                {j.foto_perfil_url
+                  ? <img src={j.foto_perfil_url} alt="" style={{ width:'100%', height:'100%', borderRadius:'50%', objectFit:'cover' }} />
+                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:12, color:'var(--t-accent)' }}>{j.nombre_display?.charAt(0).toUpperCase()}</span>
+                }
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, color:'var(--t-text)', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {j.nombre_display}
+                </div>
+                <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:1 }}>
+                  {j.actividades} acts · {Math.round(j.minutos)} min
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TabCompetencias() {
   const [comps, setComps]     = useState([]);
   const [loading, setLoading] = useState(true);
@@ -210,34 +278,10 @@ function TabCompetencias() {
       <SectionHeader title="Competencias" count={comps.length} onRefresh={load} loading={loading} />
       {loading ? <Spinner /> : (
         <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-          {comps.map((c, i) => (
-            <div key={c.id} style={{ padding:'10px 16px', borderTop: i > 0 ? '1px solid var(--t-surface2)' : 'none', display:'flex', alignItems:'center', gap:10 }}>
-              {/* Icono */}
-              <div style={{ width:34, height:34, borderRadius:10, background:'rgba(var(--t-accent-r),0.10)', border:'1px solid rgba(var(--t-accent-r),0.18)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--t-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 9H4.5a2.5 2.5 0 000 5H6"/><path d="M18 9h1.5a2.5 2.5 0 010 5H18"/>
-                  <path d="M8 9h8"/><path d="M8 15h8"/>
-                </svg>
-              </div>
-              {/* Info */}
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, color:'var(--t-text)', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                  {c.nombre}
-                </div>
-                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
-                  Creada por <strong>{c.creador_display}</strong>
-                </div>
-                <div style={{ fontSize:10, color:'var(--t-dim2)', marginTop:1, display:'flex', gap:8 }}>
-                  <span>{c.participantes} jugadores</span>
-                  <span>·</span>
-                  <span>{c.actividades} actividades</span>
-                  <span>·</span>
-                  <span style={{ fontFamily:"'JetBrains Mono', monospace", color:'var(--t-accent)', fontWeight:600 }}>PIN {c.pin}</span>
-                </div>
-              </div>
-              <ConfirmBtn label="Eliminar" onConfirm={() => handleDelete(c.id)} />
-            </div>
-          ))}
+          {comps.map(c => <CompRow key={c.id} c={c} onDelete={handleDelete} />)}
+          {comps.length === 0 && (
+            <div style={{ textAlign:'center', padding:'40px 24px', color:'var(--t-muted)', fontSize:13 }}>Sin competencias</div>
+          )}
         </div>
       )}
     </div>

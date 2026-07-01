@@ -61,19 +61,40 @@ router.delete('/users/:id', async (req, res) => {
 
 router.get('/competencias', async (req, res) => {
   try {
-    const { rows } = await pool.query(`
+    // Competencias con conteo de participantes
+    const { rows: comps } = await pool.query(`
       SELECT c.id, c.nombre, c.pin, c.created_at,
-             u.nombre AS creador_nombre, COALESCE(u.apodo, u.nombre) AS creador_display,
-             COUNT(DISTINCT cp.user_id) AS participantes,
-             COUNT(DISTINCT a.id) AS actividades
+             COALESCE(u.apodo, u.nombre) AS creador_display,
+             COUNT(DISTINCT cp.user_id) AS participantes
       FROM competencias c
       JOIN users u ON u.id = c.creador_id
       LEFT JOIN competencia_participantes cp ON cp.competencia_id = c.id
-      LEFT JOIN actividades a ON a.competencia_id = c.id
       GROUP BY c.id, u.id
       ORDER BY c.created_at DESC
     `);
-    res.json(rows);
+
+    // Participantes de todas las competencias en una sola query
+    const { rows: parts } = await pool.query(`
+      SELECT cp.competencia_id,
+             u.id, COALESCE(u.apodo, u.nombre) AS nombre_display,
+             u.foto_perfil_url,
+             COUNT(a.id) AS actividades,
+             COALESCE(SUM(a.minutos), 0) AS minutos
+      FROM competencia_participantes cp
+      JOIN users u ON u.id = cp.user_id
+      LEFT JOIN actividades a ON a.user_id = u.id
+      GROUP BY cp.competencia_id, u.id
+      ORDER BY minutos DESC
+    `);
+
+    // Agrupar participantes por competencia
+    const partsByComp = {};
+    parts.forEach(p => {
+      if (!partsByComp[p.competencia_id]) partsByComp[p.competencia_id] = [];
+      partsByComp[p.competencia_id].push(p);
+    });
+
+    res.json(comps.map(c => ({ ...c, jugadores: partsByComp[c.id] || [] })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno' });
