@@ -221,6 +221,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
           {/* Fecha */}
           <Field label="Fecha">
             <Input type="date" required
+              max={new Date().toISOString().slice(0, 10)}
               value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
           </Field>
 

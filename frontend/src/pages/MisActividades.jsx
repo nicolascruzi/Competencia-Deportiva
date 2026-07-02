@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getActividades, deleteActividad, getDeportes } from '../api/actividades';
+import { getActividades, deleteActividad, updateActividad, getDeportes } from '../api/actividades';
 import { uploadFoto, deleteFoto } from '../api/fotos';
 import { useLoading } from '../context/LoadingContext';
 
@@ -16,12 +16,99 @@ const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
 
 // ─── Panel de detalle (bottom sheet) ─────────────────────────────────────────
 
-function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDeleted }) {
+function EditModal({ actividad, deportes, onClose, onSaved }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [form, setForm] = useState({
+    deporte_nombre: actividad.deporte_nombre,
+    minutos:        String(Math.round(parseFloat(actividad.minutos))),
+    ponderador:     String(parseFloat(actividad.ponderador)),
+    fecha:          actividad.fecha?.slice(0, 10) || today,
+    notas:          actividad.notas || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState('');
+  const { withLoading } = useLoading();
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true); setError('');
+    try {
+      const updated = await withLoading(() => updateActividad(actividad.id, {
+        deporte_nombre: form.deporte_nombre,
+        minutos:        parseFloat(form.minutos),
+        ponderador:     parseFloat(form.ponderador),
+        fecha:          form.fecha,
+        notas:          form.notas || null,
+      }));
+      onSaved(updated);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const iStyle = { background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'9px 12px', borderRadius:10, fontSize:15, outline:'none', boxSizing:'border-box', width:'100%' };
+  const lStyle = { fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:4, display:'block' };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:310, background:'rgba(0,0,0,0.5)' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:311, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', padding:'20px 20px calc(env(safe-area-inset-bottom) + 24px)', display:'flex', flexDirection:'column', gap:12 }}>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', marginBottom:4 }}>
+          Editar actividad
+        </div>
+        {error && <div style={{ padding:'9px 12px', borderRadius:10, background:'rgba(248,113,113,0.1)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', fontSize:13 }}>{error}</div>}
+        <form onSubmit={handleSave} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          <div>
+            <label style={lStyle}>Deporte</label>
+            <select value={form.deporte_nombre} onChange={e => setForm(f => ({ ...f, deporte_nombre: e.target.value }))} style={{ ...iStyle, appearance:'none' }}>
+              {deportes.map(d => <option key={d.id} value={d.nombre}>{d.nombre}</option>)}
+            </select>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <div>
+              <label style={lStyle}>Minutos</label>
+              <input type="number" inputMode="numeric" min="1" required value={form.minutos} onChange={e => setForm(f => ({ ...f, minutos: e.target.value }))} style={iStyle} />
+            </div>
+            <div>
+              <label style={lStyle}>Ponderador</label>
+              <input type="number" inputMode="decimal" min="0.1" step="0.1" required value={form.ponderador} onChange={e => setForm(f => ({ ...f, ponderador: e.target.value }))} style={{ ...iStyle, color:'var(--t-accent)', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }} />
+            </div>
+          </div>
+          <div>
+            <label style={lStyle}>Fecha</label>
+            <input type="date" required max={today} value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} style={iStyle} />
+          </div>
+          <div>
+            <label style={lStyle}>Notas (opcional)</label>
+            <input type="text" placeholder="Descripción breve…" value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} style={iStyle} />
+          </div>
+          <div style={{ display:'flex', gap:10, marginTop:4 }}>
+            <button type="button" onClick={onClose} style={{ flex:1, padding:'12px', borderRadius:12, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', cursor:'pointer' }}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving} style={{ flex:2, padding:'12px', borderRadius:12, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', cursor:'pointer', opacity: saving ? 0.7 : 1 }}>
+              {saving ? 'Guardando…' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </>
+  );
+}
+
+function DetallePanel({ actividad, onClose, onDelete, onUpdate, onFotoUploaded, onFotoDeleted }) {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [lightbox, setLightbox]   = useState(false);
+  const [editOpen, setEditOpen]   = useState(false);
+  const [deportes, setDeportes]   = useState([]);
   const startY = useRef(null);
   const { withLoading } = useLoading();
+
+  useEffect(() => { getDeportes().then(setDeportes).catch(() => {}); }, []);
 
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
   function onTouchEnd(e) {
@@ -171,14 +258,30 @@ function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onFotoDele
               </div>
             )}
 
-            {/* Eliminar */}
-            <button onClick={handleDeleteActividad}
-              style={{ width:'100%', padding:'11px', borderRadius:12, border:'1px solid rgba(248,113,113,0.2)', background:'rgba(248,113,113,0.05)', color:'#F87171', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
-              Eliminar actividad
-            </button>
+            {/* Editar + Eliminar */}
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => setEditOpen(true)}
+                style={{ flex:1, padding:'11px', borderRadius:12, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
+                Editar
+              </button>
+              <button onClick={handleDeleteActividad}
+                style={{ flex:1, padding:'11px', borderRadius:12, border:'1px solid rgba(248,113,113,0.2)', background:'rgba(248,113,113,0.05)', color:'#F87171', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {editOpen && createPortal(
+        <EditModal
+          actividad={actividad}
+          deportes={deportes}
+          onClose={() => setEditOpen(false)}
+          onSaved={updated => { onUpdate(updated); setEditOpen(false); }}
+        />,
+        document.body
+      )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
@@ -896,6 +999,11 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
     setActividades(prev => prev.filter(a => a.id !== id));
   }
 
+  function handleUpdate(updated) {
+    setActividades(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a));
+    setDetalle(prev => prev?.id === updated.id ? { ...prev, ...updated } : prev);
+  }
+
   function handleFotoUploaded(id, foto_url) {
     setActividades(prev => prev.map(a => a.id === id ? { ...a, foto_url } : a));
     setDetalle(prev => prev?.id === id ? { ...prev, foto_url } : prev);
@@ -1037,6 +1145,7 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
           actividad={detalle}
           onClose={() => setDetalle(null)}
           onDelete={handleDelete}
+          onUpdate={handleUpdate}
           onFotoUploaded={handleFotoUploaded}
           onFotoDeleted={handleFotoDeleted}
         />,
