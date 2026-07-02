@@ -31,6 +31,11 @@ function EditModal({ actividad, deportes, onClose, onSaved }) {
 
   async function handleSave(e) {
     e.preventDefault();
+    const today = new Date().toISOString().slice(0, 10);
+    if (form.fecha > today) {
+      setError('No puedes registrar actividades en fechas futuras.');
+      return;
+    }
     setSaving(true); setError('');
     try {
       const updated = await withLoading(() => updateActividad(actividad.id, {
@@ -79,7 +84,11 @@ function EditModal({ actividad, deportes, onClose, onSaved }) {
           </div>
           <div>
             <label style={lStyle}>Fecha</label>
-            <input type="date" required max={today} value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} style={iStyle} />
+            <input type="date" required max={today} value={form.fecha}
+              onChange={e => {
+                const val = e.target.value > today ? today : e.target.value;
+                setForm(f => ({ ...f, fecha: val }));
+              }} style={iStyle} />
           </div>
           <div>
             <label style={lStyle}>Notas (opcional)</label>

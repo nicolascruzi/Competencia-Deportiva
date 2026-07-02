@@ -120,6 +120,11 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const today = new Date().toISOString().slice(0, 10);
+    if (form.fecha > today) {
+      setError('No puedes registrar actividades en fechas futuras.');
+      return;
+    }
     setError(''); setLoading(true);
     try {
       let savedActividad = null;
@@ -222,7 +227,12 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
           <Field label="Fecha">
             <Input type="date" required
               max={new Date().toISOString().slice(0, 10)}
-              value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
+              value={form.fecha}
+              onChange={e => {
+                const today = new Date().toISOString().slice(0, 10);
+                const val = e.target.value > today ? today : e.target.value;
+                setForm(f => ({ ...f, fecha: val }));
+              }} />
           </Field>
 
           {/* Notas */}
