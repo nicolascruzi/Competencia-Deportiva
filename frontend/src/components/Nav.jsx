@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { getCompetencias } from '../api/competencias';
+import { useNotifications } from '../context/NotificationContext';
 
 const PALETTE_ORDER = ['tierra', 'ciruela', 'noche'];
 
@@ -42,18 +43,27 @@ const IconBack = () => (
     <path d="M15 18l-6-6 6-6"/>
   </svg>
 );
+const IconBell = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+    <path d="M13.73 21a2 2 0 01-3.46 0"/>
+  </svg>
+);
 
-export default function Nav({ onNewActivity, competenciaActiva, onSelectCompetencia, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, isGlobalAdmin }) {
+export default function Nav({ onNewActivity, competenciaActiva, onSelectCompetencia, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, isGlobalAdmin, onNotifClick }) {
   const { themeId, setTheme, palettes } = useTheme();
+  const { notifs, unread, markRead, markAll } = useNotifications() || { notifs: [], unread: 0, markRead: () => {}, markAll: () => {} };
   const [selectorOpen, setSelectorOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen]   = useState(false);
   const [paletteOpen, setPaletteOpen]     = useState(false);
+  const [notifOpen, setNotifOpen]         = useState(false);
   const [competencias, setCompetencias]   = useState([]);
   const [loadingComps, setLoadingComps]   = useState(false);
   const [pinCopied, setPinCopied]         = useState(false);
 
   const selectorRef = useRef(null);
   const settingsRef = useRef(null);
+  const notifRef    = useRef(null);
   const longPressTimer = useRef(null);
   const didLongPress   = useRef(false);
 
@@ -75,10 +85,19 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
     return () => { document.removeEventListener('mousedown', h); document.removeEventListener('touchstart', h); };
   }, [settingsOpen]);
 
+  // Cierra notif al click exterior
   useEffect(() => {
-    document.body.style.overflow = (selectorOpen || settingsOpen) ? 'hidden' : '';
+    if (!notifOpen) return;
+    function h(e) { if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false); }
+    document.addEventListener('mousedown', h);
+    document.addEventListener('touchstart', h);
+    return () => { document.removeEventListener('mousedown', h); document.removeEventListener('touchstart', h); };
+  }, [notifOpen]);
+
+  useEffect(() => {
+    document.body.style.overflow = (selectorOpen || settingsOpen || notifOpen) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [selectorOpen, settingsOpen]);
+  }, [selectorOpen, settingsOpen, notifOpen]);
 
   // forceOpenSelector desde SinCompetencia
   useEffect(() => {
@@ -103,7 +122,17 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
   function onTitlePressEnd() { clearTimeout(longPressTimer.current); }
   function onTitleClick()    { if (!didLongPress.current) openSelector(); }
 
-  const anyOpen = selectorOpen || settingsOpen;
+  const anyOpen = selectorOpen || settingsOpen || notifOpen;
+
+  function formatNotifTime(ts) {
+    const diff = Date.now() - new Date(ts).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1)  return 'ahora';
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h`;
+    return `${Math.floor(h / 24)}d`;
+  }
 
   return (
     <>
@@ -114,7 +143,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
         height: 52,
-        display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center',
+        display: 'grid', gridTemplateColumns: '44px 1fr auto', alignItems: 'center',
         padding: '0 10px',
         background: 'var(--t-nav-bg)',
         borderBottom: '1px solid var(--t-nav-border)',
@@ -154,9 +183,22 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
             </button>
         }
 
-        {/* Derecha: botón ajustes */}
-        <div style={{ display:'flex', justifyContent:'flex-end' }}>
-          <button onClick={() => { setSettingsOpen(o => !o); setPaletteOpen(false); }} aria-label="Configuración"
+        {/* Derecha: campana + ajustes */}
+        <div style={{ display:'flex', alignItems:'center', gap:2, paddingRight:2 }}>
+          {!isGlobalAdmin && (
+            <div style={{ position:'relative' }}>
+              <button
+                onClick={() => { setNotifOpen(o => !o); setSelectorOpen(false); setSettingsOpen(false); }}
+                aria-label="Notificaciones"
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: unread > 0 ? 'var(--t-accent)' : 'var(--t-muted)', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'color 0.15s' }}>
+                <IconBell />
+              </button>
+              {unread > 0 && (
+                <span style={{ position:'absolute', top:5, right:5, width:8, height:8, borderRadius:'50%', background:'var(--t-accent)', border:'1.5px solid var(--t-nav-bg)', display:'block' }} />
+              )}
+            </div>
+          )}
+          <button onClick={() => { setSettingsOpen(o => !o); setPaletteOpen(false); setNotifOpen(false); }} aria-label="Configuración"
             style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'#f97316', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'color 0.15s' }}>
             <IconSettings />
           </button>
@@ -164,7 +206,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
       </header>
 
       {/* ── OVERLAY compartido ── */}
-      <div onClick={() => { setSelectorOpen(false); setSettingsOpen(false); setPaletteOpen(false); }} style={{
+      <div onClick={() => { setSelectorOpen(false); setSettingsOpen(false); setPaletteOpen(false); setNotifOpen(false); }} style={{
         position:'fixed', inset:0, zIndex:49,
         background:'rgba(0,0,0,0.35)',
         backdropFilter:'blur(2px)', WebkitBackdropFilter:'blur(2px)',
@@ -359,6 +401,87 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
               );
             })}
           </div>
+        </div>
+      </div>
+
+      {/* ── DROPDOWN NOTIFICACIONES ── */}
+      <div ref={notifRef} style={{
+        position: 'fixed',
+        top: 'calc(env(safe-area-inset-top) + 52px)',
+        right: 0, zIndex: 50,
+        width: 300,
+        background: 'var(--t-nav-bg)',
+        border: notifOpen ? '1px solid var(--t-nav-border)' : 'none',
+        borderTop: 'none',
+        borderRadius: '0 0 0 14px',
+        boxShadow: notifOpen ? '0 8px 32px rgba(0,0,0,0.2)' : 'none',
+        opacity: notifOpen ? 1 : 0,
+        pointerEvents: notifOpen ? 'all' : 'none',
+        transform: notifOpen ? 'translateY(0)' : 'translateY(-10px)',
+        transition: 'opacity 0.18s, transform 0.18s cubic-bezier(0.22,1,0.36,1)',
+        visibility: notifOpen ? 'visible' : 'hidden',
+        overflow: 'hidden',
+        maxHeight: '70dvh',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Cabecera */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px 8px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-muted)' }}>
+            Notificaciones {unread > 0 && <span style={{ color:'var(--t-accent)' }}>· {unread} nuevas</span>}
+          </div>
+          {unread > 0 && (
+            <button onClick={markAll}
+              style={{ fontSize:11, fontWeight:600, color:'var(--t-accent)', background:'transparent', border:'none', cursor:'pointer', padding:'2px 6px', borderRadius:6 }}>
+              Marcar todas
+            </button>
+          )}
+        </div>
+
+        {/* Lista */}
+        <div style={{ overflowY:'auto', flex:1 }}>
+          {notifs.length === 0 ? (
+            <div style={{ padding:'24px 16px', textAlign:'center', color:'var(--t-muted)', fontSize:13 }}>
+              Sin notificaciones
+            </div>
+          ) : notifs.map(n => (
+            <button key={n.id}
+              onClick={() => {
+                markRead(n.id);
+                setNotifOpen(false);
+                onNotifClick?.(n.actividad_id);
+              }}
+              style={{
+                display:'flex', alignItems:'flex-start', gap:10,
+                width:'100%', padding:'11px 16px',
+                background: n.leida ? 'transparent' : 'rgba(var(--t-accent-r),0.06)',
+                border:'none', borderBottom:'1px solid var(--t-dim)',
+                cursor:'pointer', textAlign:'left',
+                WebkitTapHighlightColor:'transparent',
+              }}>
+              {/* Avatar actor */}
+              <div style={{ width:32, height:32, borderRadius:'50%', background:'var(--t-surface2)', flexShrink:0, overflow:'hidden', border:'1px solid var(--t-dim)' }}>
+                {n.actor_foto
+                  ? <img src={n.actor_foto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, color:'var(--t-muted)' }}>
+                      {(n.actor_nombre || '?')[0].toUpperCase()}
+                    </div>
+                }
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13, color:'var(--t-text)', lineHeight:1.4 }}>
+                  <span style={{ fontWeight:700 }}>{n.actor_nombre}</span>
+                  {' comentó tu actividad de '}
+                  <span style={{ color:'var(--t-accent)', fontWeight:600 }}>{n.deporte_nombre}</span>
+                </div>
+                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
+                  {formatNotifTime(n.created_at)}
+                </div>
+              </div>
+              {!n.leida && (
+                <div style={{ width:7, height:7, borderRadius:'50%', background:'var(--t-accent)', flexShrink:0, marginTop:5 }} />
+              )}
+            </button>
+          ))}
         </div>
       </div>
 

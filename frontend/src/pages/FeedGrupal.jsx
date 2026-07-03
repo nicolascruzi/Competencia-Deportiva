@@ -360,11 +360,24 @@ function FeedCard({ act, user, onLightbox }) {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
-export default function FeedGrupal({ competencia }) {
+export default function FeedGrupal({ competencia, scrollToActividadId }) {
   const { user } = useAuth();
   const [acts, setActs]         = useState([]);
   const [loading, setLoading]   = useState(true);
   const [lightbox, setLightbox] = useState(null);
+  const [highlighted, setHighlighted] = useState(null);
+  const cardRefs = useRef({});
+
+  // Scroll + highlight cuando llega scrollToActividadId después de cargar
+  useEffect(() => {
+    if (!scrollToActividadId || loading) return;
+    const id = Number(scrollToActividadId);
+    setHighlighted(id);
+    const el = cardRefs.current[id];
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = setTimeout(() => setHighlighted(null), 2000);
+    return () => clearTimeout(t);
+  }, [scrollToActividadId, loading]);
 
   useEffect(() => {
     if (!competencia) return;
@@ -446,12 +459,14 @@ export default function FeedGrupal({ competencia }) {
       {/* Cards */}
       <div style={{ paddingBottom:24 }}>
         {acts.map(act => (
-          <FeedCard
-            key={act.id}
-            act={act}
-            user={user}
-            onLightbox={url => setLightbox(url)}
-          />
+          <div key={act.id} ref={el => { cardRefs.current[act.id] = el; }}
+            style={{ transition:'box-shadow 0.3s, outline 0.3s', outline: highlighted === act.id ? '2px solid var(--t-accent)' : '2px solid transparent', borderRadius:0 }}>
+            <FeedCard
+              act={act}
+              user={user}
+              onLightbox={url => setLightbox(url)}
+            />
+          </div>
         ))}
       </div>
     </>

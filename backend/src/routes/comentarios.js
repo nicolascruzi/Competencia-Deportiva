@@ -46,6 +46,19 @@ router.post('/:actividadId', async (req, res) => {
       [req.user.id]
     );
 
+    // Notificar al dueño de la actividad (si no es el mismo que comenta)
+    const { rows: [actividad] } = await pool.query(
+      'SELECT user_id FROM actividades WHERE id = $1',
+      [actividadId]
+    );
+    if (actividad && actividad.user_id !== req.user.id) {
+      pool.query(
+        `INSERT INTO notificaciones (user_id, tipo, actividad_id, actor_id)
+         VALUES ($1, 'comentario', $2, $3)`,
+        [actividad.user_id, actividadId, req.user.id]
+      ).catch(err => console.error('Error al crear notificación:', err));
+    }
+
     res.status(201).json({ ...comentario, ...user });
   } catch (err) {
     console.error(err);

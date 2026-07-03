@@ -21,6 +21,7 @@ import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { getCompetencia } from './api/competencias';
 import { getActividades } from './api/actividades';
 import { useLoading } from './context/LoadingContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 class ErrorBoundary extends Component {
   constructor(p) { super(p); this.state = { err: null }; }
@@ -137,6 +138,7 @@ function AppShell() {
   const [showOnboarding, setShowOnboarding]   = useState(false);
   const [ptrState, setPtrState]               = useState({ pullY: 0, refreshing: false, closing: false });
   const onPullChange = useCallback((s) => setPtrState(s), []);
+  const [notifActividadId, setNotifActividadId] = useState(null);
   // Estado de mes compartido entre Ranking y Calendario
   const _now = new Date();
   const [navYear,  setNavYear]  = useState(_now.getFullYear());
@@ -238,7 +240,7 @@ function AppShell() {
         />
       : <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />,
     calendario:  <Calendario   key={refreshKey} competenciaActiva={competenciaActiva} navYear={navYear} navMonth={navMonth} onNavYear={setNavYear} onNavMonth={setNavMonth} />,
-    feed:        <FeedGrupal   key={(competenciaActiva?.id ?? 'noc') + '_' + refreshKey} competencia={competenciaActiva} />,
+    feed:        <FeedGrupal   key={(competenciaActiva?.id ?? 'noc') + '_' + refreshKey} competencia={competenciaActiva} scrollToActividadId={notifActividadId} />,
     actividades: <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} evolucionSignal={evolucionSignal} />,
     perfil:      <MiPerfil     key={refreshKey} />,
     // Tabs de superadmin — misma instancia de AdminPanel, tab controlado por prop
@@ -255,6 +257,7 @@ function AppShell() {
   const activeIdx = CURRENT_TAB_ORDER.indexOf(mainTab);
 
   return (
+    <NotificationProvider isLoggedIn={!!user}>
     <>
       <Nav
         onNewActivity={() => setActModalOpen(true)}
@@ -265,6 +268,10 @@ function AppShell() {
         isAdmin={isAdmin}
         onAdminPonderadores={() => setAdminSheetOpen(true)}
         isGlobalAdmin={isGlobalAdmin}
+        onNotifClick={(actividadId) => {
+          setNotifActividadId(actividadId);
+          setMainTab('feed');
+        }}
       />
 
       {/* Indicador PTR fijo debajo de la navbar */}
@@ -361,6 +368,7 @@ function AppShell() {
         }} />
       )}
     </>
+    </NotificationProvider>
   );
 }
 

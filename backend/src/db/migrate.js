@@ -102,6 +102,18 @@ CREATE TABLE IF NOT EXISTS likes (
 );
 CREATE INDEX IF NOT EXISTS idx_likes_actividad ON likes(actividad_id);
 
+-- Notificaciones
+CREATE TABLE IF NOT EXISTS notificaciones (
+  id           SERIAL PRIMARY KEY,
+  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tipo         TEXT NOT NULL DEFAULT 'comentario',
+  actividad_id INTEGER NOT NULL REFERENCES actividades(id) ON DELETE CASCADE,
+  actor_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  leida        BOOLEAN NOT NULL DEFAULT false,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_user ON notificaciones(user_id, leida);
+
 -- Deportes con ponderadores oficiales
 INSERT INTO deportes (nombre, icono, ponderador_default) VALUES
   ('Natación',           '🏊', 1.50),
