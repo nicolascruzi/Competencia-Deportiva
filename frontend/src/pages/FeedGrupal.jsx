@@ -360,7 +360,7 @@ function FeedCard({ act, user, onLightbox }) {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
-export default function FeedGrupal({ competencia, scrollToActividadId }) {
+export default function FeedGrupal({ competencia, scrollSignal }) {
   const { user } = useAuth();
   const [acts, setActs]         = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -368,16 +368,31 @@ export default function FeedGrupal({ competencia, scrollToActividadId }) {
   const [highlighted, setHighlighted] = useState(null);
   const cardRefs = useRef({});
 
-  // Scroll + highlight cuando llega scrollToActividadId después de cargar
+  // Scroll + highlight cuando llega scrollSignal — usa ts para detectar re-clicks al mismo id
   useEffect(() => {
-    if (!scrollToActividadId || loading) return;
-    const id = Number(scrollToActividadId);
-    setHighlighted(id);
-    const el = cardRefs.current[id];
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const t = setTimeout(() => setHighlighted(null), 2000);
-    return () => clearTimeout(t);
-  }, [scrollToActividadId, loading]);
+    if (!scrollSignal?.id) return;
+    const id = Number(scrollSignal.id);
+
+    function doScroll() {
+      setHighlighted(id);
+      const el = cardRefs.current[id];
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      const clearTimer = setTimeout(() => setHighlighted(null), 2500);
+      return clearTimer;
+    }
+
+    // Si aún está cargando, esperar a que termine
+    if (loading) return;
+
+    // Delay pequeño para que React haya pintado los refs
+    const scrollTimer = setTimeout(() => {
+      const t = doScroll();
+      return () => clearTimeout(t);
+    }, 120);
+    return () => clearTimeout(scrollTimer);
+  }, [scrollSignal?.id, scrollSignal?.ts, loading]);
 
   useEffect(() => {
     if (!competencia) return;

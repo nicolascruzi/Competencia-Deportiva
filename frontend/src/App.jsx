@@ -138,7 +138,7 @@ function AppShell() {
   const [showOnboarding, setShowOnboarding]   = useState(false);
   const [ptrState, setPtrState]               = useState({ pullY: 0, refreshing: false, closing: false });
   const onPullChange = useCallback((s) => setPtrState(s), []);
-  const [notifActividadId, setNotifActividadId] = useState(null);
+  const [notifScroll, setNotifScroll] = useState(null); // { id, ts }
   // Estado de mes compartido entre Ranking y Calendario
   const _now = new Date();
   const [navYear,  setNavYear]  = useState(_now.getFullYear());
@@ -240,7 +240,7 @@ function AppShell() {
         />
       : <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />,
     calendario:  <Calendario   key={refreshKey} competenciaActiva={competenciaActiva} navYear={navYear} navMonth={navMonth} onNavYear={setNavYear} onNavMonth={setNavMonth} />,
-    feed:        <FeedGrupal   key={(competenciaActiva?.id ?? 'noc') + '_' + refreshKey} competencia={competenciaActiva} scrollToActividadId={notifActividadId} />,
+    feed:        <FeedGrupal   key={(competenciaActiva?.id ?? 'noc') + '_' + refreshKey} competencia={competenciaActiva} scrollSignal={notifScroll} />,
     actividades: <MisActividades key={refreshKey} onNewActivity={() => setActModalOpen(true)} evolucionSignal={evolucionSignal} />,
     perfil:      <MiPerfil     key={refreshKey} />,
     // Tabs de superadmin — misma instancia de AdminPanel, tab controlado por prop
@@ -269,7 +269,7 @@ function AppShell() {
         onAdminPonderadores={() => setAdminSheetOpen(true)}
         isGlobalAdmin={isGlobalAdmin}
         onNotifClick={(actividadId) => {
-          setNotifActividadId(actividadId);
+          setNotifScroll({ id: actividadId, ts: Date.now() });
           setMainTab('feed');
         }}
       />
