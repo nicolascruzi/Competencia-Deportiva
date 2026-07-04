@@ -1595,13 +1595,19 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
     if (deportes.some(d => d.nombre.toLowerCase() === nombre.toLowerCase())) {
       setAddError('Ya existe ese deporte'); return;
     }
+    const pond = parseFloat(nuevoPond) || 1;
     setAddingDeporte(true); setAddError('');
     try {
-      await createDeporte({ nombre, icono: nuevoIcono || '🏅', ponderador_default: parseFloat(nuevoPond) || 1 });
-      // Agregar al ponderador map local con el valor ingresado
-      setPonders(p => ({ ...p, [nombre]: parseFloat(nuevoPond) || 1 }));
-      // Recargar lista de deportes
-      await loadDeportes();
+      await createDeporte({ nombre, icono: nuevoIcono || '🏅', ponderador_default: pond });
+      setPonders(p => ({ ...p, [nombre]: pond }));
+      await getAllDeportes().then(deps => {
+        setDeportes(deps);
+        setPonders(prev => {
+          const map = { ...prev };
+          deps.forEach(d => { if (!(d.nombre in map)) map[d.nombre] = d.ponderador_default; });
+          return map;
+        });
+      });
       setNuevoNombre('');
       setNuevoIcono('🏅');
       setNuevoPond('1.0');
@@ -1678,9 +1684,13 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
                     {ponders[d.nombre] ?? d.ponderador_default}
                   </span>
                 : <input
-                    type="number" inputMode="decimal" min="0.1" step="0.1"
+                    type="text" inputMode="decimal"
                     value={ponders[d.nombre] ?? d.ponderador_default}
-                    onChange={e => setPonders(p => ({ ...p, [d.nombre]: e.target.value }))}
+                    onChange={e => {
+                      const v = e.target.value;
+                      // Permitir escribir decimales libremente (ej: "1.", "1.2")
+                      if (/^\d*\.?\d*$/.test(v)) setPonders(p => ({ ...p, [d.nombre]: v }));
+                    }}
                     style={{ width:58, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-accent)', padding:'5px 7px', borderRadius:8, fontSize:15, outline:'none', textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}
                     onFocus={e => { e.target.style.borderColor = 'var(--t-accent)'; }}
                     onBlur={e => { e.target.style.borderColor = 'var(--t-dim)'; }}
@@ -1714,9 +1724,12 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
                 />
                 {/* Ponderador */}
                 <input
-                  type="number" inputMode="decimal" min="0.1" step="0.1"
+                  type="text" inputMode="decimal"
                   value={nuevoPond}
-                  onChange={e => setNuevoPond(e.target.value)}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (/^\d*\.?\d*$/.test(v)) setNuevoPond(v);
+                  }}
                   style={{ ...inputBase, width:54, flexShrink:0, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}
                 />
               </div>
