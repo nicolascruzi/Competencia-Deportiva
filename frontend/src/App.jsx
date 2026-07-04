@@ -71,8 +71,14 @@ const TAB_ORDER = ['ranking', 'calendario', 'feed', 'actividades', 'perfil'];
 const PTR_THRESHOLD = 60;
 
 // Wrapper por tab: detecta el gesto, baja el contenido y notifica al padre
-function PullToRefreshTab({ active, onRefresh, onPullChange, children }) {
+function PullToRefreshTab({ active, onRefresh, onPullChange, scrollToTopSignal, children }) {
   const { containerRef, pullY, refreshing } = usePullToRefresh(onRefresh, active);
+
+  // Scroll al top cuando llega la señal (tap en tab ya activo)
+  useEffect(() => {
+    if (!scrollToTopSignal) return;
+    containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [scrollToTopSignal]);
   const [closing, setClosing]  = useState(false);
   const prevRefreshing         = useRef(false);
   const closingTimer           = useRef(null);
@@ -139,6 +145,7 @@ function AppShell() {
   const [ptrState, setPtrState]               = useState({ pullY: 0, refreshing: false, closing: false });
   const onPullChange = useCallback((s) => setPtrState(s), []);
   const [notifScroll, setNotifScroll] = useState(null); // { id, ts }
+  const [scrollTopSignal, setScrollTopSignal] = useState({}); // { [tabId]: ts }
 
   // Escuchar mensajes del service worker (click en notif push con app en background)
   useEffect(() => {
@@ -216,7 +223,12 @@ function AppShell() {
   }
 
   function handleMainTab(id) {
-    setMainTab(id);
+    if (id === mainTab) {
+      // Ya estamos en este tab — scroll al top
+      setScrollTopSignal(prev => ({ ...prev, [id]: Date.now() }));
+    } else {
+      setMainTab(id);
+    }
   }
 
   function handleCreated() {
@@ -314,6 +326,7 @@ function AppShell() {
                 active={isActive}
                 onRefresh={() => setRefreshKey(k => k + 1)}
                 onPullChange={isActive ? onPullChange : undefined}
+                scrollToTopSignal={scrollTopSignal[id]}
               >
                 {tabContent[id]}
               </PullToRefreshTab>
