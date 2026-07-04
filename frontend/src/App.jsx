@@ -139,6 +139,19 @@ function AppShell() {
   const [ptrState, setPtrState]               = useState({ pullY: 0, refreshing: false, closing: false });
   const onPullChange = useCallback((s) => setPtrState(s), []);
   const [notifScroll, setNotifScroll] = useState(null); // { id, ts }
+
+  // Escuchar mensajes del service worker (click en notif push con app en background)
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    function onMessage(event) {
+      if (event.data?.type === 'OPEN_ACTIVIDAD' && event.data.actividadId) {
+        setNotifScroll({ id: event.data.actividadId, ts: Date.now() });
+        setMainTab('feed');
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, []);
   // Estado de mes compartido entre Ranking y Calendario
   const _now = new Date();
   const [navYear,  setNavYear]  = useState(_now.getFullYear());

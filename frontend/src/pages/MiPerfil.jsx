@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getActividades } from '../api/actividades';
 import { updatePerfil, uploadFotoPerfil } from '../api/perfil';
 import { useAuth } from '../context/AuthContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -104,6 +105,63 @@ function PersonalCell({ label, value, onEdit }) {
       <div style={{ position:'absolute', top:8, right:8, opacity:0.35, color:'var(--t-muted)' }}>
         <IconEdit />
       </div>
+    </div>
+  );
+}
+
+function PushToggle() {
+  const { supported, permission, subscribed, loading, error, subscribe, unsubscribe } = usePushNotifications();
+
+  if (!supported) return null;
+
+  const denied = permission === 'denied';
+
+  return (
+    <div style={{ borderRadius:12, border:'1px solid var(--t-dim)', overflow:'hidden' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 14px', gap:12 }}>
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-text)' }}>
+            Notificaciones
+          </div>
+          <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2, lineHeight:1.4 }}>
+            {denied
+              ? 'Bloqueadas en el navegador — habilitá en ajustes del sistema'
+              : subscribed
+              ? 'Activadas — te avisamos de comentarios y actividades nuevas'
+              : 'Recibí alertas cuando un compañero sube contenido'}
+          </div>
+        </div>
+        {/* Toggle */}
+        <button
+          onClick={subscribed ? unsubscribe : subscribe}
+          disabled={loading || denied}
+          style={{
+            flexShrink: 0,
+            width: 48, height: 28,
+            borderRadius: 14,
+            border: 'none',
+            background: subscribed ? 'var(--t-accent)' : 'var(--t-surface2)',
+            cursor: (loading || denied) ? 'default' : 'pointer',
+            position: 'relative',
+            transition: 'background 0.2s',
+            opacity: denied ? 0.4 : 1,
+          }}>
+          <span style={{
+            position: 'absolute',
+            top: 3, left: subscribed ? 23 : 3,
+            width: 22, height: 22,
+            borderRadius: '50%',
+            background: '#fff',
+            transition: 'left 0.2s',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+          }} />
+        </button>
+      </div>
+      {error && (
+        <div style={{ padding:'8px 14px', fontSize:12, color:'#F87171', borderTop:'1px solid var(--t-dim)', background:'rgba(248,113,113,0.06)' }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }
@@ -344,6 +402,7 @@ export default function MiPerfil() {
 
       {/* ── OPCIONES ── */}
       <div style={{ padding:'12px 20px', display:'flex', flexDirection:'column', gap:8 }}>
+        <PushToggle />
         <button onClick={logout}
           style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
           Cerrar sesión

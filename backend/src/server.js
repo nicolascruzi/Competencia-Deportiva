@@ -13,6 +13,7 @@ const comentariosRoutes  = require('./routes/comentarios');
 const likesRoutes        = require('./routes/likes');
 const adminRoutes            = require('./routes/admin');
 const notificacionesRoutes   = require('./routes/notificaciones');
+const { router: pushRoutes } = require('./routes/push');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +33,7 @@ app.use('/comentarios',  comentariosRoutes);
 app.use('/likes',        likesRoutes);
 app.use('/admin',           adminRoutes);
 app.use('/notificaciones',  notificacionesRoutes);
+app.use('/push',            pushRoutes);
 
 // Health check
 app.get('/health', async (req, res) => {
@@ -70,8 +72,18 @@ app.listen(PORT, async () => {
         created_at   TIMESTAMPTZ DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_notificaciones_user ON notificaciones(user_id, leida);
+
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id         SERIAL PRIMARY KEY,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint   TEXT NOT NULL UNIQUE,
+        p256dh     TEXT NOT NULL,
+        auth       TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_id);
     `);
-    console.log('✓ Tabla notificaciones lista');
+    console.log('✓ Tablas notificaciones y push_subscriptions listas');
   } catch (err) {
     console.error('Error creando tabla notificaciones:', err.message);
   }

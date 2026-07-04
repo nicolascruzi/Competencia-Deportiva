@@ -1,6 +1,7 @@
 const express = require('express');
 const pool    = require('../db/pool');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
+const { sendPushToUser } = require('./push');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -78,12 +79,34 @@ router.post('/', async (req, res) => {
       RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, fecha, notas, foto_url, created_at
     `, [targetUserId, deporteId, deporte_nombre.trim(), parseFloat(minutos), parseFloat(ponderador), fecha, notas || null]);
 
-    res.status(201).json(result.rows[0]);
+    const act = result.rows[0];
+    res.status(201).json(act);
+
+    // Notificar a todos los compañeros de competencia (en background)
+    notifyCompaneros(targetUserId, act, req.user.nombre).catch(() => {});
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al crear actividad' });
   }
 });
+
+async function notifyCompaneros(actorId, actividad, actorNombre) {
+  // Buscar todos los compañeros en competencias donde el actor participa
+  const { rows: companeros } = await pool.query(
+    `SELECT DISTINCT cp2.user_id
+     FROM competencia_participantes cp1
+     JOIN competencia_participantes cp2 ON cp2.competencia_id = cp1.competencia_id
+     WHERE cp1.user_id = $1 AND cp2.user_id != $1`,
+    [actorId]
+  );
+  const pts = Math.round(parseFloat(actividad.minutos) * parseFloat(actividad.ponderador));
+  const payload = {
+    title: `🏅 ${actorNombre} subió una actividad`,
+    body:  `${actividad.deporte_nombre} · ${Math.round(actividad.minutos)} min · ${pts} pts`,
+    data:  { actividad_id: actividad.id, tipo: 'actividad' },
+  };
+  await Promise.allSettled(companeros.map(c => sendPushToUser(c.user_id, payload)));
+}
 
 // PUT /actividades/:id — editar actividad (dueño o admin)
 router.put('/:id', async (req, res) => {

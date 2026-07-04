@@ -1,6 +1,7 @@
 const express = require('express');
 const pool    = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
+const { sendPushToUser } = require('./push');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -48,7 +49,7 @@ router.post('/:actividadId', async (req, res) => {
 
     // Notificar al dueño de la actividad (si no es el mismo que comenta)
     const { rows: [actividad] } = await pool.query(
-      'SELECT user_id FROM actividades WHERE id = $1',
+      'SELECT user_id, deporte_nombre FROM actividades WHERE id = $1',
       [actividadId]
     );
     if (actividad && actividad.user_id !== req.user.id) {
@@ -57,6 +58,13 @@ router.post('/:actividadId', async (req, res) => {
          VALUES ($1, 'comentario', $2, $3)`,
         [actividad.user_id, actividadId, req.user.id]
       ).catch(err => console.error('Error al crear notificación:', err));
+
+      // Push nativa al dispositivo
+      sendPushToUser(actividad.user_id, {
+        title: `💬 ${user.nombre} comentó tu actividad`,
+        body:  `"${contenido.trim().slice(0, 80)}"`,
+        data:  { actividad_id: Number(actividadId), tipo: 'comentario' },
+      });
     }
 
     res.status(201).json({ ...comentario, ...user });
