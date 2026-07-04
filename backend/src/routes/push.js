@@ -5,11 +5,14 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL,
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
+// Configurar VAPID solo si las variables están disponibles
+// (evita crash al arrancar si no están seteadas en el entorno)
+function getWebPush() {
+  const { VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
+  if (!VAPID_EMAIL || !VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return null;
+  webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  return webpush;
+}
 
 // GET /push/vapid-public-key — clave pública para el frontend
 router.get('/vapid-public-key', (req, res) => {
@@ -53,6 +56,8 @@ router.delete('/subscribe', authMiddleware, async (req, res) => {
 
 // Función interna: enviar push a un user_id
 async function sendPushToUser(userId, payload) {
+  const wp = getWebPush();
+  if (!wp) return; // VAPID no configurado, ignorar silenciosamente
   try {
     const { rows } = await pool.query(
       'SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1',
@@ -64,9 +69,8 @@ async function sendPushToUser(userId, payload) {
         keys: { p256dh: sub.p256dh, auth: sub.auth },
       };
       try {
-        await webpush.sendNotification(subscription, JSON.stringify(payload));
+        await wp.sendNotification(subscription, JSON.stringify(payload));
       } catch (err) {
-        // 410 Gone = suscripción expirada, limpiar
         if (err.statusCode === 410) {
           await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [sub.endpoint]).catch(() => {});
         }
