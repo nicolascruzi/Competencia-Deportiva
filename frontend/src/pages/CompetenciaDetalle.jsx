@@ -1363,95 +1363,182 @@ function Insights({ acts }) {
 
 // ─── PROFILE PANEL ────────────────────────────────────────────────────────────
 
-const DIAS_ES = ['D','L','M','M','J','V','S'];
-const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const DAYS_ES_CAL   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MONTHS_ES_CAL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const SPORT_ICONS_CAL = {
+  'Bicicleta MTB':'🚵','Bicicleta Rodillo':'🚴','Bicicleta Ruta':'🚴','Box':'🥊',
+  'Buceo':'🤿','Crossfit':'🏋️','Cuerda':'🪢','Escalada':'🧗','Funcional':'💪',
+  'Fútbol':'⚽','Gimnasio':'🏋️','Golf':'⛳','Natación':'🏊','Padel':'🏓',
+  'Spinning':'🚴','Surf':'🏄','Tenis':'🎾','Trail Running':'🏃','Trekking':'🥾','Trote':'🏃',
+};
+function sportIconCal(s) { return SPORT_ICONS_CAL[s] || '🏅'; }
 
 function PlayerCalendar({ acts }) {
-  const today = new Date();
-  // Mostrar los últimos 3 meses incluyendo el actual
-  const months = Array.from({ length: 3 }, (_, i) => {
-    const d = new Date(today.getFullYear(), today.getMonth() - (2 - i), 1);
-    return { year: d.getFullYear(), month: d.getMonth() };
-  });
+  const now = new Date();
+  const [year,  setYear]  = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth());
 
-  // Set de fechas con actividad: "YYYY-MM-DD"
-  const activeDates = new Set(acts.map(a => (a.fecha || '').slice(0, 10)));
-
-  // Puntos por fecha para el tooltip/intensidad
-  const ptsByDate = {};
+  // Mapa fecha → actividades
+  const byDate = {};
   acts.forEach(a => {
     const key = (a.fecha || '').slice(0, 10);
-    ptsByDate[key] = (ptsByDate[key] || 0) + (parseFloat(a.puntos) || 0);
+    if (!byDate[key]) byDate[key] = [];
+    byDate[key].push(a);
   });
-  const maxPts = Math.max(...Object.values(ptsByDate), 1);
 
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+  function prevMonth() {
+    if (month === 0) { setMonth(11); setYear(y => y - 1); }
+    else setMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (month === 11) { setMonth(0); setYear(y => y + 1); }
+    else setMonth(m => m + 1);
+  }
+
+  const firstDay    = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  function dayKey(d) {
+    return `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+
+  // Stats del mes visible
+  const mesActs = acts.filter(a => {
+    const d = new Date((a.fecha || '') + 'T12:00:00');
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
+  const sesiones       = mesActs.length;
+  const diasEntrenados = new Set(mesActs.map(a => (a.fecha || '').slice(0,10))).size;
+  const minutos        = mesActs.reduce((s, a) => s + parseFloat(a.minutos || 0), 0);
+  const puntos         = mesActs.reduce((s, a) => s + parseFloat(a.puntos  || 0), 0);
+
+  // Racha actual
+  let rachaActual = 0;
+  const check = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  while (true) {
+    const k = `${check.getFullYear()}-${String(check.getMonth()+1).padStart(2,'0')}-${String(check.getDate()).padStart(2,'0')}`;
+    if (!byDate[k]?.length) break;
+    rachaActual++;
+    check.setDate(check.getDate() - 1);
+  }
+
+  const chip = { background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 13px' };
+  const num  = c => ({ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:c, lineHeight:1 });
+  const lbl  = { fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:4 };
 
   return (
     <div>
-      <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:10 }}>
+      <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:8 }}>
         Calendario de actividad
       </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-        {months.map(({ year, month }) => {
-          const firstDay = new Date(year, month, 1).getDay(); // 0=dom
-          const daysInMonth = new Date(year, month + 1, 0).getDate();
-          // Pad inicial para alinear al día de la semana
-          const cells = [];
-          for (let i = 0; i < firstDay; i++) cells.push(null);
-          for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-          return (
-            <div key={`${year}-${month}`}>
-              <div style={{ fontSize:11, fontWeight:700, color:'var(--t-text)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>
-                {MESES_ES[month]} {year}
-              </div>
-              {/* Header días */}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:2 }}>
-                {DIAS_ES.map((d, i) => (
-                  <div key={i} style={{ textAlign:'center', fontSize:8, fontWeight:700, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.04em' }}>{d}</div>
+      {/* Navegación mes */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+        <button onClick={prevMonth}
+          style={{ width:32, height:32, borderRadius:8, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
+            {MONTHS_ES_CAL[month]}
+          </div>
+          <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:1 }}>{year}</div>
+        </div>
+        <button onClick={nextMonth}
+          style={{ width:32, height:32, borderRadius:8, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+
+      {/* Stats del mes */}
+      {sesiones > 0 && (
+        <div style={{ marginBottom:10 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:4, marginBottom: rachaActual >= 2 ? 4 : 0 }}>
+            <div style={chip}><div style={num('var(--t-accent)')}>{sesiones}</div><div style={lbl}>Ses.</div></div>
+            <div style={chip}><div style={num('var(--t-text)')}>{diasEntrenados}</div><div style={lbl}>Días</div></div>
+            <div style={chip}><div style={num('var(--t-text)')}>{Math.round(minutos/60)}h</div><div style={lbl}>Horas</div></div>
+            <div style={chip}><div style={num('var(--t-accent)')}>{Math.round(puntos)}</div><div style={lbl}>Pts</div></div>
+          </div>
+          {rachaActual >= 2 && (
+            <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'8px 12px', display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ fontSize:14 }}>🔥</span>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color:'var(--t-text)', textTransform:'uppercase', letterSpacing:'0.04em' }}>
+                Racha de {rachaActual} días
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cabecera días semana */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:4 }}>
+        {DAYS_ES_CAL.map(d => (
+          <div key={d} style={{ textAlign:'center', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--t-muted)', padding:'2px 0' }}>
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Grid días */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
+        {cells.map((d, i) => {
+          if (!d) return <div key={`e-${i}`} />;
+          const key     = dayKey(d);
+          const isToday = key === todayKey;
+          const dayActs = (byDate[key] || []).filter(Boolean);
+          const hasActs = dayActs.length > 0;
+          const count   = dayActs.length;
+
+          let emojiNode = null;
+          if (count === 1) {
+            emojiNode = <span style={{ fontSize:12, lineHeight:1 }}>{sportIconCal(dayActs[0].deporte_nombre)}</span>;
+          } else if (count === 2) {
+            emojiNode = (
+              <div style={{ display:'flex', gap:1 }}>
+                {dayActs.slice(0,2).map((a, ei) => (
+                  <span key={ei} style={{ fontSize:9, lineHeight:1 }}>{sportIconCal(a.deporte_nombre)}</span>
                 ))}
               </div>
-              {/* Grid días */}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
-                {cells.map((day, i) => {
-                  if (!day) return <div key={`e-${i}`} />;
-                  const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                  const hasAct  = activeDates.has(dateStr);
-                  const pts     = ptsByDate[dateStr] || 0;
-                  const intensity = hasAct ? Math.max(0.25, pts / maxPts) : 0;
-                  const isToday = dateStr === todayStr;
-                  const isFuture = dateStr > todayStr;
-                  return (
-                    <div key={dateStr} title={hasAct ? `${Math.round(pts)} pts` : undefined}
-                      style={{
-                        aspectRatio: '1',
-                        borderRadius: 3,
-                        background: hasAct
-                          ? `rgba(var(--t-accent-r), ${intensity})`
-                          : 'var(--t-surface2)',
-                        border: isToday ? '1.5px solid var(--t-accent)' : '1px solid transparent',
-                        opacity: isFuture ? 0.3 : 1,
-                        display:'flex', alignItems:'center', justifyContent:'center',
-                      }}>
-                      <span style={{ fontSize:7, color: hasAct ? 'var(--t-text)' : 'var(--t-dim)', fontWeight: isToday ? 700 : 400, lineHeight:1 }}>
-                        {day}
-                      </span>
-                    </div>
-                  );
-                })}
+            );
+          } else if (count >= 3) {
+            const top = [...dayActs].sort((a,b) => parseFloat(b.minutos)-parseFloat(a.minutos))[0];
+            emojiNode = (
+              <div style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <span style={{ fontSize:11, lineHeight:1 }}>{sportIconCal(top.deporte_nombre)}</span>
+                <span style={{ position:'absolute', top:-3, right:-6, background:'var(--t-accent)', color:'var(--t-ground)', fontSize:7, fontWeight:800, borderRadius:5, padding:'1px 3px', lineHeight:1.2, fontFamily:"'Barlow Condensed', sans-serif" }}>
+                  {count}
+                </span>
               </div>
+            );
+          }
+
+          return (
+            <div key={key}
+              style={{
+                position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                aspectRatio:'1', borderRadius:10, gap:1,
+                background: isToday ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
+                border: isToday ? '1.5px solid var(--t-accent)' : '1px solid transparent',
+              }}>
+              <span style={{
+                fontFamily:"'Barlow Condensed', sans-serif",
+                fontWeight: isToday ? 900 : 600,
+                fontSize: hasActs ? 11 : 13,
+                lineHeight:1,
+                color: isToday ? 'var(--t-accent)' : hasActs ? 'var(--t-text)' : 'var(--t-muted)',
+              }}>
+                {d}
+              </span>
+              {emojiNode}
             </div>
           );
         })}
-      </div>
-      {/* Leyenda */}
-      <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:8, justifyContent:'flex-end' }}>
-        <span style={{ fontSize:9, color:'var(--t-muted)' }}>Sin actividad</span>
-        {[0.25, 0.5, 0.75, 1].map(op => (
-          <div key={op} style={{ width:10, height:10, borderRadius:2, background:`rgba(var(--t-accent-r),${op})` }} />
-        ))}
-        <span style={{ fontSize:9, color:'var(--t-muted)' }}>Más pts</span>
       </div>
     </div>
   );
