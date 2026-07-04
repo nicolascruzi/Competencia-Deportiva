@@ -1378,7 +1378,6 @@ function PlayerCalendar({ acts }) {
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
 
-  // Mapa fecha → actividades
   const byDate = {};
   acts.forEach(a => {
     const key = (a.fecha || '').slice(0, 10);
@@ -1408,7 +1407,6 @@ function PlayerCalendar({ acts }) {
     return `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   }
 
-  // Stats del mes visible
   const mesActs = acts.filter(a => {
     const d = new Date((a.fecha || '') + 'T12:00:00');
     return d.getFullYear() === year && d.getMonth() === month;
@@ -1418,7 +1416,6 @@ function PlayerCalendar({ acts }) {
   const minutos        = mesActs.reduce((s, a) => s + parseFloat(a.minutos || 0), 0);
   const puntos         = mesActs.reduce((s, a) => s + parseFloat(a.puntos  || 0), 0);
 
-  // Racha actual
   let rachaActual = 0;
   const check = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   while (true) {
@@ -1429,64 +1426,63 @@ function PlayerCalendar({ acts }) {
   }
 
   const chip = { background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 13px' };
-  const num  = c => ({ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:c, lineHeight:1 });
+  const num  = c => ({ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:22, color: c, lineHeight:1 });
   const lbl  = { fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:4 };
 
   return (
-    <div>
-      <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:8 }}>
-        Calendario de actividad
-      </div>
-
-      {/* Navegación mes */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+    <div style={{ paddingBottom:16 }}>
+      {/* Navegación mes — igual que Calendario.jsx */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 8px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
         <button onClick={prevMonth}
-          style={{ width:32, height:32, borderRadius:8, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
         <div style={{ textAlign:'center' }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
             {MONTHS_ES_CAL[month]}
           </div>
-          <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:1 }}>{year}</div>
+          <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>{year}</div>
         </div>
         <button onClick={nextMonth}
-          style={{ width:32, height:32, borderRadius:8, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
         </button>
       </div>
 
-      {/* Stats del mes */}
-      {sesiones > 0 && (
-        <div style={{ marginBottom:10 }}>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:4, marginBottom: rachaActual >= 2 ? 4 : 0 }}>
-            <div style={chip}><div style={num('var(--t-accent)')}>{sesiones}</div><div style={lbl}>Ses.</div></div>
-            <div style={chip}><div style={num('var(--t-text)')}>{diasEntrenados}</div><div style={lbl}>Días</div></div>
-            <div style={chip}><div style={num('var(--t-text)')}>{Math.round(minutos/60)}h</div><div style={lbl}>Horas</div></div>
-            <div style={chip}><div style={num('var(--t-accent)')}>{Math.round(puntos)}</div><div style={lbl}>Pts</div></div>
-          </div>
-          {rachaActual >= 2 && (
-            <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'8px 12px', display:'flex', alignItems:'center', gap:8 }}>
-              <span style={{ fontSize:14 }}>🔥</span>
-              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color:'var(--t-text)', textTransform:'uppercase', letterSpacing:'0.04em' }}>
-                Racha de {rachaActual} días
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Cabecera días semana */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:4 }}>
+      {/* Cabecera días de semana */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', padding:'0 12px', marginBottom:6 }}>
         {DAYS_ES_CAL.map(d => (
-          <div key={d} style={{ textAlign:'center', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--t-muted)', padding:'2px 0' }}>
+          <div key={d} style={{ textAlign:'center', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', padding:'4px 0' }}>
             {d}
           </div>
         ))}
       </div>
 
-      {/* Grid días */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
+      {/* Resumen del mes */}
+      {(() => {
+        const chip2 = { background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 13px' };
+        return (
+          <div style={{ padding:'0 12px 16px' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom: rachaActual >= 2 ? 6 : 0 }}>
+              <div style={chip2}><div style={num('var(--t-accent)')}>{sesiones}</div><div style={lbl}>Ses.</div></div>
+              <div style={chip2}><div style={num('var(--t-text)')}>{diasEntrenados}</div><div style={lbl}>Días</div></div>
+              <div style={chip2}><div style={num('var(--t-text)')}>{Math.round(minutos/60)}h</div><div style={lbl}>Horas</div></div>
+              <div style={chip2}><div style={num('var(--t-accent)')}>{Math.round(puntos)}</div><div style={lbl}>Pts</div></div>
+            </div>
+            {rachaActual >= 2 && (
+              <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'9px 13px', display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:16 }}>🔥</span>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, color:'var(--t-text)', textTransform:'uppercase', letterSpacing:'0.04em' }}>
+                  Racha de {rachaActual} días
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Grid de días */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:4, padding:'0 12px' }}>
         {cells.map((d, i) => {
           if (!d) return <div key={`e-${i}`} />;
           const key     = dayKey(d);
@@ -1494,15 +1490,16 @@ function PlayerCalendar({ acts }) {
           const dayActs = (byDate[key] || []).filter(Boolean);
           const hasActs = dayActs.length > 0;
           const count   = dayActs.length;
+          const sportIcon = s => SPORT_ICONS_CAL[s] || '🏅';
 
           let emojiNode = null;
           if (count === 1) {
-            emojiNode = <span style={{ fontSize:12, lineHeight:1 }}>{sportIconCal(dayActs[0].deporte_nombre)}</span>;
+            emojiNode = <span style={{ fontSize:14, lineHeight:1 }}>{sportIcon(dayActs[0].deporte_nombre)}</span>;
           } else if (count === 2) {
             emojiNode = (
               <div style={{ display:'flex', gap:1 }}>
                 {dayActs.slice(0,2).map((a, ei) => (
-                  <span key={ei} style={{ fontSize:9, lineHeight:1 }}>{sportIconCal(a.deporte_nombre)}</span>
+                  <span key={ei} style={{ fontSize:10, lineHeight:1 }}>{sportIcon(a.deporte_nombre)}</span>
                 ))}
               </div>
             );
@@ -1510,8 +1507,8 @@ function PlayerCalendar({ acts }) {
             const top = [...dayActs].sort((a,b) => parseFloat(b.minutos)-parseFloat(a.minutos))[0];
             emojiNode = (
               <div style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <span style={{ fontSize:11, lineHeight:1 }}>{sportIconCal(top.deporte_nombre)}</span>
-                <span style={{ position:'absolute', top:-3, right:-6, background:'var(--t-accent)', color:'var(--t-ground)', fontSize:7, fontWeight:800, borderRadius:5, padding:'1px 3px', lineHeight:1.2, fontFamily:"'Barlow Condensed', sans-serif" }}>
+                <span style={{ fontSize:13, lineHeight:1 }}>{sportIcon(top.deporte_nombre)}</span>
+                <span style={{ position:'absolute', top:-3, right:-6, background:'var(--t-accent)', color:'var(--t-ground)', fontSize:8, fontWeight:800, borderRadius:6, padding:'1px 3px', lineHeight:1.2, fontFamily:"'Barlow Condensed', sans-serif" }}>
                   {count}
                 </span>
               </div>
@@ -1522,15 +1519,13 @@ function PlayerCalendar({ acts }) {
             <div key={key}
               style={{
                 position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                aspectRatio:'1', borderRadius:10, gap:1,
+                aspectRatio:'1', borderRadius:12, gap:1,
                 background: isToday ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
-                border: isToday ? '1.5px solid var(--t-accent)' : '1px solid transparent',
               }}>
               <span style={{
                 fontFamily:"'Barlow Condensed', sans-serif",
                 fontWeight: isToday ? 900 : 600,
-                fontSize: hasActs ? 11 : 13,
-                lineHeight:1,
+                fontSize: hasActs ? 13 : 16, lineHeight:1,
                 color: isToday ? 'var(--t-accent)' : hasActs ? 'var(--t-text)' : 'var(--t-muted)',
               }}>
                 {d}
@@ -1687,9 +1682,11 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
             );
           })()}
 
-          {/* Calendario de actividad */}
+          {/* Calendario de actividad — márgenes negativos para romper el padding del panel */}
           {allData !== null && allData.length > 0 && (
-            <PlayerCalendar acts={allData} />
+            <div style={{ margin:'0 -16px' }}>
+              <PlayerCalendar acts={allData} />
+            </div>
           )}
 
           {/* Deportes */}
