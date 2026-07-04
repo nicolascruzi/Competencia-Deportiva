@@ -1582,7 +1582,7 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
   return (
     <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(5,12,20,0.75)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', display:'flex', alignItems:'flex-start', justifyContent:'flex-end' }}
          onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ width:'min(400px,100vw)', height:'100dvh', background:'var(--t-surface)', borderLeft:'1px solid var(--t-dim)', overflowY:'auto', WebkitOverflowScrolling:'touch', display:'flex', flexDirection:'column' }}>
+      <div style={{ width:'min(400px,100vw)', height:'100dvh', background:'var(--t-surface)', borderLeft:'1px solid var(--t-dim)', display:'flex', flexDirection:'column' }}>
 
         {/* Lightbox foto */}
         {fotoLightbox && fotoUrl && createPortal(
@@ -1592,8 +1592,8 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
           document.body
         )}
 
-        {/* Header */}
-        <div style={{ padding:'16px 16px 14px', borderBottom:'1px solid var(--t-dim)', display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
+        {/* Header fijo */}
+        <div style={{ padding:'16px 16px 14px', borderBottom:'1px solid var(--t-dim)', display:'flex', alignItems:'center', gap:12, flexShrink:0, background:'var(--t-surface)', zIndex:10 }}>
           <div
             onClick={() => fotoUrl && setFotoLightbox(true)}
             style={{ width:52, height:52, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', cursor: fotoUrl ? 'pointer' : 'default' }}>
@@ -1609,7 +1609,9 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
           <button onClick={onClose} style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
         </div>
 
-        <div style={{ padding:'16px', display:'flex', flexDirection:'column', gap:16 }}>
+        {/* Contenido scrollable */}
+        <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch', display:'flex', flexDirection:'column', gap:16, padding:'16px 16px 32px' }}>
+
           {/* Stats grid */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:0, border:'1px solid var(--t-dim)', borderRadius:10, overflow:'hidden' }}>
             {[
@@ -1624,15 +1626,21 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
             ))}
           </div>
 
-          {/* Evolución semanal */}
+          {/* Calendario de actividad */}
           {allData === null && (
-            <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t-muted)', fontSize:12 }}>Cargando evolución…</div>
+            <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t-muted)', fontSize:12 }}>Cargando…</div>
           )}
+          {allData !== null && allData.length > 0 && (
+            <div style={{ margin:'0 -16px' }}>
+              <PlayerCalendar acts={allData} />
+            </div>
+          )}
+
+          {/* Evolución semanal */}
           {allData !== null && (() => {
             if (evoData.length === 0) return null;
             const N = 4;
 
-            // Comparar fechas como YYYYMMDD para evitar problemas de zona horaria
             const anchorNum = evoData.reduce((mx, a) => Math.max(mx, fechaNum(a.fecha)), 0);
 
             const weeksData = Array.from({ length: N }, (_, i) => {
@@ -1646,7 +1654,6 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
               };
             }).reverse();
 
-            // Si todos los puntos son 0, mostrar minutos en su lugar
             const usarMin = weeksData.every(w => w.pts === 0);
             const wVals   = weeksData.map(w => usarMin ? w.min : w.pts);
             const wLabels = weeksData.map(w => {
@@ -1681,13 +1688,6 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
               </div>
             );
           })()}
-
-          {/* Calendario de actividad — márgenes negativos para romper el padding del panel */}
-          {allData !== null && allData.length > 0 && (
-            <div style={{ margin:'0 -16px' }}>
-              <PlayerCalendar acts={allData} />
-            </div>
-          )}
 
           {/* Deportes */}
           {sportRows.length > 0 && (
