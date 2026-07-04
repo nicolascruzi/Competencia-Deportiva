@@ -16,7 +16,9 @@ function getWebPush() {
 
 // GET /push/vapid-public-key — clave pública para el frontend
 router.get('/vapid-public-key', (req, res) => {
-  res.json({ key: process.env.VAPID_PUBLIC_KEY });
+  const key = process.env.VAPID_PUBLIC_KEY;
+  if (!key) return res.status(503).json({ error: 'Push no configurado en el servidor' });
+  res.json({ key });
 });
 
 // POST /push/subscribe — guardar suscripción del dispositivo

@@ -37,6 +37,7 @@ export function usePushNotifications() {
 
       // 2. Obtener clave pública VAPID del backend
       const { key } = await apiFetch('/push/vapid-public-key');
+      if (!key) throw new Error('El servidor no tiene configuradas las claves VAPID');
 
       // 3. Suscribir en el Push Manager
       const reg = await navigator.serviceWorker.ready;
