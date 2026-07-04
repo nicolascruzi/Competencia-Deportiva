@@ -1363,6 +1363,100 @@ function Insights({ acts }) {
 
 // ─── PROFILE PANEL ────────────────────────────────────────────────────────────
 
+const DIAS_ES = ['D','L','M','M','J','V','S'];
+const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function PlayerCalendar({ acts }) {
+  const today = new Date();
+  // Mostrar los últimos 3 meses incluyendo el actual
+  const months = Array.from({ length: 3 }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth() - (2 - i), 1);
+    return { year: d.getFullYear(), month: d.getMonth() };
+  });
+
+  // Set de fechas con actividad: "YYYY-MM-DD"
+  const activeDates = new Set(acts.map(a => (a.fecha || '').slice(0, 10)));
+
+  // Puntos por fecha para el tooltip/intensidad
+  const ptsByDate = {};
+  acts.forEach(a => {
+    const key = (a.fecha || '').slice(0, 10);
+    ptsByDate[key] = (ptsByDate[key] || 0) + (parseFloat(a.puntos) || 0);
+  });
+  const maxPts = Math.max(...Object.values(ptsByDate), 1);
+
+  const todayStr = today.toISOString().slice(0, 10);
+
+  return (
+    <div>
+      <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:10 }}>
+        Calendario de actividad
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        {months.map(({ year, month }) => {
+          const firstDay = new Date(year, month, 1).getDay(); // 0=dom
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          // Pad inicial para alinear al día de la semana
+          const cells = [];
+          for (let i = 0; i < firstDay; i++) cells.push(null);
+          for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+          return (
+            <div key={`${year}-${month}`}>
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--t-text)', marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                {MESES_ES[month]} {year}
+              </div>
+              {/* Header días */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:2 }}>
+                {DIAS_ES.map((d, i) => (
+                  <div key={i} style={{ textAlign:'center', fontSize:8, fontWeight:700, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.04em' }}>{d}</div>
+                ))}
+              </div>
+              {/* Grid días */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
+                {cells.map((day, i) => {
+                  if (!day) return <div key={`e-${i}`} />;
+                  const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                  const hasAct  = activeDates.has(dateStr);
+                  const pts     = ptsByDate[dateStr] || 0;
+                  const intensity = hasAct ? Math.max(0.25, pts / maxPts) : 0;
+                  const isToday = dateStr === todayStr;
+                  const isFuture = dateStr > todayStr;
+                  return (
+                    <div key={dateStr} title={hasAct ? `${Math.round(pts)} pts` : undefined}
+                      style={{
+                        aspectRatio: '1',
+                        borderRadius: 3,
+                        background: hasAct
+                          ? `rgba(var(--t-accent-r), ${intensity})`
+                          : 'var(--t-surface2)',
+                        border: isToday ? '1.5px solid var(--t-accent)' : '1px solid transparent',
+                        opacity: isFuture ? 0.3 : 1,
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                      }}>
+                      <span style={{ fontSize:7, color: hasAct ? 'var(--t-text)' : 'var(--t-dim)', fontWeight: isToday ? 700 : 400, lineHeight:1 }}>
+                        {day}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Leyenda */}
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:8, justifyContent:'flex-end' }}>
+        <span style={{ fontSize:9, color:'var(--t-muted)' }}>Sin actividad</span>
+        {[0.25, 0.5, 0.75, 1].map(op => (
+          <div key={op} style={{ width:10, height:10, borderRadius:2, background:`rgba(var(--t-accent-r),${op})` }} />
+        ))}
+        <span style={{ fontSize:9, color:'var(--t-muted)' }}>Más pts</span>
+      </div>
+    </div>
+  );
+}
+
 function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], nombres, onClose }) {
   if (!nombre) return null;
   const [fotoLightbox, setFotoLightbox] = useState(false);
@@ -1505,6 +1599,11 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
               </div>
             );
           })()}
+
+          {/* Calendario de actividad */}
+          {allData !== null && allData.length > 0 && (
+            <PlayerCalendar acts={allData} />
+          )}
 
           {/* Deportes */}
           {sportRows.length > 0 && (
