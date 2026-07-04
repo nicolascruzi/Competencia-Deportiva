@@ -1612,20 +1612,6 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
         {/* Contenido scrollable */}
         <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch', display:'flex', flexDirection:'column', gap:16, padding:'16px 16px 32px' }}>
 
-          {/* Stats grid */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:0, border:'1px solid var(--t-dim)', borderRadius:10, overflow:'hidden' }}>
-            {[
-              { label:'Puntos',     val: Math.round(pts).toLocaleString('es') },
-              { label:'Horas',      val: Math.round(min / 60) + 'h' },
-              { label:'Sesiones',   val: data.length },
-            ].map((s, i) => (
-              <div key={s.label} style={{ padding:'10px 8px', textAlign:'center', borderRight: i < 2 ? '1px solid var(--t-dim)' : 'none', background:'var(--t-surface)' }}>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, color:'var(--t-text)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>{s.val}</div>
-                <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginTop:3 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-
           {/* Calendario de actividad */}
           {allData === null && (
             <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t-muted)', fontSize:12 }}>Cargando…</div>
