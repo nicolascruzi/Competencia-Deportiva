@@ -146,14 +146,17 @@ function AppShell() {
   const onPullChange = useCallback((s) => setPtrState(s), []);
   const [notifScroll, setNotifScroll] = useState(null); // { id, ts }
   const [scrollTopSignal, setScrollTopSignal] = useState({}); // { [tabId]: ts }
+  const [tabInstant, setTabInstant] = useState(false); // sin animación en saltos de notificación
 
   // Escuchar mensajes del service worker (click en notif push con app en background)
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
     function onMessage(event) {
       if (event.data?.type === 'OPEN_ACTIVIDAD' && event.data.actividadId) {
+        setTabInstant(true);
         setNotifScroll({ id: event.data.actividadId, ts: Date.now() });
         setMainTab('feed');
+        requestAnimationFrame(() => requestAnimationFrame(() => setTabInstant(false)));
       }
     }
     navigator.serviceWorker.addEventListener('message', onMessage);
@@ -294,8 +297,11 @@ function AppShell() {
         onAdminPonderadores={() => setAdminSheetOpen(true)}
         isGlobalAdmin={isGlobalAdmin}
         onNotifClick={(actividadId) => {
+          setTabInstant(true);
           setNotifScroll({ id: actividadId, ts: Date.now() });
           setMainTab('feed');
+          // Restaurar transición en el siguiente frame para no afectar navegación posterior
+          requestAnimationFrame(() => requestAnimationFrame(() => setTabInstant(false)));
         }}
       />
 
@@ -318,7 +324,7 @@ function AppShell() {
               position: 'absolute',
               top: 0, left: 0, width: '100%', height: '100%',
               transform: `translateX(${offsetPct}%)`,
-              transition: 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)',
+              transition: tabInstant ? 'none' : 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)',
               pointerEvents: isActive ? 'auto' : 'none',
               visibility: Math.abs(i - activeIdx) > 1 ? 'hidden' : 'visible',
             }}>
