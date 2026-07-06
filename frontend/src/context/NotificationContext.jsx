@@ -12,6 +12,16 @@ export function NotificationProvider({ children, isLoggedIn }) {
 
   const unread = notifs.filter(n => !n.leida).length;
 
+  // Actualizar el badge de la app en pantalla de inicio
+  useEffect(() => {
+    if (!('setAppBadge' in navigator)) return;
+    if (unread > 0) {
+      navigator.setAppBadge(unread).catch(() => {});
+    } else {
+      navigator.clearAppBadge().catch(() => {});
+    }
+  }, [unread]);
+
   const fetch = useCallback(async () => {
     if (!isLoggedIn) return;
     try {
