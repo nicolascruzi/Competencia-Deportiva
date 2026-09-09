@@ -288,7 +288,7 @@ function LikeButton({ actividadId }) {
 
 // ─── FeedCard ─────────────────────────────────────────────────────────────────
 
-function FeedCard({ act, user, onLightbox }) {
+export function FeedCard({ act, user, onLightbox }) {
   return (
     <div style={{ background:'var(--t-surface)', borderBottom:'1px solid var(--t-surface2)', marginBottom:8, borderRadius:0 }}>
 

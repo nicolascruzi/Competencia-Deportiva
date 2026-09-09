@@ -4,6 +4,7 @@ import { getRankingComp, getActividadesComp, updatePonderadores } from '../api/c
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
 import { getDeportes as getAllDeportes, createDeporte } from '../api/actividades';
+import { FeedCard } from './FeedGrupal';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -1542,6 +1543,8 @@ function PlayerCalendar({ acts }) {
 function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], nombres, onClose }) {
   if (!nombre) return null;
   const [fotoLightbox, setFotoLightbox] = useState(false);
+  const [postsView, setPostsView] = useState(false);
+  const [activePostId, setActivePostId] = useState(null);
   // allData: actividades acumuladas del jugador (sin filtro de mes) para la evolución
   const [allData, setAllData] = useState(null); // null = cargando
 
@@ -1606,6 +1609,13 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', letterSpacing:'0.02em', lineHeight:1, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{nombre}</div>
             <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>{data.length} actividades registradas</div>
           </div>
+          <button onClick={() => setPostsView(true)} title="Ver publicaciones"
+            style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+          </button>
           <button onClick={onClose} style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
         </div>
 
@@ -1703,6 +1713,101 @@ function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], n
           )}
 
         </div>
+      </div>
+
+      {postsView && createPortal(
+        <ProfilePosts
+          nombre={nombre}
+          acts={allData ?? []}
+          activePostId={activePostId}
+          setActivePostId={setActivePostId}
+          onClose={() => { setPostsView(false); setActivePostId(null); }}
+        />,
+        document.body
+      )}
+    </div>
+  );
+}
+
+// ─── PERFIL: PUBLICACIONES (grilla + feed vertical) ──────────────────────────
+
+function ProfilePosts({ nombre, acts, activePostId, setActivePostId, onClose }) {
+  const { user } = useAuth();
+  const [lightbox, setLightbox] = useState(null);
+  const postRefs = useRef({});
+
+  const posts = [...acts].sort((a, b) => {
+    const tA = a.created_at ? new Date(a.created_at).getTime() : new Date(a.fecha + 'T12:00:00').getTime();
+    const tB = b.created_at ? new Date(b.created_at).getTime() : new Date(b.fecha + 'T12:00:00').getTime();
+    return tB - tA;
+  });
+
+  useEffect(() => {
+    if (activePostId == null) return;
+    const el = postRefs.current[activePostId];
+    if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+  }, [activePostId]);
+
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:500, background:'var(--t-surface)', display:'flex', flexDirection:'column' }}>
+
+      {lightbox && createPortal(
+        <div onClick={() => setLightbox(null)}
+          style={{ position:'fixed', inset:0, zIndex:600, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <button onClick={() => setLightbox(null)}
+            style={{ position:'absolute', top:20, right:20, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,0.85)', border:'none', color:'var(--t-text)', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+          <img src={lightbox} alt="" onClick={e => e.stopPropagation()}
+            style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:12, objectFit:'contain' }} />
+        </div>,
+        document.body
+      )}
+
+      {/* Header fijo */}
+      <div style={{ padding:'16px 16px 14px', borderBottom:'1px solid var(--t-dim)', display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
+        {activePostId != null && (
+          <button onClick={() => setActivePostId(null)}
+            style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>‹</button>
+        )}
+        <div style={{ flex:1, minWidth:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)' }}>
+          Publicaciones de {nombre}
+        </div>
+        <button onClick={onClose}
+          style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
+        {posts.length === 0 && (
+          <EmptyState icon="📭" title="Sin publicaciones" text="Todavía no registró actividades." />
+        )}
+
+        {posts.length > 0 && activePostId == null && (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:2, padding:2 }}>
+            {posts.map(act => (
+              <div key={act.id} onClick={() => setActivePostId(act.id)}
+                style={{ position:'relative', aspectRatio:'1/1', cursor:'pointer', background:'var(--t-surface2)', overflow:'hidden' }}>
+                {act.foto_url
+                  ? <img src={act.foto_url} alt={act.deporte_nombre} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                  : (
+                    <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:28, opacity:0.5 }}>
+                      {sportIcon(act.deporte_nombre)}
+                    </div>
+                  )
+                }
+              </div>
+            ))}
+          </div>
+        )}
+
+        {posts.length > 0 && activePostId != null && (
+          <div style={{ paddingBottom:24 }}>
+            {posts.map(act => (
+              <div key={act.id} ref={el => { postRefs.current[act.id] = el; }}
+                style={{ outline: act.id === activePostId ? '2px solid var(--t-accent)' : '2px solid transparent', transition:'outline 0.3s' }}>
+                <FeedCard act={act} user={user} onLightbox={url => setLightbox(url)} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
