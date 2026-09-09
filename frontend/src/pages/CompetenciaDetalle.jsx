@@ -4,7 +4,7 @@ import { getRankingComp, getActividadesComp, updatePonderadores } from '../api/c
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
 import { getDeportes as getAllDeportes, createDeporte } from '../api/actividades';
-import { FeedCard } from './FeedGrupal';
+import { FeedCard } from '../components/FeedCard';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -1540,7 +1540,7 @@ function PlayerCalendar({ acts }) {
   );
 }
 
-function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], nombres, onClose }) {
+export function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], nombres, onClose }) {
   if (!nombre) return null;
   const [fotoLightbox, setFotoLightbox] = useState(false);
   const [postsView, setPostsView] = useState(false);
