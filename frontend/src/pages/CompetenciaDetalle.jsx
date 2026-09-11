@@ -1645,7 +1645,7 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
 
   const TABS = [
     { id: 'posts',     label: 'Publicaciones' },
-    { id: 'calendar',  label: 'Calendario' },
+    ...(isOwnProfile ? [] : [{ id: 'calendar', label: 'Calendario' }]),
     { id: 'evolucion', label: 'Evolución' },
   ];
 
