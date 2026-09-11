@@ -19,27 +19,24 @@ export default function FeedGrupal({ competencia, scrollSignal }) {
   // Scroll + highlight cuando llega scrollSignal — usa ts para detectar re-clicks al mismo id
   useEffect(() => {
     if (!scrollSignal?.id) return;
+    // Si aún está cargando, esperar a que termine
+    if (loading) return;
     const id = Number(scrollSignal.id);
 
-    function doScroll() {
+    // Delay pequeño para que React haya pintado los refs
+    const scrollTimer = setTimeout(() => {
       setHighlighted(id);
       const el = cardRefs.current[id];
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      const clearTimer = setTimeout(() => setHighlighted(null), 2500);
-      return clearTimer;
-    }
-
-    // Si aún está cargando, esperar a que termine
-    if (loading) return;
-
-    // Delay pequeño para que React haya pintado los refs
-    const scrollTimer = setTimeout(() => {
-      const t = doScroll();
-      return () => clearTimeout(t);
     }, 120);
-    return () => clearTimeout(scrollTimer);
+    const clearHighlightTimer = setTimeout(() => setHighlighted(null), 120 + 2500);
+
+    return () => {
+      clearTimeout(scrollTimer);
+      clearTimeout(clearHighlightTimer);
+    };
   }, [scrollSignal?.id, scrollSignal?.ts, loading]);
 
   useEffect(() => {

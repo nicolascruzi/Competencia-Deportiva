@@ -102,7 +102,7 @@ export default function BottomTabBar({ activeTab, onTab, isGlobalAdmin }) {
               background: isActive ? 'rgba(var(--t-accent-r), 0.12)' : 'transparent',
               border: 'none', cursor: 'pointer', padding: '8px 4px',
               borderRadius: 24, WebkitTapHighlightColor: 'transparent',
-              transition: 'background 0.18s', height: 46,
+              transition: 'background 0.06s', height: 46,
             }}>
               <Icon active={isActive} />
               <span style={{
