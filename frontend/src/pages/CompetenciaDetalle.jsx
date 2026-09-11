@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom';
 import { getRankingComp, getActividadesComp, updatePonderadores } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
-import { getDeportes as getAllDeportes, createDeporte } from '../api/actividades';
+import { getDeportes as getAllDeportes, createDeporte, getActividades } from '../api/actividades';
 import { FeedCard } from '../components/FeedCard';
+import ProfileSettingsSheet from '../components/ProfileSettingsSheet';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -1563,17 +1564,24 @@ function PlayerCalendar({ acts }) {
   );
 }
 
-export function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], nombres, onClose }) {
+export function ProfilePanel({ nombre, userId, competenciaId, acts = [], rankingData = [], nombres, onClose, isOwnProfile = false, asPage = false }) {
   const { user } = useAuth();
   const [fotoLightbox, setFotoLightbox] = useState(false);
   const [lightbox, setLightbox] = useState(null);
   const [profileTab, setProfileTab] = useState('posts'); // 'posts' | 'calendar' | 'evolucion'
   const [activePostId, setActivePostId] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const postRefs = useRef({});
-  // allData: actividades acumuladas del jugador (sin filtro de mes) para stats/evolución/posts
+  // allData: actividades acumuladas del jugador (todas sus competencias si isOwnProfile, o de esta competencia) para stats/evolución/posts
   const [allData, setAllData] = useState(null); // null = cargando
 
+  const displayNombre = isOwnProfile ? (user?.nombre_display || user?.apodo || user?.nombre || '') : nombre;
+
   useEffect(() => {
+    if (isOwnProfile) {
+      getActividades().then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
+      return;
+    }
     if (!competenciaId) { setAllData([]); return; }
     getActividadesComp(competenciaId).then(rows => {
       const filtered = (Array.isArray(rows) ? rows : []).filter(a =>
@@ -1581,10 +1589,10 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData 
       );
       setAllData(filtered);
     }).catch(() => setAllData([]));
-  }, [competenciaId, userId, nombre]);
+  }, [isOwnProfile, competenciaId, userId, nombre]);
 
   // Filtrar acts del período visible (fallback mientras carga allData)
-  const periodData = acts.filter(a =>
+  const periodData = isOwnProfile ? acts : acts.filter(a =>
     userId != null ? a.user_id == userId : (a.nombre_display || a.nombre) === nombre
   );
   const data = allData ?? periodData;
@@ -1592,9 +1600,9 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData 
   const pts = data.reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0);
 
   const rankEntry = rankingData.find(r => userId != null ? r.id == userId : (r.nombre_display || r.nombre) === nombre);
-  const fotoUrl = rankEntry?.foto_perfil_url
-    ?? data.find(a => a.foto_perfil_url)?.foto_perfil_url
-    ?? null;
+  const fotoUrl = isOwnProfile
+    ? (user?.foto_perfil_url ?? null)
+    : (rankEntry?.foto_perfil_url ?? data.find(a => a.foto_perfil_url)?.foto_perfil_url ?? null);
 
   const sportMap = {};
   data.forEach(a => {
@@ -1641,83 +1649,98 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData 
     { id: 'evolucion', label: 'Evolución' },
   ];
 
-  if (!nombre) return null;
+  if (!isOwnProfile && !nombre) return null;
 
-  return (
-    <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(5,12,20,0.75)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', display:'flex', alignItems:'flex-start', justifyContent:'flex-end' }}
-         onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ width:'min(400px,100vw)', height:'100dvh', background:'var(--t-surface)', borderLeft:'1px solid var(--t-dim)', display:'flex', flexDirection:'column' }}>
+  const content = (
+    <>
+      {/* Lightbox foto de perfil */}
+      {fotoLightbox && fotoUrl && createPortal(
+        <div onClick={() => setFotoLightbox(false)} style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <img src={fotoUrl} alt={displayNombre} style={{ width:240, height:240, borderRadius:'50%', objectFit:'cover', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' }} />
+        </div>,
+        document.body
+      )}
 
-        {/* Lightbox foto de perfil */}
-        {fotoLightbox && fotoUrl && createPortal(
-          <div onClick={() => setFotoLightbox(false)} style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <img src={fotoUrl} alt={nombre} style={{ width:240, height:240, borderRadius:'50%', objectFit:'cover', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' }} />
-          </div>,
-          document.body
+      {/* Lightbox de foto de publicación */}
+      {lightbox && createPortal(
+        <div onClick={() => setLightbox(null)}
+          style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <button onClick={() => setLightbox(null)}
+            style={{ position:'absolute', top:20, right:20, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,0.85)', border:'none', color:'var(--t-text)', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+          <img src={lightbox} alt="" onClick={e => e.stopPropagation()}
+            style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:12, objectFit:'contain' }} />
+        </div>,
+        document.body
+      )}
+
+      {/* Sheet de ajustes (solo perfil propio) */}
+      {settingsOpen && isOwnProfile && (
+        <ProfileSettingsSheet onClose={() => setSettingsOpen(false)} />
+      )}
+
+      {/* Botones flotantes: ajustes (propio) + cerrar (si no es página embebida) */}
+      <div style={{ position:'absolute', top:14, right:14, zIndex:20, display:'flex', gap:8 }}>
+        {isOwnProfile && (
+          <button onClick={() => setSettingsOpen(true)} aria-label="Editar perfil"
+            style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+          </button>
         )}
-
-        {/* Lightbox de foto de publicación */}
-        {lightbox && createPortal(
-          <div onClick={() => setLightbox(null)}
-            style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
-            <button onClick={() => setLightbox(null)}
-              style={{ position:'absolute', top:20, right:20, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,0.85)', border:'none', color:'var(--t-text)', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
-            <img src={lightbox} alt="" onClick={e => e.stopPropagation()}
-              style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:12, objectFit:'contain' }} />
-          </div>,
-          document.body
+        {!asPage && (
+          <button onClick={onClose}
+            style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
         )}
+      </div>
 
-        {/* Botón cerrar flotante */}
-        <button onClick={onClose}
-          style={{ position:'absolute', top:14, right:14, zIndex:20, width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
+      {/* Contenido scrollable (header + tabs + contenido) */}
+      <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
 
-        {/* Contenido scrollable (header + tabs + contenido) */}
-        <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
-
-          {/* Header perfil tipo Instagram */}
-          <div style={{ padding:'32px 20px 18px', textAlign:'center' }}>
-            <div
-              onClick={() => fotoUrl && setFotoLightbox(true)}
-              style={{ width:88, height:88, borderRadius:'50%', margin:'0 auto', overflow:'hidden', background:'var(--t-surface2)', border:'2px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', cursor: fotoUrl ? 'pointer' : 'default' }}>
-              {fotoUrl
-                ? <img src={fotoUrl} alt={nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:36, color:'var(--t-muted)' }}>{nombre.charAt(0).toUpperCase()}</span>
-              }
-            </div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:12 }}>
-              {nombre}
-            </div>
-
-            {/* Bio: deporte favorito + racha */}
-            {(deporteFavorito || rachaActual > 0) && (
-              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:4, lineHeight:1.5 }}>
-                {deporteFavorito && <span>{sportIcon(deporteFavorito)} {deporteFavorito} es su deporte favorito</span>}
-                {deporteFavorito && rachaActual > 0 && <span> · </span>}
-                {rachaActual > 0 && <span>🔥 {rachaActual} día{rachaActual !== 1 ? 's' : ''} de racha activa</span>}
-              </div>
-            )}
-
-            {/* Stats destacados */}
-            <div style={{ display:'flex', justifyContent:'center', gap:28, marginTop:18 }}>
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)' }}>{data.length}</div>
-                <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Posts</div>
-              </div>
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-accent)' }}>{Math.round(pts)}</div>
-                <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Puntos</div>
-              </div>
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)' }}>{rachaActual}</div>
-                <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Racha</div>
-              </div>
-            </div>
+        {/* Header perfil tipo Instagram */}
+        <div style={{ padding:'32px 20px 18px', textAlign:'center' }}>
+          <div
+            onClick={() => fotoUrl && setFotoLightbox(true)}
+            style={{ width:88, height:88, borderRadius:'50%', margin:'0 auto', overflow:'hidden', background:'var(--t-surface2)', border:'2px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', cursor: fotoUrl ? 'pointer' : 'default' }}>
+            {fotoUrl
+              ? <img src={fotoUrl} alt={displayNombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+              : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:36, color:'var(--t-muted)' }}>{displayNombre.charAt(0).toUpperCase()}</span>
+            }
+          </div>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:12 }}>
+            {displayNombre}
           </div>
 
-          {/* Sub-navbar de tabs */}
-          <div style={{ display:'flex', borderBottom:'1px solid var(--t-dim)', borderTop:'1px solid var(--t-dim)', position:'sticky', top:0, background:'var(--t-surface)', zIndex:10 }}>
-            {TABS.map(t => (
+          {/* Bio: deporte favorito + racha */}
+          {(deporteFavorito || rachaActual > 0) && (
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:4, lineHeight:1.5 }}>
+              {deporteFavorito && <span>{sportIcon(deporteFavorito)} {deporteFavorito} es {isOwnProfile ? 'tu' : 'su'} deporte favorito</span>}
+              {deporteFavorito && rachaActual > 0 && <span> · </span>}
+              {rachaActual > 0 && <span>🔥 {rachaActual} día{rachaActual !== 1 ? 's' : ''} de racha activa</span>}
+            </div>
+          )}
+
+          {/* Stats destacados */}
+          <div style={{ display:'flex', justifyContent:'center', gap:28, marginTop:18 }}>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)' }}>{data.length}</div>
+              <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Posts</div>
+            </div>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-accent)' }}>{Math.round(pts)}</div>
+              <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Puntos</div>
+            </div>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)' }}>{rachaActual}</div>
+              <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Racha</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sub-navbar de tabs */}
+        <div style={{ display:'flex', borderBottom:'1px solid var(--t-dim)', borderTop:'1px solid var(--t-dim)', position:'sticky', top:0, background:'var(--t-surface)', zIndex:10 }}>
+          {TABS.map(t => (
               <button key={t.id} onClick={() => setProfileTab(t.id)}
                 style={{ flex:1, padding:'11px 4px', background:'transparent', border:'none', borderBottom: profileTab === t.id ? '2px solid var(--t-accent)' : '2px solid transparent', color: profileTab === t.id ? 'var(--t-text)' : 'var(--t-muted)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
                 {t.label}
@@ -1864,6 +1887,22 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData 
             </div>
           )}
         </div>
+    </>
+  );
+
+  if (asPage) {
+    return (
+      <div style={{ position:'relative', minHeight:'100%', display:'flex', flexDirection:'column' }}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(5,12,20,0.75)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', display:'flex', alignItems:'flex-start', justifyContent:'flex-end' }}
+         onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ width:'min(400px,100vw)', height:'100dvh', background:'var(--t-surface)', borderLeft:'1px solid var(--t-dim)', display:'flex', flexDirection:'column', position:'relative' }}>
+        {content}
       </div>
     </div>
   );
