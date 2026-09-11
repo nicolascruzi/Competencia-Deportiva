@@ -494,7 +494,27 @@ function Spark({ values, accent }) {
   );
 }
 
-function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
+// ─── SELECTOR DE MES (compacto, una sola línea) ──────────────────────────────
+
+function MesSelector({ prev, next, canNext, mesLabel, mesSubLabel, compact = false }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:2, padding: compact ? '6px 4px' : '4px 8px' }}>
+      <button onClick={prev}
+        style={{ width:24, height:24, borderRadius:6, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', whiteSpace:'nowrap' }}>
+        {mesLabel} <span style={{ color:'var(--t-muted)', fontWeight:600 }}>{mesSubLabel}</span>
+      </div>
+      <button onClick={next} disabled={!canNext}
+        style={{ width:24, height:24, borderRadius:6, border:'none', background:'transparent', color: canNext ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+  );
+}
+
+function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector }) {
   const [subtab, setSubtab]       = useState('tabla');
   const [lightboxFoto, setLightboxFoto] = useState(null); // url
 
@@ -522,10 +542,13 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile }) {
 
   return (
     <div>
-      {/* Subtabs */}
-      <div style={{ display:'flex', gap:0, padding:'0 12px', borderBottom:'1px solid var(--t-dim)' }}>
-        {tabBtn('tabla', 'Tabla')}
-        {tabBtn('evolucion', 'Evolución')}
+      {/* Subtabs + selector de mes compacto */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 4px 0 12px', borderBottom:'1px solid var(--t-dim)' }}>
+        <div style={{ display:'flex', gap:0 }}>
+          {tabBtn('tabla', 'Tabla')}
+          {tabBtn('evolucion', 'Evolución')}
+        </div>
+        {mesSelector}
       </div>
 
       {/* Lightbox foto ranking */}
@@ -2133,11 +2156,13 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   const mesLabel = isAcumulado ? 'Acumulado' : MONTHS_ES[month];
   const mesSubLabel = isAcumulado ? 'todos los tiempos' : String(year);
 
+  const mesSelectorEl = <MesSelector prev={prev} next={next} canNext={canNext} mesLabel={mesLabel} mesSubLabel={mesSubLabel} compact />;
+
   function renderTab() {
     if (loading) return <Spinner />;
     switch (tab) {
       case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
-      case 'ranking':  return <Ranking  acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} />;
+      case 'ranking':  return <Ranking  acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />;
       case 'calendar': return <Calendario acts={acts.filter(a => (a.nombre_display || a.nombre) === (user?.nombre_display || user?.nombre))} mes={mes} meses={[]} onMes={() => {}} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
@@ -2166,23 +2191,12 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
           </div>
         </div>
 
-        {/* Fila 2: navegación mes (idéntica al Calendario) */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 8px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
-          <button onClick={prev}
-            style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <div style={{ textAlign:'center' }}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
-              {mesLabel}
-            </div>
-            <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>{mesSubLabel}</div>
+        {/* Fila 2: navegación mes — compacta, una sola línea (el tab Ranking la integra en su propia fila de sub-tabs) */}
+        {tab !== 'ranking' && (
+          <div style={{ borderBottom:'1px solid var(--t-surface2)' }}>
+            {mesSelectorEl}
           </div>
-          <button onClick={next} disabled={!canNext}
-            style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: canNext ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Contenido */}
