@@ -251,13 +251,11 @@ function DaySheet({ fecha, acts, onClose, onSelectAct }) {
 
 // ─── Calendario ───────────────────────────────────────────────────────────────
 
-export default function Calendario({ competenciaActiva, navYear, navMonth, onNavYear, onNavMonth }) {
+export default function Calendario({ competenciaActiva, navYear, navMonth }) {
   const now = new Date();
-  // Mes sincronizado con Ranking cuando se pasan las props externas
+  // Mes sincronizado con Ranking (solo lectura acá — se cambia desde el tab Ranking)
   const year  = navYear  ?? now.getFullYear();
   const month = navMonth ?? now.getMonth();
-  function setYear(v)  { onNavYear?.(typeof v === 'function' ? v(year)  : v); }
-  function setMonth(v) { onNavMonth?.(typeof v === 'function' ? v(month) : v); }
 
   const [acts, setActs]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -275,17 +273,6 @@ export default function Calendario({ competenciaActiva, navYear, navMonth, onNav
     if (!byDate[key]) byDate[key] = [];
     byDate[key].push(a);
   });
-
-  function prevMonth() {
-    if (month === 0) { setMonth(11); setYear(y => y - 1); }
-    else setMonth(m => m - 1);
-    setSelectedDate(null);
-  }
-  function nextMonth() {
-    if (month === 11) { setMonth(0); setYear(y => y + 1); }
-    else setMonth(m => m + 1);
-    setSelectedDate(null);
-  }
 
   // Días del mes
   const firstDay  = new Date(year, month, 1).getDay(); // 0=Dom
@@ -332,7 +319,7 @@ export default function Calendario({ competenciaActiva, navYear, navMonth, onNav
     <div style={{ paddingBottom:32 }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-      {/* Header competencia — idéntico a Ranking Fila 1 */}
+      {/* Header competencia + mes (subtítulo de solo lectura — el mes se cambia desde Ranking) */}
       {competenciaActiva && (
         <div style={{ padding:'8px 20px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
           <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -341,26 +328,11 @@ export default function Calendario({ competenciaActiva, navYear, navMonth, onNav
           <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)', marginTop:2 }}>
             Calendario
           </div>
+          <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
+            {MONTHS_ES[month]} {year}
+          </div>
         </div>
       )}
-
-      {/* Navegación de mes — igual que Ranking */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 8px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
-        <button onClick={prevMonth}
-          style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <div style={{ textAlign:'center' }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
-            {MONTHS_ES[month]}
-          </div>
-          <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>{year}</div>
-        </div>
-        <button onClick={nextMonth}
-          style={{ width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-      </div>
 
       {/* Cabecera días de semana */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', padding:'0 12px', marginBottom:6 }}>

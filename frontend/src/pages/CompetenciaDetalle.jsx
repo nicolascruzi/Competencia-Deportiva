@@ -497,16 +497,13 @@ function Spark({ values, accent }) {
 
 // ─── SELECTOR DE MES (compacto, una sola línea) ──────────────────────────────
 
-function MesSelector({ prev, next, canNext, mesLabel, mesSubLabel, compact = false }) {
+function MesSelector({ prev, next, canNext }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:2, padding: compact ? '6px 4px' : '4px 8px' }}>
+    <div style={{ display:'flex', alignItems:'center', gap:2 }}>
       <button onClick={prev}
         style={{ width:24, height:24, borderRadius:6, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
-      <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, textTransform:'uppercase', letterSpacing:'0.03em', color:'var(--t-text)', whiteSpace:'nowrap' }}>
-        {mesLabel} <span style={{ color:'var(--t-muted)', fontWeight:600 }}>{mesSubLabel}</span>
-      </div>
       <button onClick={next} disabled={!canNext}
         style={{ width:24, height:24, borderRadius:6, border:'none', background:'transparent', color: canNext ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -635,7 +632,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector 
 
 // ─── CALENDARIO ───────────────────────────────────────────────────────────────
 
-function Calendario({ acts, mes, meses, onMes }) {
+function Calendario({ acts, mes }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
   const DOWS = ['L','M','X','J','V','S','D'];
@@ -675,22 +672,7 @@ function Calendario({ acts, mes, meses, onMes }) {
   const selectedActs = selectedDay ? (dayActivities[selectedDay] || []).filter(Boolean) : [];
   const sortedDays   = Object.keys(dayActivities).map(Number).sort((a, b) => a - b);
 
-  // Navegación entre meses (usando meses disponibles del padre)
-  const mesIdx = meses.indexOf(activeMes);
-  function prevMes() {
-    if (!meses.length) return;
-    if (!mes) { onMes(meses[meses.length - 1]); return; }
-    if (mesIdx > 0) onMes(meses[mesIdx - 1]);
-  }
-  function nextMes() {
-    if (!meses.length) return;
-    if (mesIdx < meses.length - 1) onMes(meses[mesIdx + 1]);
-    else if (mesIdx === meses.length - 1) onMes('');
-  }
-  const canPrev = mes ? mesIdx > 0 : false;
-  const canNext = mes ? true : false;
-
-  if (!meses.length && !acts.length) return <EmptyState icon="📅" title="Sin actividades" />;
+  if (!acts.length) return <EmptyState icon="📅" title="Sin actividades" />;
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
@@ -705,24 +687,6 @@ function Calendario({ acts, mes, meses, onMes }) {
             style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:12, objectFit:'contain' }} />
         </div>
       )}
-
-      {/* ── Cabecera del mes ── */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <button onClick={prevMes} disabled={!canPrev}
-          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color: canPrev ? 'var(--t-text)' : 'var(--t-dim)', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: canPrev ? 'pointer' : 'default' }}>
-          ‹
-        </button>
-        <div style={{ textAlign:'center' }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', letterSpacing:'0.05em', color:'var(--t-text)', lineHeight:1 }}>
-            {MONTHS_ES[viewMonth]}
-          </div>
-          <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:10, color:'var(--t-muted)', marginTop:2 }}>{viewYear}</div>
-        </div>
-        <button onClick={nextMes} disabled={!canNext}
-          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color: canNext ? 'var(--t-text)' : 'var(--t-dim)', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor: canNext ? 'pointer' : 'default' }}>
-          ›
-        </button>
-      </div>
 
       {/* ── Grid del calendario ── */}
       <div>
@@ -2195,14 +2159,14 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   const mesLabel = isAcumulado ? 'Acumulado' : MONTHS_ES[month];
   const mesSubLabel = isAcumulado ? 'todos los tiempos' : String(year);
 
-  const mesSelectorEl = <MesSelector prev={prev} next={next} canNext={canNext} mesLabel={mesLabel} mesSubLabel={mesSubLabel} compact />;
+  const mesSelectorEl = <MesSelector prev={prev} next={next} canNext={canNext} />;
 
   function renderTab() {
     if (loading) return <Spinner />;
     switch (tab) {
       case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
       case 'ranking':  return <Ranking  acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />;
-      case 'calendar': return <Calendario acts={acts.filter(a => (a.nombre_display || a.nombre) === (user?.nombre_display || user?.nombre))} mes={mes} meses={[]} onMes={() => {}} />;
+      case 'calendar': return <Calendario acts={acts.filter(a => (a.nombre_display || a.nombre) === (user?.nombre_display || user?.nombre))} mes={mes} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
       case 'deportes': return <Deportes acts={acts} />;
@@ -2220,7 +2184,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       {/* ── SUBHEADER ───────────────────────────────────────────── */}
       <div style={{ position:'relative', zIndex:10, background:'var(--t-ground)' }}>
 
-        {/* Fila 1: nombre competencia + tab activo */}
+        {/* Fila 1: nombre competencia + tab activo + mes (subtítulo, solo lectura salvo en Ranking) */}
         <div style={{ padding:'8px 20px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
           <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {competencia.nombre}
@@ -2228,14 +2192,10 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
           <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)', marginTop:2 }}>
             {tab === 'ranking' ? 'Ranking' : tab === 'podio' ? 'Podio' : tab === 'calendar' ? 'Calendario' : tab === 'evolucion' ? 'Evolución' : tab === 'carrera' ? 'Carrera' : tab === 'deportes' ? 'Deportes' : tab === 'records' ? 'Récords' : tab === 'comparar' ? 'Comparar' : tab === 'insights' ? 'Insights' : 'Competencia'}
           </div>
-        </div>
-
-        {/* Fila 2: navegación mes — compacta, una sola línea (el tab Ranking la integra en su propia fila de sub-tabs) */}
-        {tab !== 'ranking' && (
-          <div style={{ borderBottom:'1px solid var(--t-surface2)' }}>
-            {mesSelectorEl}
+          <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
+            {mesLabel} {mesSubLabel}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Contenido */}
