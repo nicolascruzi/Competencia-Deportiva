@@ -1541,11 +1541,13 @@ function PlayerCalendar({ acts }) {
 }
 
 export function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData = [], nombres, onClose }) {
-  if (!nombre) return null;
+  const { user } = useAuth();
   const [fotoLightbox, setFotoLightbox] = useState(false);
-  const [postsView, setPostsView] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
+  const [profileTab, setProfileTab] = useState('posts'); // 'posts' | 'calendar' | 'evolucion'
   const [activePostId, setActivePostId] = useState(null);
-  // allData: actividades acumuladas del jugador (sin filtro de mes) para la evolución
+  const postRefs = useRef({});
+  // allData: actividades acumuladas del jugador (sin filtro de mes) para stats/evolución/posts
   const [allData, setAllData] = useState(null); // null = cargando
 
   useEffect(() => {
@@ -1558,15 +1560,13 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData 
     }).catch(() => setAllData([]));
   }, [competenciaId, userId, nombre]);
 
-  // Filtrar acts del período visible para los stats de la vista actual
-  const data = acts.filter(a =>
+  // Filtrar acts del período visible (fallback mientras carga allData)
+  const periodData = acts.filter(a =>
     userId != null ? a.user_id == userId : (a.nombre_display || a.nombre) === nombre
   );
-  // Para evolución usamos allData (acumulado) si ya cargó, sino data del período
-  const evoData = allData ?? data;
+  const data = allData ?? periodData;
 
-  const pts  = data.reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0);
-  const min  = data.reduce((s, a) => s + parseFloat(a.minutos), 0);
+  const pts = data.reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0);
 
   const rankEntry = rankingData.find(r => userId != null ? r.id == userId : (r.nombre_display || r.nombre) === nombre);
   const fotoUrl = rankEntry?.foto_perfil_url
@@ -1581,162 +1581,26 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts, rankingData 
     sportMap[a.deporte_nombre].sesiones++;
   });
   const sportRows = Object.entries(sportMap).sort((a, b) => b[1].pts - a[1].pts);
+  const deporteFavorito = sportRows[0]?.[0] ?? null;
 
-  return (
-    <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(5,12,20,0.75)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', display:'flex', alignItems:'flex-start', justifyContent:'flex-end' }}
-         onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ width:'min(400px,100vw)', height:'100dvh', background:'var(--t-surface)', borderLeft:'1px solid var(--t-dim)', display:'flex', flexDirection:'column' }}>
+  // Racha: días consecutivos con actividad, terminando hoy o ayer
+  const rachaActual = (() => {
+    const dias = new Set(data.map(a => fechaNum(a.fecha)));
+    if (dias.size === 0) return 0;
+    const hoyNum = fechaNum(new Date().toISOString());
+    let cursor = dias.has(hoyNum) ? hoyNum : fechaNum(new Date(Date.now() - 86400000).toISOString());
+    if (!dias.has(cursor)) return 0;
+    let streak = 0;
+    while (dias.has(cursor)) {
+      streak++;
+      const d = new Date(String(cursor).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') + 'T12:00:00');
+      d.setDate(d.getDate() - 1);
+      cursor = fechaNum(d.toISOString());
+    }
+    return streak;
+  })();
 
-        {/* Lightbox foto */}
-        {fotoLightbox && fotoUrl && createPortal(
-          <div onClick={() => setFotoLightbox(false)} style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <img src={fotoUrl} alt={nombre} style={{ width:240, height:240, borderRadius:'50%', objectFit:'cover', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' }} />
-          </div>,
-          document.body
-        )}
-
-        {/* Header fijo */}
-        <div style={{ padding:'16px 16px 14px', borderBottom:'1px solid var(--t-dim)', display:'flex', alignItems:'center', gap:12, flexShrink:0, background:'var(--t-surface)', zIndex:10 }}>
-          <div
-            onClick={() => fotoUrl && setFotoLightbox(true)}
-            style={{ width:52, height:52, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', cursor: fotoUrl ? 'pointer' : 'default' }}>
-            {fotoUrl
-              ? <img src={fotoUrl} alt={nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-              : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'var(--t-muted)' }}>{nombre.charAt(0).toUpperCase()}</span>
-            }
-          </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', letterSpacing:'0.02em', lineHeight:1, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{nombre}</div>
-            <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>{data.length} actividades registradas</div>
-          </div>
-          <button onClick={() => setPostsView(true)} title="Ver publicaciones"
-            style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>
-          </button>
-          <button onClick={onClose} style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
-        </div>
-
-        {/* Contenido scrollable */}
-        <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch', display:'flex', flexDirection:'column', gap:16, padding:'16px 16px 32px' }}>
-
-          {/* Calendario de actividad */}
-          {allData === null && (
-            <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t-muted)', fontSize:12 }}>Cargando…</div>
-          )}
-          {allData !== null && allData.length > 0 && (
-            <div style={{ margin:'0 -16px' }}>
-              <PlayerCalendar acts={allData} />
-            </div>
-          )}
-
-          {/* Evolución semanal */}
-          {allData !== null && (() => {
-            if (evoData.length === 0) return null;
-            const N = 4;
-
-            const anchorNum = evoData.reduce((mx, a) => Math.max(mx, fechaNum(a.fecha)), 0);
-
-            const weeksData = Array.from({ length: N }, (_, i) => {
-              const endNum   = anchorNum - i * 7;
-              const startNum = endNum - 6;
-              const slice = evoData.filter(a => { const fn = fechaNum(a.fecha); return fn >= startNum && fn <= endNum; });
-              return {
-                pts: slice.reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0),
-                min: slice.reduce((s, a) => s + (parseFloat(a.minutos) || 0), 0),
-                endNum,
-              };
-            }).reverse();
-
-            const usarMin = weeksData.every(w => w.pts === 0);
-            const wVals   = weeksData.map(w => usarMin ? w.min : w.pts);
-            const wLabels = weeksData.map(w => {
-              const s = String(w.endNum);
-              return `${s.slice(6)}/${s.slice(4,6)}`;
-            });
-            const maxW = Math.max(...wVals, 1);
-
-            return (
-              <div>
-                <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:10 }}>
-                  Evolución · {usarMin ? 'minutos' : 'puntos'} — últimas 4 semanas
-                </div>
-                <div style={{ display:'flex', alignItems:'flex-end', gap:3, height:64 }}>
-                  {wVals.map((v, i) => {
-                    const h = Math.max(2, Math.round((v / maxW) * 56));
-                    return (
-                      <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
-                        <div style={{ width:'100%', height:h, background: v > 0 ? 'var(--t-accent)' : 'var(--t-dim)', borderRadius:'3px 3px 0 0', opacity: v > 0 ? 0.85 : 0.3 }} />
-                        <span style={{ fontSize:7, color:'var(--t-muted)', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap' }}>{wLabels[i]}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{ display:'flex', gap:3, marginTop:1 }}>
-                  {wVals.map((v, i) => (
-                    <div key={i} style={{ flex:1, textAlign:'center' }}>
-                      {v > 0 && <span style={{ fontSize:7, fontWeight:700, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{Math.round(v)}</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Deportes */}
-          {sportRows.length > 0 && (
-            <div>
-              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:8 }}>Por deporte</div>
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                {sportRows.map(([sport, v]) => {
-                  const pct = pts > 0 ? Math.round(v.pts / pts * 100) : 0;
-                  return (
-                    <div key={sport} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8 }}>
-                      <span style={{ fontSize:18, flexShrink:0 }}>{sportIcon(sport)}</span>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontWeight:600, fontSize:13, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{sport}</div>
-                        <div style={{ height:2, background:'var(--t-dim)', borderRadius:2, marginTop:5 }}>
-                          <div style={{ height:2, width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.6, transition:'width 0.4s' }} />
-                        </div>
-                      </div>
-                      <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:11, lineHeight:1.5 }}>
-                        <div style={{ color:'var(--t-accent)', fontWeight:700 }}>{Math.round(v.pts)} pts</div>
-                        <div style={{ color:'var(--t-muted)' }}>{v.sesiones} ses</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-        </div>
-      </div>
-
-      {postsView && createPortal(
-        <ProfilePosts
-          nombre={nombre}
-          acts={allData ?? []}
-          activePostId={activePostId}
-          setActivePostId={setActivePostId}
-          onClose={() => { setPostsView(false); setActivePostId(null); }}
-        />,
-        document.body
-      )}
-    </div>
-  );
-}
-
-// ─── PERFIL: PUBLICACIONES (grilla + feed vertical) ──────────────────────────
-
-function ProfilePosts({ nombre, acts, activePostId, setActivePostId, onClose }) {
-  const { user } = useAuth();
-  const [lightbox, setLightbox] = useState(null);
-  const postRefs = useRef({});
-
-  const posts = [...acts].sort((a, b) => {
+  const posts = [...data].sort((a, b) => {
     const tA = a.created_at ? new Date(a.created_at).getTime() : new Date(a.fecha + 'T12:00:00').getTime();
     const tB = b.created_at ? new Date(b.created_at).getTime() : new Date(b.fecha + 'T12:00:00').getTime();
     return tB - tA;
@@ -1748,70 +1612,240 @@ function ProfilePosts({ nombre, acts, activePostId, setActivePostId, onClose }) 
     if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
   }, [activePostId]);
 
+  const TABS = [
+    { id: 'posts',     label: 'Publicaciones' },
+    { id: 'calendar',  label: 'Calendario' },
+    { id: 'evolucion', label: 'Evolución' },
+  ];
+
+  if (!nombre) return null;
+
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:500, background:'var(--t-surface)', display:'flex', flexDirection:'column' }}>
+    <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(5,12,20,0.75)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', display:'flex', alignItems:'flex-start', justifyContent:'flex-end' }}
+         onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ width:'min(400px,100vw)', height:'100dvh', background:'var(--t-surface)', borderLeft:'1px solid var(--t-dim)', display:'flex', flexDirection:'column' }}>
 
-      {lightbox && createPortal(
-        <div onClick={() => setLightbox(null)}
-          style={{ position:'fixed', inset:0, zIndex:600, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
-          <button onClick={() => setLightbox(null)}
-            style={{ position:'absolute', top:20, right:20, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,0.85)', border:'none', color:'var(--t-text)', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
-          <img src={lightbox} alt="" onClick={e => e.stopPropagation()}
-            style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:12, objectFit:'contain' }} />
-        </div>,
-        document.body
-      )}
-
-      {/* Header fijo */}
-      <div style={{ padding:'16px 16px 14px', borderBottom:'1px solid var(--t-dim)', display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
-        {activePostId != null && (
-          <button onClick={() => setActivePostId(null)}
-            style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>‹</button>
+        {/* Lightbox foto de perfil */}
+        {fotoLightbox && fotoUrl && createPortal(
+          <div onClick={() => setFotoLightbox(false)} style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <img src={fotoUrl} alt={nombre} style={{ width:240, height:240, borderRadius:'50%', objectFit:'cover', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' }} />
+          </div>,
+          document.body
         )}
-        <div style={{ flex:1, minWidth:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)' }}>
-          Publicaciones de {nombre}
-        </div>
+
+        {/* Lightbox de foto de publicación */}
+        {lightbox && createPortal(
+          <div onClick={() => setLightbox(null)}
+            style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(5,12,20,0.97)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+            <button onClick={() => setLightbox(null)}
+              style={{ position:'absolute', top:20, right:20, width:36, height:36, borderRadius:'50%', background:'rgba(30,30,30,0.85)', border:'none', color:'var(--t-text)', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+            <img src={lightbox} alt="" onClick={e => e.stopPropagation()}
+              style={{ maxWidth:'100%', maxHeight:'90dvh', borderRadius:12, objectFit:'contain' }} />
+          </div>,
+          document.body
+        )}
+
+        {/* Botón cerrar flotante */}
         <button onClick={onClose}
-          style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
-      </div>
+          style={{ position:'absolute', top:14, right:14, zIndex:20, width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
 
-      <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
-        {posts.length === 0 && (
-          <EmptyState icon="📭" title="Sin publicaciones" text="Todavía no registró actividades." />
-        )}
+        {/* Contenido scrollable (header + tabs + contenido) */}
+        <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
 
-        {posts.length > 0 && activePostId == null && (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:2, padding:2 }}>
-            {posts.map(act => (
-              <div key={act.id} onClick={() => setActivePostId(act.id)}
-                style={{ position:'relative', aspectRatio:'1/1', cursor:'pointer', background:'var(--t-surface2)', overflow:'hidden' }}>
-                {act.foto_url
-                  ? <img src={act.foto_url} alt={act.deporte_nombre} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
-                  : (
-                    <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:28, opacity:0.5 }}>
-                      {sportIcon(act.deporte_nombre)}
+          {/* Header perfil tipo Instagram */}
+          <div style={{ padding:'32px 20px 18px', textAlign:'center' }}>
+            <div
+              onClick={() => fotoUrl && setFotoLightbox(true)}
+              style={{ width:88, height:88, borderRadius:'50%', margin:'0 auto', overflow:'hidden', background:'var(--t-surface2)', border:'2px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', cursor: fotoUrl ? 'pointer' : 'default' }}>
+              {fotoUrl
+                ? <img src={fotoUrl} alt={nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:36, color:'var(--t-muted)' }}>{nombre.charAt(0).toUpperCase()}</span>
+              }
+            </div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:12 }}>
+              {nombre}
+            </div>
+
+            {/* Bio: deporte favorito + racha */}
+            {(deporteFavorito || rachaActual > 0) && (
+              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:4, lineHeight:1.5 }}>
+                {deporteFavorito && <span>{sportIcon(deporteFavorito)} {deporteFavorito} es su deporte favorito</span>}
+                {deporteFavorito && rachaActual > 0 && <span> · </span>}
+                {rachaActual > 0 && <span>🔥 {rachaActual} día{rachaActual !== 1 ? 's' : ''} de racha activa</span>}
+              </div>
+            )}
+
+            {/* Stats destacados */}
+            <div style={{ display:'flex', justifyContent:'center', gap:28, marginTop:18 }}>
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)' }}>{data.length}</div>
+                <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Posts</div>
+              </div>
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-accent)' }}>{Math.round(pts)}</div>
+                <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Puntos</div>
+              </div>
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)' }}>{rachaActual}</div>
+                <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Racha</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sub-navbar de tabs */}
+          <div style={{ display:'flex', borderBottom:'1px solid var(--t-dim)', borderTop:'1px solid var(--t-dim)', position:'sticky', top:0, background:'var(--t-surface)', zIndex:10 }}>
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => setProfileTab(t.id)}
+                style={{ flex:1, padding:'11px 4px', background:'transparent', border:'none', borderBottom: profileTab === t.id ? '2px solid var(--t-accent)' : '2px solid transparent', color: profileTab === t.id ? 'var(--t-text)' : 'var(--t-muted)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {allData === null && (
+            <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t-muted)', fontSize:12 }}>Cargando…</div>
+          )}
+
+          {/* Tab: Publicaciones */}
+          {allData !== null && profileTab === 'posts' && (
+            <>
+              {posts.length === 0 && (
+                <EmptyState icon="📭" title="Sin publicaciones" text="Todavía no registró actividades." />
+              )}
+              {posts.length > 0 && activePostId == null && (
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:2, padding:2 }}>
+                  {posts.map(act => (
+                    <div key={act.id} onClick={() => setActivePostId(act.id)}
+                      style={{ position:'relative', aspectRatio:'1/1', cursor:'pointer', background:'var(--t-surface2)', overflow:'hidden' }}>
+                      {act.foto_url
+                        ? <img src={act.foto_url} alt={act.deporte_nombre} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                        : (
+                          <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:28, opacity:0.5 }}>
+                            {sportIcon(act.deporte_nombre)}
+                          </div>
+                        )
+                      }
                     </div>
-                  )
-                }
-              </div>
-            ))}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+              {posts.length > 0 && activePostId != null && (
+                <div>
+                  <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--t-dim)' }}>
+                    <button onClick={() => setActivePostId(null)}
+                      style={{ display:'flex', alignItems:'center', gap:6, background:'transparent', border:'none', color:'var(--t-muted)', fontSize:13, fontWeight:600, cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
+                      ‹ Volver a la grilla
+                    </button>
+                  </div>
+                  <div style={{ paddingBottom:24 }}>
+                    {posts.map(act => (
+                      <div key={act.id} ref={el => { postRefs.current[act.id] = el; }}
+                        style={{ outline: act.id === activePostId ? '2px solid var(--t-accent)' : '2px solid transparent', transition:'outline 0.3s' }}>
+                        <FeedCard act={act} user={user} onLightbox={url => setLightbox(url)} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
-        {posts.length > 0 && activePostId != null && (
-          <div style={{ paddingBottom:24 }}>
-            {posts.map(act => (
-              <div key={act.id} ref={el => { postRefs.current[act.id] = el; }}
-                style={{ outline: act.id === activePostId ? '2px solid var(--t-accent)' : '2px solid transparent', transition:'outline 0.3s' }}>
-                <FeedCard act={act} user={user} onLightbox={url => setLightbox(url)} />
-              </div>
-            ))}
-          </div>
-        )}
+          {/* Tab: Calendario */}
+          {allData !== null && profileTab === 'calendar' && (
+            <div style={{ padding:'16px 0 32px' }}>
+              {allData.length > 0
+                ? <PlayerCalendar acts={allData} />
+                : <EmptyState icon="📅" title="Sin actividades" />
+              }
+            </div>
+          )}
+
+          {/* Tab: Evolución */}
+          {allData !== null && profileTab === 'evolucion' && (
+            <div style={{ padding:'20px 16px 32px', display:'flex', flexDirection:'column', gap:20 }}>
+              {(() => {
+                if (allData.length === 0) return <EmptyState icon="📈" title="Sin datos" />;
+                const N = 4;
+                const anchorNum = allData.reduce((mx, a) => Math.max(mx, fechaNum(a.fecha)), 0);
+                const weeksData = Array.from({ length: N }, (_, i) => {
+                  const endNum   = anchorNum - i * 7;
+                  const startNum = endNum - 6;
+                  const slice = allData.filter(a => { const fn = fechaNum(a.fecha); return fn >= startNum && fn <= endNum; });
+                  return {
+                    pts: slice.reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0),
+                    min: slice.reduce((s, a) => s + (parseFloat(a.minutos) || 0), 0),
+                    endNum,
+                  };
+                }).reverse();
+
+                const usarMin = weeksData.every(w => w.pts === 0);
+                const wVals   = weeksData.map(w => usarMin ? w.min : w.pts);
+                const wLabels = weeksData.map(w => {
+                  const s = String(w.endNum);
+                  return `${s.slice(6)}/${s.slice(4,6)}`;
+                });
+                const maxW = Math.max(...wVals, 1);
+
+                return (
+                  <div>
+                    <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:10 }}>
+                      Evolución · {usarMin ? 'minutos' : 'puntos'} — últimas 4 semanas
+                    </div>
+                    <div style={{ display:'flex', alignItems:'flex-end', gap:3, height:64 }}>
+                      {wVals.map((v, i) => {
+                        const h = Math.max(2, Math.round((v / maxW) * 56));
+                        return (
+                          <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+                            <div style={{ width:'100%', height:h, background: v > 0 ? 'var(--t-accent)' : 'var(--t-dim)', borderRadius:'3px 3px 0 0', opacity: v > 0 ? 0.85 : 0.3 }} />
+                            <span style={{ fontSize:7, color:'var(--t-muted)', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap' }}>{wLabels[i]}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display:'flex', gap:3, marginTop:1 }}>
+                      {wVals.map((v, i) => (
+                        <div key={i} style={{ textAlign:'center', flex:1 }}>
+                          {v > 0 && <span style={{ fontSize:7, fontWeight:700, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{Math.round(v)}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {sportRows.length > 0 && (
+                <div>
+                  <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:8 }}>Por deporte</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {sportRows.map(([sport, v]) => {
+                      const pct = pts > 0 ? Math.round(v.pts / pts * 100) : 0;
+                      return (
+                        <div key={sport} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8 }}>
+                          <span style={{ fontSize:18, flexShrink:0 }}>{sportIcon(sport)}</span>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontWeight:600, fontSize:13, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{sport}</div>
+                            <div style={{ height:2, background:'var(--t-dim)', borderRadius:2, marginTop:5 }}>
+                              <div style={{ height:2, width:pct+'%', background:'var(--t-accent)', borderRadius:2, opacity:0.6, transition:'width 0.4s' }} />
+                            </div>
+                          </div>
+                          <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:11, lineHeight:1.5 }}>
+                            <div style={{ color:'var(--t-accent)', fontWeight:700 }}>{Math.round(v.pts)} pts</div>
+                            <div style={{ color:'var(--t-muted)' }}>{v.sesiones} ses</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+
 
 // ─── EMPTY STATE ──────────────────────────────────────────────────────────────
 
