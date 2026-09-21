@@ -1899,6 +1899,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
   const [nuevoIcono, setNuevoIcono]     = useState('🏅');
   const [nuevoPond, setNuevoPond]       = useState('1.0');
   const [addingDeporte, setAddingDeporte] = useState(false);
+  const [addSuccess, setAddSuccess]     = useState('');
   const [addError, setAddError]         = useState('');
   const startY = useRef(null);
   const { withLoading } = useLoading();
@@ -1930,7 +1931,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
       setAddError('Ya existe ese deporte'); return;
     }
     const pond = parseFloat(nuevoPond) || 1;
-    setAddingDeporte(true); setAddError('');
+    setAddingDeporte(true); setAddError(''); setAddSuccess('');
     try {
       await createDeporte({ nombre, icono: nuevoIcono || '🏅', ponderador_default: pond });
       setPonders(p => ({ ...p, [nombre]: pond }));
@@ -1942,6 +1943,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
           return map;
         });
       });
+      setAddSuccess(`"${nombre}" se agregó — buscalo en la lista y no olvides Guardar cambios.`);
       setNuevoNombre('');
       setNuevoIcono('🏅');
       setNuevoPond('1.0');
@@ -2009,6 +2011,53 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
             Puntos = minutos × ponderador. Los cambios afectan el cálculo desde ahora.
           </div>
 
+          {/* Agregar nuevo deporte — solo admin */}
+          {!readOnly && (
+            <div style={{ marginBottom:4, border:'1px dashed var(--t-dim)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, boxSizing:'border-box', width:'100%', overflow:'hidden' }}>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>
+                Nuevo deporte
+              </div>
+              <div style={{ display:'flex', gap:8, width:'100%', overflow:'hidden' }}>
+                {/* Emoji */}
+                <input
+                  type="text"
+                  value={nuevoIcono}
+                  onChange={e => setNuevoIcono(e.target.value)}
+                  maxLength={4}
+                  style={{ ...inputBase, width:48, flexShrink:0, textAlign:'center', fontSize:20, padding:'5px 6px' }}
+                />
+                {/* Nombre */}
+                <input
+                  type="text"
+                  placeholder="Nombre"
+                  value={nuevoNombre}
+                  onChange={e => { setNuevoNombre(e.target.value); setAddError(''); setAddSuccess(''); }}
+                  style={{ ...inputBase, flex:1, minWidth:0 }}
+                />
+                {/* Ponderador */}
+                <input
+                  type="text" inputMode="decimal"
+                  value={nuevoPond}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (/^\d*\.?\d*$/.test(v)) setNuevoPond(v);
+                  }}
+                  style={{ ...inputBase, width:54, flexShrink:0, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}
+                />
+              </div>
+              {addError && (
+                <div style={{ fontSize:12, color:'#F87171' }}>{addError}</div>
+              )}
+              {addSuccess && (
+                <div style={{ fontSize:12, color:'var(--t-accent)' }}>✓ {addSuccess}</div>
+              )}
+              <button onClick={handleAddDeporte} disabled={addingDeporte || !nuevoNombre.trim()}
+                style={{ alignSelf:'flex-start', padding:'7px 16px', borderRadius:8, border:'1.5px solid var(--t-accent)', background:'transparent', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', cursor: nuevoNombre.trim() ? 'pointer' : 'default', opacity: nuevoNombre.trim() ? 1 : 0.5 }}>
+                {addingDeporte ? 'Agregando…' : '+ Agregar'}
+              </button>
+            </div>
+          )}
+
           {deportes.map(d => (
             <div key={d.nombre} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px' }}>
               <span style={{ fontSize:18, flexShrink:0 }}>{d.icono}</span>
@@ -2032,50 +2081,6 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
               }
             </div>
           ))}
-
-          {/* Agregar nuevo deporte — solo admin */}
-          {!readOnly && (
-            <div style={{ marginTop:10, border:'1px dashed var(--t-dim)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, boxSizing:'border-box', width:'100%', overflow:'hidden' }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>
-                Nuevo deporte
-              </div>
-              <div style={{ display:'flex', gap:8, width:'100%', overflow:'hidden' }}>
-                {/* Emoji */}
-                <input
-                  type="text"
-                  value={nuevoIcono}
-                  onChange={e => setNuevoIcono(e.target.value)}
-                  maxLength={4}
-                  style={{ ...inputBase, width:48, flexShrink:0, textAlign:'center', fontSize:20, padding:'5px 6px' }}
-                />
-                {/* Nombre */}
-                <input
-                  type="text"
-                  placeholder="Nombre"
-                  value={nuevoNombre}
-                  onChange={e => { setNuevoNombre(e.target.value); setAddError(''); }}
-                  style={{ ...inputBase, flex:1, minWidth:0 }}
-                />
-                {/* Ponderador */}
-                <input
-                  type="text" inputMode="decimal"
-                  value={nuevoPond}
-                  onChange={e => {
-                    const v = e.target.value;
-                    if (/^\d*\.?\d*$/.test(v)) setNuevoPond(v);
-                  }}
-                  style={{ ...inputBase, width:54, flexShrink:0, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}
-                />
-              </div>
-              {addError && (
-                <div style={{ fontSize:12, color:'#F87171' }}>{addError}</div>
-              )}
-              <button onClick={handleAddDeporte} disabled={addingDeporte || !nuevoNombre.trim()}
-                style={{ alignSelf:'flex-start', padding:'7px 16px', borderRadius:8, border:'1.5px solid var(--t-accent)', background:'transparent', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', cursor: nuevoNombre.trim() ? 'pointer' : 'default', opacity: nuevoNombre.trim() ? 1 : 0.5 }}>
-                {addingDeporte ? 'Agregando…' : '+ Agregar'}
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Guardar — solo admin */}
