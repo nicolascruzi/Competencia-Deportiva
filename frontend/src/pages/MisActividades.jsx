@@ -16,7 +16,7 @@ const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
 
 // ─── Panel de detalle (bottom sheet) ─────────────────────────────────────────
 
-function EditModal({ actividad, deportes, onClose, onSaved }) {
+function EditModal({ actividad, deportes, onClose, onSaved, onFotoUploaded, onFotoDeleted }) {
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
     deporte_nombre: actividad.deporte_nombre,
@@ -27,7 +27,37 @@ function EditModal({ actividad, deportes, onClose, onSaved }) {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
+  const [fotoUrl, setFotoUrl]       = useState(actividad.foto_url || null);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const fileInputRef = useRef(null);
   const { withLoading } = useLoading();
+
+  async function handleFotoChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingFoto(true);
+    try {
+      const { foto_url } = await withLoading(() => uploadFoto(actividad.id, file));
+      setFotoUrl(foto_url);
+      onFotoUploaded(actividad.id, foto_url);
+    } catch (err) {
+      alert('Error al subir la foto: ' + err.message);
+    } finally {
+      setUploadingFoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  async function handleDeleteFoto() {
+    if (!confirm('¿Eliminar la foto?')) return;
+    try {
+      await withLoading(() => deleteFoto(actividad.id));
+      setFotoUrl(null);
+      onFotoDeleted(actividad.id);
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -65,6 +95,30 @@ function EditModal({ actividad, deportes, onClose, onSaved }) {
           Editar actividad
         </div>
         {error && <div style={{ padding:'9px 12px', borderRadius:10, background:'rgba(248,113,113,0.1)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', fontSize:13 }}>{error}</div>}
+
+        {/* Foto */}
+        {fotoUrl ? (
+          <div style={{ position:'relative', borderRadius:12, overflow:'hidden' }}>
+            <img src={fotoUrl} alt={form.deporte_nombre} style={{ width:'100%', aspectRatio:'4/3', objectFit:'cover', display:'block' }} />
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFoto}
+              style={{ position:'absolute', top:8, right:8, background:'rgba(13,27,42,0.75)', border:'1px solid rgba(255,255,255,0.15)', color:'var(--t-text)', borderRadius:8, padding:'5px 9px', fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+              <IconCamera /><span>Cambiar</span>
+            </button>
+            <button type="button" onClick={handleDeleteFoto}
+              style={{ position:'absolute', top:8, left:8, background:'rgba(13,27,42,0.75)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', borderRadius:8, padding:'5px 9px', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+              Quitar
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFoto}
+            style={{ width:'100%', padding:'14px', borderRadius:12, border:'1.5px dashed var(--t-dim)', background:'rgba(26,46,69,0.25)', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer' }}>
+            {uploadingFoto
+              ? <><div style={{ width:18, height:18, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} /><span style={{ fontSize:13 }}>Subiendo…</span></>
+              : <><IconCamera /><span style={{ fontSize:13, fontWeight:600 }}>Agregar foto</span></>}
+          </button>
+        )}
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFotoChange} style={{ display:'none' }} />
+
         <form onSubmit={handleSave} style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div>
             <label style={lStyle}>Deporte</label>
@@ -288,6 +342,8 @@ function DetallePanel({ actividad, onClose, onDelete, onUpdate, onFotoUploaded, 
           deportes={deportes}
           onClose={() => setEditOpen(false)}
           onSaved={updated => { onUpdate(updated); setEditOpen(false); }}
+          onFotoUploaded={onFotoUploaded}
+          onFotoDeleted={onFotoDeleted}
         />,
         document.body
       )}
