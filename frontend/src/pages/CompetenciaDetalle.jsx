@@ -1975,11 +1975,12 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
-      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+      <div
         style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'90dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
 
-        {/* Handle */}
-        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px', flexShrink:0 }}>
+        {/* Handle — único punto donde el gesto de swipe-down cierra el sheet */}
+        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+          style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0, cursor:'grab' }}>
           <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
         </div>
 
@@ -2013,11 +2014,11 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
 
           {/* Agregar nuevo deporte — solo admin */}
           {!readOnly && (
-            <div style={{ marginBottom:4, border:'1px dashed var(--t-dim)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, boxSizing:'border-box', width:'100%', overflow:'hidden' }}>
+            <div style={{ marginBottom:4, border:'1px dashed var(--t-dim)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, boxSizing:'border-box', width:'100%', flexShrink:0 }}>
               <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>
                 Nuevo deporte
               </div>
-              <div style={{ display:'flex', gap:8, width:'100%', overflow:'hidden' }}>
+              <div style={{ display:'flex', gap:8, width:'100%', flexShrink:0 }}>
                 {/* Emoji */}
                 <input
                   type="text"
@@ -2051,8 +2052,10 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
               {addSuccess && (
                 <div style={{ fontSize:12, color:'var(--t-accent)' }}>✓ {addSuccess}</div>
               )}
-              <button onClick={handleAddDeporte} disabled={addingDeporte || !nuevoNombre.trim()}
-                style={{ alignSelf:'flex-start', padding:'7px 16px', borderRadius:8, border:'1.5px solid var(--t-accent)', background:'transparent', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', cursor: nuevoNombre.trim() ? 'pointer' : 'default', opacity: nuevoNombre.trim() ? 1 : 0.5 }}>
+              <button
+                onClick={handleAddDeporte}
+                disabled={addingDeporte || !nuevoNombre.trim()}
+                style={{ alignSelf:'flex-start', padding:'7px 16px', borderRadius:8, border:'1.5px solid var(--t-accent)', background:'transparent', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', cursor: nuevoNombre.trim() ? 'pointer' : 'default', opacity: nuevoNombre.trim() ? 1 : 0.5, WebkitTapHighlightColor:'transparent' }}>
                 {addingDeporte ? 'Agregando…' : '+ Agregar'}
               </button>
             </div>
