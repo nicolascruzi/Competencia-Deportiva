@@ -5,6 +5,7 @@ import {
   getAdminActividades, deleteAdminActividad,
   getAdminDeportes, updateAdminDeporte, deleteAdminDeporte,
 } from '../api/admin';
+import { createDeporte } from '../api/actividades';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -368,6 +369,13 @@ function TabDeportes() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
 
+  // Nuevo deporte
+  const [nuevoNombre, setNuevoNombre] = useState('');
+  const [nuevoIcono, setNuevoIcono]   = useState('🏅');
+  const [nuevoPond, setNuevoPond]     = useState('1.0');
+  const [addingDeporte, setAddingDeporte] = useState(false);
+  const [addError, setAddError]       = useState('');
+
   function load() {
     setLoading(true);
     getAdminDeportes().then(setDeps).finally(() => setLoading(false));
@@ -390,9 +398,72 @@ function TabDeportes() {
     setEditing(null);
   }
 
+  async function handleAddDeporte() {
+    const nombre = nuevoNombre.trim();
+    if (!nombre) { setAddError('El nombre es obligatorio'); return; }
+    if (deps.some(d => d.nombre.toLowerCase() === nombre.toLowerCase())) {
+      setAddError('Ya existe ese deporte'); return;
+    }
+    const pond = parseFloat(nuevoPond) || 1;
+    setAddingDeporte(true); setAddError('');
+    try {
+      const created = await createDeporte({ nombre, icono: nuevoIcono || '🏅', ponderador_default: pond });
+      setDeps(d => [...d, created].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      setNuevoNombre('');
+      setNuevoIcono('🏅');
+      setNuevoPond('1.0');
+    } catch (err) {
+      setAddError(err.message || 'Error al crear deporte');
+    } finally {
+      setAddingDeporte(false);
+    }
+  }
+
+  const inputBase = { background:'var(--t-surface2)', border:'1.5px solid var(--t-dim)', color:'var(--t-text)', padding:'9px 10px', borderRadius:10, fontSize:14, outline:'none', fontFamily:'inherit', boxSizing:'border-box', minWidth:0 };
+
   return (
     <div>
       <SectionHeader title="Deportes" count={deps.length} onRefresh={load} loading={loading} />
+
+      {/* Agregar nuevo deporte */}
+      <div style={{ margin:'0 16px 12px', border:'1px dashed var(--t-dim)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
+        <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>
+          Nuevo deporte
+        </div>
+        <div style={{ display:'flex', gap:8, width:'100%' }}>
+          <input
+            type="text"
+            value={nuevoIcono}
+            onChange={e => setNuevoIcono(e.target.value)}
+            maxLength={4}
+            style={{ ...inputBase, width:48, flexShrink:0, textAlign:'center', fontSize:20, padding:'5px 6px' }}
+          />
+          <input
+            type="text"
+            placeholder="Nombre"
+            value={nuevoNombre}
+            onChange={e => { setNuevoNombre(e.target.value); setAddError(''); }}
+            style={{ ...inputBase, flex:1, minWidth:0 }}
+          />
+          <input
+            type="text" inputMode="decimal"
+            value={nuevoPond}
+            onChange={e => {
+              const v = e.target.value;
+              if (/^\d*\.?\d*$/.test(v)) setNuevoPond(v);
+            }}
+            style={{ ...inputBase, width:54, flexShrink:0, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}
+          />
+        </div>
+        {addError && (
+          <div style={{ fontSize:12, color:'#F87171' }}>{addError}</div>
+        )}
+        <button onClick={handleAddDeporte} disabled={addingDeporte || !nuevoNombre.trim()}
+          style={{ alignSelf:'flex-start', padding:'7px 16px', borderRadius:8, border:'1.5px solid var(--t-accent)', background:'transparent', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', cursor: nuevoNombre.trim() ? 'pointer' : 'default', opacity: nuevoNombre.trim() ? 1 : 0.5 }}>
+          {addingDeporte ? 'Agregando…' : '+ Agregar'}
+        </button>
+      </div>
+
       {loading ? <Spinner /> : (
         <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
           {deps.map((d, i) => (
