@@ -37,6 +37,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query(`
       SELECT
         a.id, a.user_id, u.nombre AS user_nombre,
+        u.nombre, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url,
         a.deporte_nombre, a.minutos, a.ponderador, a.puntos,
         TO_CHAR(a.fecha, 'YYYY-MM-DD') AS fecha,
         a.notas, a.foto_url, a.created_at
