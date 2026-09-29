@@ -9,6 +9,14 @@ export const getMesesComp         = (id)     => apiFetch(`/competencias/${id}/me
 export const updatePonderadores   = (id, ponderadores) => apiFetch(`/competencias/${id}/deportes`, { method: 'PUT', body: JSON.stringify({ ponderadores }) });
 export const getActividadesComp   = (id, mes) => apiFetch(`/competencias/${id}/actividades${mes ? `?mes=${mes}` : ''}`);
 
+export const getEquiposComp        = (id)              => apiFetch(`/competencias/${id}/equipos`);
+export const updateEquipos         = (id, equipos)      => apiFetch(`/competencias/${id}/equipos`, { method: 'PUT', body: JSON.stringify({ equipos }) });
+export const updateAsignaciones    = (id, asignaciones) => apiFetch(`/competencias/${id}/equipos/asignaciones`, { method: 'PUT', body: JSON.stringify({ asignaciones }) });
+export const getRankingEquiposComp = (id, mes)          => apiFetch(`/competencias/${id}/ranking-equipos${mes ? `?mes=${mes}` : ''}`);
+export const updateSemanas         = (id, semanas)      => apiFetch(`/competencias/${id}/semanas`, { method: 'PUT', body: JSON.stringify({ semanas }) });
+export const completarChallenge    = (id, semanaId)     => apiFetch(`/competencias/${id}/semanas/${semanaId}/completar`, { method: 'POST' });
+export const getCompletadosSemana  = (id, semanaId)     => apiFetch(`/competencias/${id}/semanas/${semanaId}/completados`);
+
 export const getComentarios    = (actividadId)           => apiFetch(`/comentarios/${actividadId}`);
 export const createComentario  = (actividadId, contenido) => apiFetch(`/comentarios/${actividadId}`, { method: 'POST', body: JSON.stringify({ contenido }) });
 export const deleteComentario  = (id)                    => apiFetch(`/comentarios/${id}`, { method: 'DELETE' });

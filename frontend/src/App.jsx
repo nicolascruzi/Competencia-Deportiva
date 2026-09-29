@@ -138,6 +138,8 @@ function AppShell() {
   const [compTab, setCompTab]                 = useState('ranking');
   const [forceOpenSelector, setForceOpenSelector] = useState(0);
   const [adminSheetOpen, setAdminSheetOpen]   = useState(false);
+  const [equiposSheetOpen, setEquiposSheetOpen] = useState(false);
+  const [semanasSheetOpen, setSemanasSheetOpen] = useState(false);
   const [restoringComp, setRestoringComp]     = useState(true);
   const [toast, setToast]                     = useState(null); // { actividad, ptsAntes, ptsDespues }
   const [evolucionSignal, setEvolucionSignal] = useState(0);
@@ -258,6 +260,10 @@ function AppShell() {
             setCompetenciaActiva(prev => ({ ...prev, deportes: deps }));
             setAdminSheetOpen(false);
           }}
+          equiposSheetOpen={equiposSheetOpen}
+          onEquiposSheetClose={() => setEquiposSheetOpen(false)}
+          semanasSheetOpen={semanasSheetOpen}
+          onSemanasSheetClose={() => setSemanasSheetOpen(false)}
           navYear={navYear}
           navMonth={navMonth}
           onNavYear={setNavYear}
@@ -291,6 +297,8 @@ function AppShell() {
         forceOpenSelector={forceOpenSelector}
         isAdmin={isAdmin}
         onAdminPonderadores={() => setAdminSheetOpen(true)}
+        onAdminEquipos={() => setEquiposSheetOpen(true)}
+        onAdminSemanas={() => setSemanasSheetOpen(true)}
         isGlobalAdmin={isGlobalAdmin}
         onNotifClick={(actividadId) => {
           setNotifScroll({ id: actividadId, ts: Date.now() });
@@ -379,7 +387,16 @@ function AppShell() {
       <CrearCompetenciaModal
         open={crearOpen}
         onClose={() => setCrearOpen(false)}
-        onCreated={comp => { handleCreated(); setCompetenciaActiva(comp); }}
+        onCreated={async comp => {
+          handleCreated();
+          localStorage.setItem('lastCompetenciaId', comp.id);
+          setCompetenciaActiva(comp);
+          setCompTab('ranking');
+          try {
+            const detalle = await withLoading(() => getCompetencia(comp.id));
+            setCompetenciaActiva(detalle);
+          } catch { /* si falla, queda con los datos parciales de la creación */ }
+        }}
       />
 
       {showOnboarding && (

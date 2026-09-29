@@ -151,6 +151,67 @@ INSERT INTO deportes (nombre, icono, ponderador_default) VALUES
 ON CONFLICT (nombre) DO UPDATE SET
   ponderador_default = EXCLUDED.ponderador_default,
   icono = EXCLUDED.icono;
+
+-- ── EQUIPOS, CHALLENGES SEMANALES, DEPORTE DE LA SEMANA, BONUS COMPAÑÍA ────────
+
+-- Fechas de vigencia + bonus por actividad en compañía
+ALTER TABLE competencias ADD COLUMN IF NOT EXISTS fecha_inicio DATE;
+ALTER TABLE competencias ADD COLUMN IF NOT EXISTS fecha_fin    DATE;
+ALTER TABLE competencias ADD COLUMN IF NOT EXISTS bonus_companeros_pts NUMERIC(6,2) NOT NULL DEFAULT 0;
+
+-- competencia_id opcional en actividades — NULL = actividad personal, no cuenta para ningún ranking de competencia
+ALTER TABLE actividades ADD COLUMN IF NOT EXISTS competencia_id INTEGER REFERENCES competencias(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_actividades_competencia ON actividades(competencia_id);
+
+-- Equipos de una competencia
+CREATE TABLE IF NOT EXISTS equipos (
+  id             SERIAL PRIMARY KEY,
+  competencia_id INTEGER NOT NULL REFERENCES competencias(id) ON DELETE CASCADE,
+  nombre         TEXT NOT NULL,
+  color          TEXT,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (competencia_id, nombre)
+);
+CREATE INDEX IF NOT EXISTS idx_equipos_competencia ON equipos(competencia_id);
+
+-- Asignación de cada participante a un equipo (nullable = sin asignar)
+ALTER TABLE competencia_participantes ADD COLUMN IF NOT EXISTS equipo_id INTEGER REFERENCES equipos(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_comp_participantes_equipo ON competencia_participantes(equipo_id);
+
+-- Semanas de una competencia: bloques de 7 días exactos desde fecha_inicio (última puede ser corta)
+CREATE TABLE IF NOT EXISTS competencia_semanas (
+  id                    SERIAL PRIMARY KEY,
+  competencia_id        INTEGER NOT NULL REFERENCES competencias(id) ON DELETE CASCADE,
+  numero_semana         INTEGER NOT NULL,
+  fecha_inicio          DATE NOT NULL,
+  fecha_fin             DATE NOT NULL,
+  challenge_texto       TEXT,
+  challenge_puntos      NUMERIC(6,2),
+  deporte_semana_nombre TEXT,
+  deporte_semana_ponderador_extra NUMERIC(4,2),
+  created_at            TIMESTAMPTZ DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (competencia_id, numero_semana)
+);
+CREATE INDEX IF NOT EXISTS idx_comp_semanas_competencia ON competencia_semanas(competencia_id);
+
+-- Un registro por persona por semana (challenge completado, sin deporte/minutos asociado)
+CREATE TABLE IF NOT EXISTS challenge_completados (
+  id           SERIAL PRIMARY KEY,
+  semana_id    INTEGER NOT NULL REFERENCES competencia_semanas(id) ON DELETE CASCADE,
+  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  completed_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (semana_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_challenge_completados_user ON challenge_completados(user_id);
+
+-- Compañeros marcados en una actividad (informativo — el bonus lo recibe solo el dueño de la actividad)
+CREATE TABLE IF NOT EXISTS actividad_companeros (
+  actividad_id INTEGER NOT NULL REFERENCES actividades(id) ON DELETE CASCADE,
+  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (actividad_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_actividad_companeros_user ON actividad_companeros(user_id);
 `;
 
 async function migrate() {

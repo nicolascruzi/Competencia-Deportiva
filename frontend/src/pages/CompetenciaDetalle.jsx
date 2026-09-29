@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { getRankingComp, getActividadesComp, updatePonderadores } from '../api/competencias';
+import {
+  getRankingComp, getActividadesComp, updatePonderadores,
+  getRankingEquiposComp, updateEquipos, updateAsignaciones, updateSemanas, completarChallenge,
+} from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
 import { getDeportes as getAllDeportes, createDeporte, getActividades } from '../api/actividades';
@@ -508,6 +511,107 @@ function MesSelector({ prev, next, canNext }) {
         style={{ width:24, height:24, borderRadius:6, border:'none', background:'transparent', color: canNext ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
       </button>
+    </div>
+  );
+}
+
+// ─── CARD DEL CHALLENGE DE LA SEMANA ACTUAL ───────────────────────────────────
+
+function ChallengeSemanaCard({ competencia, onCompletado }) {
+  const [completando, setCompletando] = useState(false);
+  const [error, setError] = useState('');
+
+  const semana = competencia.semanas?.find(s => s.id === competencia.semana_actual_id);
+  if (!semana || !semana.challenge_texto) return null;
+
+  async function handleCompletar() {
+    if (competencia.mi_challenge_completado || completando) return;
+    setCompletando(true); setError('');
+    try {
+      await completarChallenge(competencia.id, semana.id);
+      onCompletado?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCompletando(false);
+    }
+  }
+
+  return (
+    <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 16px', marginBottom:14, display:'flex', flexDirection:'column', gap:8 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <span style={{ fontSize:18 }}>🎯</span>
+        <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>
+          Challenge de la semana {semana.numero_semana}
+        </span>
+      </div>
+      <div style={{ fontSize:15, fontWeight:600, color:'var(--t-text)' }}>{semana.challenge_texto}</div>
+      {semana.deporte_semana_nombre && (
+        <div style={{ fontSize:12, color:'var(--t-muted)' }}>
+          {sportIcon(semana.deporte_semana_nombre)} {semana.deporte_semana_nombre} vale ×{semana.deporte_semana_ponderador_extra} esta semana
+        </div>
+      )}
+      {error && <div style={{ fontSize:12, color:'#F87171' }}>{error}</div>}
+      <button onClick={handleCompletar} disabled={competencia.mi_challenge_completado || completando}
+        style={{
+          alignSelf:'flex-start', padding:'8px 16px', borderRadius:10, border:'none', cursor: competencia.mi_challenge_completado ? 'default' : 'pointer',
+          fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em',
+          background: competencia.mi_challenge_completado ? 'var(--t-surface2)' : 'var(--t-accent)',
+          color: competencia.mi_challenge_completado ? 'var(--t-muted)' : 'var(--t-ground)',
+          opacity: completando ? 0.7 : 1,
+        }}>
+        {competencia.mi_challenge_completado ? '✓ Completado' : completando ? 'Guardando…' : `Marqué el challenge (+${semana.challenge_puntos ?? 0} pts)`}
+      </button>
+    </div>
+  );
+}
+
+// ─── RANKING DE EQUIPOS ───────────────────────────────────────────────────────
+
+function RankingEquipos({ data, rankingData }) {
+  const [expandido, setExpandido] = useState(null);
+
+  if (!data.length) return <EmptyState icon="🤝" title="Sin equipos" text="Todavía no hay equipos configurados." />;
+
+  return (
+    <div style={{ background:'var(--t-surface)', borderRadius:'16px 16px 0 0', marginTop:8 }}>
+      {data.map((eq, i) => {
+        const isOpen = expandido === eq.id;
+        const miembros = rankingData.filter(r => r.equipo_id === eq.id).sort((a, b) => b.puntos - a.puntos);
+        return (
+          <div key={eq.id} style={{ borderTop: i === 0 ? 'none' : '1px solid var(--t-dim)' }}>
+            <div onClick={() => setExpandido(isOpen ? null : eq.id)}
+              style={{ display:'flex', alignItems:'center', gap:10, padding:'12px', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+              <div style={{ width:18, textAlign:'center', flexShrink:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, lineHeight:1, color: i === 0 ? 'var(--t-accent)' : 'var(--t-muted)' }}>
+                {i + 1}
+              </div>
+              <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background: eq.color || 'var(--t-accent)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:15, color:'#fff' }}>{eq.nombre?.charAt(0).toUpperCase()}</span>
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:15, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {eq.nombre}
+                </div>
+                <div style={{ fontSize:10, fontWeight:600, color:'var(--t-muted)', marginTop:2 }}>{eq.integrantes} integrante{eq.integrantes !== 1 ? 's' : ''}</div>
+              </div>
+              <div style={{ textAlign:'right', flexShrink:0 }}>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:16, color:'var(--t-accent)' }}>{Math.round(eq.puntos)}</div>
+                <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>pts</div>
+              </div>
+            </div>
+            {isOpen && (
+              <div style={{ padding:'0 12px 12px 46px', display:'flex', flexDirection:'column', gap:6 }}>
+                {miembros.map(m => (
+                  <div key={m.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:12, color:'var(--t-muted)' }}>
+                    <span>{m.nombre_display || m.nombre}</span>
+                    <span style={{ fontFamily:"'JetBrains Mono', monospace", color:'var(--t-text)' }}>{Math.round(m.puntos)} pts</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -2100,7 +2204,260 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
   );
 }
 
-export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, navYear, navMonth, onNavYear, onNavMonth }) {
+// ─── SHEET ADMIN: gestión de equipos (nombres + asignación de participantes) ──
+
+function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false }) {
+  const [equipos, setEquipos] = useState((competencia.equipos || []).map(e => ({ id: e.id, nombre: e.nombre, color: e.color })));
+  const [asignaciones, setAsignaciones] = useState(() => {
+    const map = {};
+    (competencia.equipos || []).forEach(e => (e.miembros || []).forEach(m => { map[m.id] = e.id; }));
+    return map;
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState('');
+  const startY = useRef(null);
+
+  function onTouchStart(e) { startY.current = e.touches[0].clientY; }
+  function onTouchEnd(e) {
+    if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 80) onClose();
+    startY.current = null;
+  }
+
+  async function handleSave() {
+    setSaving(true); setError('');
+    try {
+      await updateEquipos(competencia.id, equipos.map(e => ({ id: e.id, nombre: e.nombre, color: e.color })));
+      const asigArray = Object.entries(asignaciones).map(([user_id, equipo_id]) => ({ user_id: parseInt(user_id), equipo_id }));
+      if (asigArray.length) await updateAsignaciones(competencia.id, asigArray);
+
+      const updated = equipos.map(e => ({
+        ...e,
+        miembros: (competencia.participantes || []).filter(p => asignaciones[p.id] === e.id),
+      }));
+      onSaved(updated);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'90dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
+
+        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0, cursor:'grab' }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+        </div>
+
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
+          <div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>Equipos</div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>{competencia.nombre}</div>
+          </div>
+          <button onClick={onClose}
+            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>✕</button>
+        </div>
+
+        {error && (
+          <div style={{ margin:'8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>{error}</div>
+        )}
+
+        <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:16 }}>
+
+          {/* Nombres de equipo */}
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Nombres</div>
+            {equipos.map((e, i) => (
+              <div key={e.id ?? `nuevo-${i}`} style={{ display:'flex', gap:8 }}>
+                <input
+                  type="text" value={e.nombre} disabled={readOnly}
+                  onChange={ev => setEquipos(prev => prev.map((x, j) => j === i ? { ...x, nombre: ev.target.value } : x))}
+                  style={{ flex:1, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                />
+                {!readOnly && (
+                  <button onClick={() => setEquipos(prev => prev.filter((_, j) => j !== i))}
+                    style={{ width:36, flexShrink:0, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer' }}>✕</button>
+                )}
+              </div>
+            ))}
+            {!readOnly && (
+              <button onClick={() => setEquipos(prev => [...prev, { id: null, nombre: `Equipo ${prev.length + 1}`, color: null }])}
+                style={{ padding:'8px', borderRadius:8, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13, fontWeight:600 }}>
+                + Agregar equipo
+              </button>
+            )}
+          </div>
+
+          {/* Asignación de participantes */}
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Participantes</div>
+            {(competencia.participantes || []).map(p => (
+              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px' }}>
+                <span style={{ flex:1, fontSize:14, color:'var(--t-text)' }}>{p.nombre_display || p.nombre}</span>
+                <select
+                  value={asignaciones[p.id] ?? ''} disabled={readOnly}
+                  onChange={e => setAsignaciones(prev => ({ ...prev, [p.id]: e.target.value ? parseInt(e.target.value) : null }))}
+                  style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'6px 8px', borderRadius:8, fontSize:13, outline:'none' }}
+                >
+                  <option value="">Sin equipo</option>
+                  {equipos.filter(e => e.id != null).map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {!readOnly && (
+          <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
+            <button onClick={handleSave} disabled={saving}
+              style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ─── SHEET ADMIN: challenges semanales + deporte de la semana ────────────────
+
+function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) {
+  const [deportes, setDeportes] = useState([]);
+  const [semanas, setSemanas]   = useState(competencia.semanas || []);
+  const [abierta, setAbierta]   = useState(null);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState('');
+  const startY = useRef(null);
+
+  useEffect(() => { getAllDeportes().then(setDeportes).catch(() => {}); }, []);
+
+  function onTouchStart(e) { startY.current = e.touches[0].clientY; }
+  function onTouchEnd(e) {
+    if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 80) onClose();
+    startY.current = null;
+  }
+
+  function updateSemana(id, patch) {
+    setSemanas(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
+  }
+
+  async function handleSave() {
+    setSaving(true); setError('');
+    try {
+      await updateSemanas(competencia.id, semanas.map(s => ({
+        id: s.id,
+        challenge_texto: s.challenge_texto,
+        challenge_puntos: s.challenge_puntos,
+        deporte_semana_nombre: s.deporte_semana_nombre,
+        deporte_semana_ponderador_extra: s.deporte_semana_ponderador_extra,
+      })));
+      onSaved(semanas);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'90dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
+
+        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0, cursor:'grab' }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+        </div>
+
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
+          <div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>Challenges semanales</div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>{competencia.nombre}</div>
+          </div>
+          <button onClick={onClose}
+            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>✕</button>
+        </div>
+
+        {error && (
+          <div style={{ margin:'8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>{error}</div>
+        )}
+
+        <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:6 }}>
+          {!semanas.length && (
+            <div style={{ fontSize:13, color:'var(--t-muted)', textAlign:'center', padding:'24px 0' }}>
+              Esta competencia no tiene fechas configuradas, así que no hay semanas para editar.
+            </div>
+          )}
+          {semanas.map(s => {
+            const isOpen = abierta === s.id;
+            const isActual = s.id === competencia.semana_actual_id;
+            const tieneContenido = !!(s.challenge_texto?.trim() || s.deporte_semana_nombre);
+            return (
+              <div key={s.id} style={{ border: isActual ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)', borderRadius:12, overflow:'hidden', background:'var(--t-surface2)' }}>
+                <button onClick={() => setAbierta(isOpen ? null : s.id)}
+                  style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' }}>
+                  <span style={{ fontSize:13, fontWeight:600, color:'var(--t-text)' }}>
+                    Semana {s.numero_semana} — {s.fecha_inicio} al {s.fecha_fin}
+                    {isActual && <span style={{ color:'var(--t-accent)', fontWeight:700 }}> · actual</span>}
+                    {tieneContenido && <span style={{ color:'var(--t-accent)' }}> ✓</span>}
+                  </span>
+                  <span style={{ color:'var(--t-muted)' }}>{isOpen ? '▲' : '▼'}</span>
+                </button>
+                {isOpen && (
+                  <div style={{ padding:'0 12px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+                    <input
+                      type="text" placeholder="Challenge" disabled={readOnly}
+                      value={s.challenge_texto || ''}
+                      onChange={e => updateSemana(s.id, { challenge_texto: e.target.value })}
+                      style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                    />
+                    <input
+                      type="number" inputMode="decimal" min="0" step="1" placeholder="Puntos del challenge" disabled={readOnly}
+                      value={s.challenge_puntos ?? ''}
+                      onChange={e => updateSemana(s.id, { challenge_puntos: e.target.value })}
+                      style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                    />
+                    <div style={{ display:'flex', gap:8 }}>
+                      <select
+                        value={s.deporte_semana_nombre || ''} disabled={readOnly}
+                        onChange={e => updateSemana(s.id, { deporte_semana_nombre: e.target.value })}
+                        style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', appearance:'none' }}
+                      >
+                        <option value="">Sin deporte de la semana</option>
+                        {deportes.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
+                      </select>
+                      <input
+                        type="number" inputMode="decimal" min="0.1" step="0.1" placeholder="Extra" disabled={readOnly || !s.deporte_semana_nombre}
+                        value={s.deporte_semana_ponderador_extra ?? ''}
+                        onChange={e => updateSemana(s.id, { deporte_semana_ponderador_extra: e.target.value })}
+                        style={{ width:70, flexShrink:0, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', opacity: s.deporte_semana_nombre ? 1 : 0.5 }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {!readOnly && semanas.length > 0 && (
+          <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
+            <button onClick={handleSave} disabled={saving}
+              style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, navYear, navMonth, onNavYear, onNavMonth }) {
   const { user } = useAuth();
   const { withLoading } = useLoading();
   const now = new Date();
@@ -2117,12 +2474,19 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
 
   const [acts, setActs]             = useState([]);
   const [rankingData, setRankingData] = useState([]);
+  const [rankingEquiposData, setRankingEquiposData] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [profile, setProfile]       = useState(null);
   const [compConDeportes, setCompConDeportes] = useState(competencia);
+
+  // La prop `competencia` puede llegar parcial al inicio (recién creada/seleccionada) y completarse
+  // después con un refetch en App.jsx sin que cambie el `key` del componente — sincronizar cuando eso pase.
+  useEffect(() => { setCompConDeportes(competencia); }, [competencia]);
   const [rankingRefreshKey, setRankingRefreshKey] = useState(0);
+  const [rankingSubTab, setRankingSubTab] = useState('ranking'); // 'ranking' | 'equipos'
 
   const isAdmin = user?.id === competencia.creador_id;
+  const tieneEquipos = (compConDeportes.equipos?.length ?? 0) > 0;
 
   // Cargar actividades + ranking (que incluye participantes con 0 pts) cuando cambia mes o ponderadores
   useEffect(() => {
@@ -2131,9 +2495,11 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       Promise.all([
         getActividadesComp(competencia.id, mes || undefined),
         getRankingComp(competencia.id, mes || undefined),
-      ]).then(([actsData, rankData]) => {
+        getRankingEquiposComp(competencia.id, mes || undefined),
+      ]).then(([actsData, rankData, rankEquiposData]) => {
         setActs((Array.isArray(actsData) ? actsData : []).filter(Boolean));
         setRankingData((Array.isArray(rankData) ? rankData : []).filter(Boolean));
+        setRankingEquiposData((Array.isArray(rankEquiposData) ? rankEquiposData : []).filter(Boolean));
       })
     ).finally(() => setLoading(false));
   }, [competencia.id, mes, rankingRefreshKey]);
@@ -2169,11 +2535,40 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
 
   const mesSelectorEl = <MesSelector prev={prev} next={next} canNext={canNext} />;
 
+  function renderRankingTab() {
+    return (
+      <>
+        <ChallengeSemanaCard
+          competencia={compConDeportes}
+          onCompletado={() => {
+            setCompConDeportes(prev => ({ ...prev, mi_challenge_completado: true }));
+            setRankingRefreshKey(k => k + 1);
+          }}
+        />
+        {tieneEquipos && (
+          <div style={{ display:'flex', gap:0, marginBottom:12, borderBottom:'1px solid var(--t-dim)' }}>
+            {[{ id:'ranking', label:'Ranking' }, { id:'equipos', label:'Equipos' }].map(t => (
+              <button key={t.id} onClick={() => setRankingSubTab(t.id)}
+                style={{ padding:'8px 16px', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', background:'transparent',
+                  color: rankingSubTab === t.id ? 'var(--t-accent)' : 'var(--t-muted)',
+                  borderBottom: rankingSubTab === t.id ? '2.5px solid var(--t-accent)' : '2.5px solid transparent',
+                }}>{t.label}</button>
+            ))}
+          </div>
+        )}
+        {rankingSubTab === 'equipos' && tieneEquipos
+          ? <RankingEquipos data={rankingEquiposData} rankingData={rankingData} />
+          : <Ranking acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />
+        }
+      </>
+    );
+  }
+
   function renderTab() {
     if (loading) return <Spinner />;
     switch (tab) {
       case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
-      case 'ranking':  return <Ranking  acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />;
+      case 'ranking':  return renderRankingTab();
       case 'calendar': return <Calendario acts={acts.filter(a => (a.nombre_display || a.nombre) === (user?.nombre_display || user?.nombre))} mes={mes} />;
       case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
       case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
@@ -2237,6 +2632,32 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
             }));
             setRankingRefreshKey(k => k + 1);
             onAdminSaved?.(ponderadores.map(p => ({ deporte_nombre: p.deporte_nombre, ponderador: p.ponderador })));
+          }}
+        />,
+        document.body
+      )}
+
+      {equiposSheetOpen && createPortal(
+        <AdminEquiposSheet
+          competencia={compConDeportes}
+          readOnly={user?.id !== competencia.creador_id}
+          onClose={onEquiposSheetClose}
+          onSaved={updated => {
+            setCompConDeportes(prev => ({ ...prev, equipos: updated }));
+            setRankingRefreshKey(k => k + 1);
+          }}
+        />,
+        document.body
+      )}
+
+      {semanasSheetOpen && createPortal(
+        <AdminSemanasSheet
+          competencia={compConDeportes}
+          readOnly={user?.id !== competencia.creador_id}
+          onClose={onSemanasSheetClose}
+          onSaved={updated => {
+            setCompConDeportes(prev => ({ ...prev, semanas: updated }));
+            setRankingRefreshKey(k => k + 1);
           }}
         />,
         document.body

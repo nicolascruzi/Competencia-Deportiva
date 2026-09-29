@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getDeportes, createActividad } from '../api/actividades';
 import { uploadFoto } from '../api/fotos';
 import { useLoading } from '../context/LoadingContext';
+import { useAuth } from '../context/AuthContext';
 
 const S = {
   input: {
@@ -51,14 +52,21 @@ const IconCamera = () => (
 
 // competenciaActiva: { id, nombre, creador_id, deportes: [{deporte_nombre, ponderador}], ... } | null
 export default function ActivityModal({ open, onClose, onCreated, competenciaActiva }) {
+  const { user } = useAuth();
   const [deportes, setDeportes]     = useState([]);
   const [form, setForm]             = useState({ deporte_nombre: '', minutos: '', ponderador: '', fecha: '', notas: '' });
   const [foto, setFoto]             = useState(null);
   const [fotoPreview, setFotoPreview] = useState(null);
   const [error, setError]           = useState('');
   const [loading, setLoading]       = useState(false);
+  const [companerosIds, setCompanerosIds] = useState([]);
   const fileInputRef                = useRef(null);
   const { withLoading } = useLoading();
+
+  // Miembros del mismo equipo del usuario en la competencia activa (para marcar "hecho en compañía")
+  const miEquipoId = competenciaActiva?.mi_equipo_id ?? null;
+  const miEquipo = miEquipoId ? competenciaActiva?.equipos?.find(e => e.id === miEquipoId) : null;
+  const companerosDisponibles = miEquipo?.miembros?.filter(m => m.id !== user?.id) ?? [];
 
   // Mapa de ponderadores de la competencia activa: { deporte_nombre → ponderador }
   // Solo se considera "activo" si la competencia tiene deportes configurados con al menos un valor
@@ -87,8 +95,13 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
       setError('');
       setFoto(null);
       setFotoPreview(null);
+      setCompanerosIds([]);
     }
   }, [open]);
+
+  function toggleCompanero(id) {
+    setCompanerosIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
 
   useEffect(() => {
     if (deportes.length) {
@@ -135,6 +148,8 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
           ponderador:     parseFloat(form.ponderador),
           fecha:          form.fecha,
           notas:          form.notas || null,
+          competencia_id: competenciaActiva?.id ?? null,
+          companeros_ids: companerosIds,
         });
         if (foto && actividad.id) {
           await uploadFoto(actividad.id, foto).catch(() => {});
@@ -240,6 +255,34 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
             <Input type="text" placeholder="Descripción breve…"
               value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
           </Field>
+
+          {/* Hecho en compañía — solo si hay competencia activa y equipo con compañeros */}
+          {companerosDisponibles.length > 0 && (
+            <Field label="¿Lo hiciste con alguien de tu equipo?">
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                {companerosDisponibles.map(c => {
+                  const selected = companerosIds.includes(c.id);
+                  return (
+                    <button key={c.id} type="button" onClick={() => toggleCompanero(c.id)}
+                      style={{
+                        display:'flex', alignItems:'center', gap:6, padding:'6px 12px 6px 6px', borderRadius:20,
+                        border: selected ? '1.5px solid var(--t-accent)' : '1.5px solid var(--t-dim)',
+                        background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
+                        color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
+                        cursor:'pointer', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent',
+                      }}>
+                      <span style={{ width:22, height:22, borderRadius:'50%', overflow:'hidden', flexShrink:0, background:'rgba(var(--t-accent-r),0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800 }}>
+                        {c.foto_perfil_url
+                          ? <img src={c.foto_perfil_url} alt={c.nombre_display} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                          : c.nombre_display?.charAt(0).toUpperCase()}
+                      </span>
+                      {c.nombre_display}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
 
           {/* Foto */}
           <Field label="Foto (opcional)">
