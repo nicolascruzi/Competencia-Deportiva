@@ -45,10 +45,10 @@ function buildScoringCtes(mesFilter = '') {
     GROUP BY a.user_id, c.bonus_companeros_pts
   ),
   challenge_pts AS (
-    SELECT cc.user_id, SUM(s.challenge_puntos) AS pts_challenge
+    SELECT cc.user_id, SUM(ch.puntos) AS pts_challenge
     FROM challenge_completados cc
-    JOIN competencia_semanas s ON s.id = cc.semana_id
-    WHERE s.competencia_id = $1
+    JOIN challenges ch ON ch.id = cc.challenge_id
+    WHERE ch.competencia_id = $1
     GROUP BY cc.user_id
   )
 `;

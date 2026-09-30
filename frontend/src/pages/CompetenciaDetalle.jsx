@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   getRankingComp, getActividadesComp, updatePonderadores,
-  getRankingEquiposComp, updateEquipos, updateAsignaciones, updateSemanas, completarChallenge,
+  getRankingEquiposComp, updateEquipos, updateAsignaciones, updateSemanas,
+  crearChallenge, updateChallenge, deleteChallenge, completarChallenge,
 } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
@@ -517,19 +518,18 @@ function MesSelector({ prev, next, canNext }) {
 
 // ─── CARD DEL CHALLENGE DE LA SEMANA ACTUAL ───────────────────────────────────
 
-function ChallengeSemanaCard({ competencia, onCompletado }) {
+function ChallengeCard({ competencia, challenge, onCompletado }) {
   const [completando, setCompletando] = useState(false);
   const [error, setError] = useState('');
 
-  const semana = competencia.semanas?.find(s => s.id === competencia.semana_actual_id);
-  if (!semana || !semana.challenge_texto) return null;
+  const semana = challenge.semana_id != null ? competencia.semanas?.find(s => s.id === challenge.semana_id) : null;
 
   async function handleCompletar() {
-    if (competencia.mi_challenge_completado || completando) return;
+    if (challenge.completado || completando) return;
     setCompletando(true); setError('');
     try {
-      await completarChallenge(competencia.id, semana.id);
-      onCompletado?.();
+      await completarChallenge(competencia.id, challenge.id);
+      onCompletado?.(challenge.id);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -538,30 +538,45 @@ function ChallengeSemanaCard({ competencia, onCompletado }) {
   }
 
   return (
-    <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 16px', marginBottom:14, display:'flex', flexDirection:'column', gap:8 }}>
+    <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 16px', display:'flex', flexDirection:'column', gap:8 }}>
       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
         <span style={{ fontSize:18 }}>🎯</span>
         <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>
-          Challenge de la semana {semana.numero_semana}
+          {semana ? `Challenge de la semana ${semana.numero_semana}` : 'Challenge'}
         </span>
       </div>
-      <div style={{ fontSize:15, fontWeight:600, color:'var(--t-text)' }}>{semana.challenge_texto}</div>
-      {semana.deporte_semana_nombre && (
+      <div style={{ fontSize:15, fontWeight:600, color:'var(--t-text)' }}>{challenge.texto}</div>
+      {semana?.deporte_semana_nombre && (
         <div style={{ fontSize:12, color:'var(--t-muted)' }}>
           {sportIcon(semana.deporte_semana_nombre)} {semana.deporte_semana_nombre} vale ×{semana.deporte_semana_ponderador_extra} esta semana
         </div>
       )}
       {error && <div style={{ fontSize:12, color:'#F87171' }}>{error}</div>}
-      <button onClick={handleCompletar} disabled={competencia.mi_challenge_completado || completando}
+      <button onClick={handleCompletar} disabled={challenge.completado || completando}
         style={{
-          alignSelf:'flex-start', padding:'8px 16px', borderRadius:10, border:'none', cursor: competencia.mi_challenge_completado ? 'default' : 'pointer',
+          alignSelf:'flex-start', padding:'8px 16px', borderRadius:10, border:'none', cursor: challenge.completado ? 'default' : 'pointer',
           fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em',
-          background: competencia.mi_challenge_completado ? 'var(--t-surface2)' : 'var(--t-accent)',
-          color: competencia.mi_challenge_completado ? 'var(--t-muted)' : 'var(--t-ground)',
+          background: challenge.completado ? 'var(--t-surface2)' : 'var(--t-accent)',
+          color: challenge.completado ? 'var(--t-muted)' : 'var(--t-ground)',
           opacity: completando ? 0.7 : 1,
         }}>
-        {competencia.mi_challenge_completado ? '✓ Completado' : completando ? 'Guardando…' : `Marqué el challenge (+${semana.challenge_puntos ?? 0} pts)`}
+        {challenge.completado ? '✓ Completado' : completando ? 'Guardando…' : `Marqué el challenge (+${challenge.puntos ?? 0} pts)`}
       </button>
+    </div>
+  );
+}
+
+function ChallengesCard({ competencia, onCompletado }) {
+  const vigentes = (competencia.challenges || []).filter(ch =>
+    ch.semana_id == null || ch.semana_id === competencia.semana_actual_id
+  );
+  if (!vigentes.length) return null;
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:14 }}>
+      {vigentes.map(ch => (
+        <ChallengeCard key={ch.id} competencia={competencia} challenge={ch} onCompletado={onCompletado} />
+      ))}
     </div>
   );
 }
@@ -1766,42 +1781,42 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
       {/* Contenido scrollable (header + tabs + contenido) */}
       <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
 
-        {/* Header perfil tipo Instagram */}
-        <div style={{ padding:'32px 20px 18px', textAlign:'center' }}>
-          <div
-            onClick={() => fotoUrl && setFotoLightbox(true)}
-            style={{ width:88, height:88, borderRadius:'50%', margin:'0 auto', overflow:'hidden', background:'var(--t-surface2)', border:'2px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', cursor: fotoUrl ? 'pointer' : 'default' }}>
-            {fotoUrl
-              ? <img src={fotoUrl} alt={displayNombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-              : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:36, color:'var(--t-muted)' }}>{displayNombre.charAt(0).toUpperCase()}</span>
-            }
-          </div>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:12 }}>
-            {displayNombre}
+        {/* Header perfil: foto a la izquierda, nombre debajo, detalles minimalistas a la derecha */}
+        <div style={{ padding:'52px 20px 14px', display:'flex', alignItems:'flex-start', gap:14 }}>
+          <div style={{ flexShrink:0 }}>
+            <div
+              onClick={() => fotoUrl && setFotoLightbox(true)}
+              style={{ width:72, height:72, borderRadius:'50%', overflow:'hidden', background:'var(--t-surface2)', border:'2px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', cursor: fotoUrl ? 'pointer' : 'default' }}>
+              {fotoUrl
+                ? <img src={fotoUrl} alt={displayNombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:28, color:'var(--t-muted)' }}>{displayNombre.charAt(0).toUpperCase()}</span>
+              }
+            </div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:17, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:8, maxWidth:88, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {displayNombre}
+            </div>
+            {(deporteFavorito || rachaActual > 0) && (
+              <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2, lineHeight:1.4, maxWidth:100, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                {rachaActual > 0 && <span>🔥 {rachaActual}d</span>}
+                {deporteFavorito && rachaActual > 0 && <span> · </span>}
+                {deporteFavorito && <span>{sportIcon(deporteFavorito)} {deporteFavorito}</span>}
+              </div>
+            )}
           </div>
 
-          {/* Bio: deporte favorito + racha */}
-          {(deporteFavorito || rachaActual > 0) && (
-            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:4, lineHeight:1.5 }}>
-              {deporteFavorito && <span>{sportIcon(deporteFavorito)} {deporteFavorito} es {isOwnProfile ? 'tu' : 'su'} deporte favorito</span>}
-              {deporteFavorito && rachaActual > 0 && <span> · </span>}
-              {rachaActual > 0 && <span>🔥 {rachaActual} día{rachaActual !== 1 ? 's' : ''} de racha activa</span>}
+          {/* Stats minimalistas a la derecha */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8, paddingTop:6, paddingRight:4 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+              <span style={{ fontSize:11, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>Posts</span>
+              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-text)' }}>{data.length}</span>
             </div>
-          )}
-
-          {/* Stats destacados */}
-          <div style={{ display:'flex', justifyContent:'center', gap:28, marginTop:18 }}>
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)' }}>{data.length}</div>
-              <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Posts</div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+              <span style={{ fontSize:11, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>Puntos</span>
+              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)' }}>{Math.round(pts)}</span>
             </div>
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-accent)' }}>{Math.round(pts)}</div>
-              <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Puntos</div>
-            </div>
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)' }}>{rachaActual}</div>
-              <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Racha</div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+              <span style={{ fontSize:11, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>Racha</span>
+              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-text)' }}>{rachaActual}</span>
             </div>
           </div>
         </div>
@@ -2326,11 +2341,13 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false }) 
 // ─── SHEET ADMIN: challenges semanales + deporte de la semana ────────────────
 
 function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) {
-  const [deportes, setDeportes] = useState([]);
-  const [semanas, setSemanas]   = useState(competencia.semanas || []);
-  const [abierta, setAbierta]   = useState(null);
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState('');
+  const [deportes, setDeportes]   = useState([]);
+  const [semanas, setSemanas]     = useState(competencia.semanas || []);
+  const [challenges, setChallenges] = useState((competencia.challenges || []).map(c => ({ ...c, _isNew: false })));
+  const [eliminados, setEliminados] = useState([]);
+  const [abierta, setAbierta]     = useState(null);
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState('');
   const startY = useRef(null);
 
   useEffect(() => { getAllDeportes().then(setDeportes).catch(() => {}); }, []);
@@ -2345,17 +2362,47 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
     setSemanas(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
   }
 
+  function updateChallengeLocal(key, patch) {
+    setChallenges(prev => prev.map(c => (c.id ?? c._key) === key ? { ...c, ...patch } : c));
+  }
+
+  function addChallenge() {
+    setChallenges(prev => [...prev, { _key: `nuevo-${Date.now()}`, _isNew: true, texto: '', puntos: 0, semana_id: null }]);
+  }
+
+  function removeChallengeLocal(key) {
+    const target = challenges.find(c => (c.id ?? c._key) === key);
+    if (target?.id != null) setEliminados(prev => [...prev, target.id]);
+    setChallenges(prev => prev.filter(c => (c.id ?? c._key) !== key));
+  }
+
   async function handleSave() {
     setSaving(true); setError('');
     try {
       await updateSemanas(competencia.id, semanas.map(s => ({
         id: s.id,
-        challenge_texto: s.challenge_texto,
-        challenge_puntos: s.challenge_puntos,
         deporte_semana_nombre: s.deporte_semana_nombre,
         deporte_semana_ponderador_extra: s.deporte_semana_ponderador_extra,
       })));
-      onSaved(semanas);
+
+      for (const challengeId of eliminados) {
+        await deleteChallenge(competencia.id, challengeId);
+      }
+
+      const savedChallenges = [];
+      for (const c of challenges) {
+        if (!c.texto?.trim()) continue;
+        const numeroSemana = c.semana_id != null ? semanas.find(s => s.id === c.semana_id)?.numero_semana : null;
+        const payload = { texto: c.texto.trim(), puntos: parseFloat(c.puntos) || 0, numero_semana: numeroSemana ?? null };
+        if (c._isNew) {
+          savedChallenges.push(await crearChallenge(competencia.id, payload));
+        } else {
+          const updated = await updateChallenge(competencia.id, c.id, payload);
+          savedChallenges.push({ ...updated, completado: c.completado ?? false });
+        }
+      }
+
+      onSaved(semanas, savedChallenges);
       onClose();
     } catch (err) {
       setError(err.message);
@@ -2386,65 +2433,101 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
           <div style={{ margin:'8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>{error}</div>
         )}
 
-        <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:6 }}>
-          {!semanas.length && (
-            <div style={{ fontSize:13, color:'var(--t-muted)', textAlign:'center', padding:'24px 0' }}>
-              Esta competencia no tiene fechas configuradas, así que no hay semanas para editar.
-            </div>
-          )}
-          {semanas.map(s => {
-            const isOpen = abierta === s.id;
-            const isActual = s.id === competencia.semana_actual_id;
-            const tieneContenido = !!(s.challenge_texto?.trim() || s.deporte_semana_nombre);
-            return (
-              <div key={s.id} style={{ border: isActual ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)', borderRadius:12, overflow:'hidden', background:'var(--t-surface2)', flexShrink:0 }}>
-                <button onClick={() => setAbierta(isOpen ? null : s.id)}
-                  style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' }}>
-                  <span style={{ fontSize:13, fontWeight:600, color:'var(--t-text)' }}>
-                    Semana {s.numero_semana} — {s.fecha_inicio} al {s.fecha_fin}
-                    {isActual && <span style={{ color:'var(--t-accent)', fontWeight:700 }}> · actual</span>}
-                    {tieneContenido && <span style={{ color:'var(--t-accent)' }}> ✓</span>}
-                  </span>
-                  <span style={{ color:'var(--t-muted)' }}>{isOpen ? '▲' : '▼'}</span>
-                </button>
-                {isOpen && (
-                  <div style={{ padding:'0 12px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+        <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:18 }}>
+
+          {/* ── Challenges ──────────────────────────────────────────── */}
+          <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Challenges</div>
+            {challenges.map(c => {
+              const key = c.id ?? c._key;
+              return (
+                <div key={key} style={{ border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 12px', display:'flex', flexDirection:'column', gap:8, background:'var(--t-surface2)', flexShrink:0 }}>
+                  <div style={{ display:'flex', gap:8 }}>
                     <input
                       type="text" placeholder="Challenge" disabled={readOnly}
-                      value={s.challenge_texto || ''}
-                      onChange={e => updateSemana(s.id, { challenge_texto: e.target.value })}
-                      style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                      value={c.texto || ''}
+                      onChange={e => updateChallengeLocal(key, { texto: e.target.value })}
+                      style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
                     />
-                    <input
-                      type="number" inputMode="decimal" min="0" step="1" placeholder="Puntos del challenge" disabled={readOnly}
-                      value={s.challenge_puntos ?? ''}
-                      onChange={e => updateSemana(s.id, { challenge_puntos: e.target.value })}
-                      style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
-                    />
-                    <div style={{ display:'flex', gap:8 }}>
-                      <select
-                        value={s.deporte_semana_nombre || ''} disabled={readOnly}
-                        onChange={e => updateSemana(s.id, { deporte_semana_nombre: e.target.value })}
-                        style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', appearance:'none' }}
-                      >
-                        <option value="">Sin deporte de la semana</option>
-                        {deportes.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
-                      </select>
-                      <input
-                        type="number" inputMode="decimal" min="0.1" step="0.1" placeholder="Extra" disabled={readOnly || !s.deporte_semana_nombre}
-                        value={s.deporte_semana_ponderador_extra ?? ''}
-                        onChange={e => updateSemana(s.id, { deporte_semana_ponderador_extra: e.target.value })}
-                        style={{ width:70, flexShrink:0, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', opacity: s.deporte_semana_nombre ? 1 : 0.5 }}
-                      />
-                    </div>
+                    {!readOnly && (
+                      <button onClick={() => removeChallengeLocal(key)}
+                        style={{ width:36, flexShrink:0, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer' }}>✕</button>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                  <div style={{ display:'flex', gap:8 }}>
+                    <input
+                      type="number" inputMode="decimal" min="0" step="1" placeholder="Puntos" disabled={readOnly}
+                      value={c.puntos ?? ''}
+                      onChange={e => updateChallengeLocal(key, { puntos: e.target.value })}
+                      style={{ width:80, flexShrink:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                    />
+                    {semanas.length > 0 && (
+                      <select
+                        value={c.semana_id ?? ''} disabled={readOnly}
+                        onChange={e => updateChallengeLocal(key, { semana_id: e.target.value ? parseInt(e.target.value) : null })}
+                        style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:13, outline:'none', appearance:'none' }}
+                      >
+                        <option value="">Sin semana (siempre vigente)</option>
+                        {semanas.map(s => <option key={s.id} value={s.id}>Semana {s.numero_semana}</option>)}
+                      </select>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {!readOnly && (
+              <button onClick={addChallenge}
+                style={{ padding:'8px', borderRadius:8, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13, fontWeight:600 }}>
+                + Agregar challenge
+              </button>
+            )}
+          </div>
+
+          {/* ── Deporte de la semana ────────────────────────────────── */}
+          {semanas.length > 0 && (
+            <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deporte de la semana</div>
+              {semanas.map(s => {
+                const isOpen = abierta === s.id;
+                const isActual = s.id === competencia.semana_actual_id;
+                const tieneContenido = !!s.deporte_semana_nombre;
+                return (
+                  <div key={s.id} style={{ border: isActual ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)', borderRadius:12, overflow:'hidden', background:'var(--t-surface2)', flexShrink:0 }}>
+                    <button onClick={() => setAbierta(isOpen ? null : s.id)}
+                      style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' }}>
+                      <span style={{ fontSize:13, fontWeight:600, color:'var(--t-text)' }}>
+                        Semana {s.numero_semana} — {s.fecha_inicio} al {s.fecha_fin}
+                        {isActual && <span style={{ color:'var(--t-accent)', fontWeight:700 }}> · actual</span>}
+                        {tieneContenido && <span style={{ color:'var(--t-accent)' }}> ✓</span>}
+                      </span>
+                      <span style={{ color:'var(--t-muted)' }}>{isOpen ? '▲' : '▼'}</span>
+                    </button>
+                    {isOpen && (
+                      <div style={{ padding:'0 12px 12px', display:'flex', gap:8 }}>
+                        <select
+                          value={s.deporte_semana_nombre || ''} disabled={readOnly}
+                          onChange={e => updateSemana(s.id, { deporte_semana_nombre: e.target.value })}
+                          style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', appearance:'none' }}
+                        >
+                          <option value="">Sin deporte de la semana</option>
+                          {deportes.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
+                        </select>
+                        <input
+                          type="number" inputMode="decimal" min="0.1" step="0.1" placeholder="Extra" disabled={readOnly || !s.deporte_semana_nombre}
+                          value={s.deporte_semana_ponderador_extra ?? ''}
+                          onChange={e => updateSemana(s.id, { deporte_semana_ponderador_extra: e.target.value })}
+                          style={{ width:70, flexShrink:0, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', opacity: s.deporte_semana_nombre ? 1 : 0.5 }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {!readOnly && semanas.length > 0 && (
+        {!readOnly && (
           <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
             <button onClick={handleSave} disabled={saving}
               style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
@@ -2538,10 +2621,13 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   function renderRankingTab() {
     return (
       <>
-        <ChallengeSemanaCard
+        <ChallengesCard
           competencia={compConDeportes}
-          onCompletado={() => {
-            setCompConDeportes(prev => ({ ...prev, mi_challenge_completado: true }));
+          onCompletado={challengeId => {
+            setCompConDeportes(prev => ({
+              ...prev,
+              challenges: (prev.challenges || []).map(ch => ch.id === challengeId ? { ...ch, completado: true } : ch),
+            }));
             setRankingRefreshKey(k => k + 1);
           }}
         />
@@ -2655,8 +2741,8 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
           competencia={compConDeportes}
           readOnly={user?.id !== competencia.creador_id}
           onClose={onSemanasSheetClose}
-          onSaved={updated => {
-            setCompConDeportes(prev => ({ ...prev, semanas: updated }));
+          onSaved={(updatedSemanas, updatedChallenges) => {
+            setCompConDeportes(prev => ({ ...prev, semanas: updatedSemanas, challenges: updatedChallenges }));
             setRankingRefreshKey(k => k + 1);
           }}
         />,

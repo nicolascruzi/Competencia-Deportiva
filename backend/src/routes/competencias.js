@@ -91,10 +91,11 @@ router.post('/', authMiddleware, async (req, res) => {
   const {
     nombre, ponderadores,
     fecha_inicio, fecha_fin, bonus_companeros_pts,
-    equipos_nombres, semanas,
+    equipos_nombres, semanas, challenges,
   } = req.body;
   // ponderadores: [{ deporte_nombre, ponderador }]
-  // semanas (opcional): [{ numero_semana, challenge_texto?, challenge_puntos?, deporte_semana_nombre?, deporte_semana_ponderador_extra? }]
+  // semanas (opcional): [{ numero_semana, deporte_semana_nombre?, deporte_semana_ponderador_extra? }]
+  // challenges (opcional): [{ texto, puntos, numero_semana? }] — numero_semana solo tiene efecto si hay fecha_inicio/fecha_fin
   if (!nombre?.trim()) return res.status(400).json({ error: 'El nombre es obligatorio' });
 
   if ((fecha_inicio && !fecha_fin) || (!fecha_inicio && fecha_fin))
@@ -144,24 +145,36 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     // Semanas: se calculan automáticamente a partir del rango de fechas; se completan con
-    // lo que el frontend haya mandado (challenge/deporte de la semana), el resto queda en NULL.
+    // lo que el frontend haya mandado (deporte de la semana), el resto queda en NULL.
+    const semanaIdPorNumero = new Map();
     if (fecha_inicio && fecha_fin) {
       const semanasCalculadas = calcularSemanas(fecha_inicio, fecha_fin);
       const semanasInput = new Map((Array.isArray(semanas) ? semanas : []).map(s => [s.numero_semana, s]));
       for (const s of semanasCalculadas) {
         const input = semanasInput.get(s.numero_semana) || {};
-        await client.query(
+        const { rows: [semanaRow] } = await client.query(
           `INSERT INTO competencia_semanas
              (competencia_id, numero_semana, fecha_inicio, fecha_fin,
-              challenge_texto, challenge_puntos, deporte_semana_nombre, deporte_semana_ponderador_extra)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+              deporte_semana_nombre, deporte_semana_ponderador_extra)
+           VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
           [
             comp.id, s.numero_semana, s.fecha_inicio, s.fecha_fin,
-            input.challenge_texto || null,
-            input.challenge_puntos != null ? parseFloat(input.challenge_puntos) : null,
             input.deporte_semana_nombre || null,
             input.deporte_semana_ponderador_extra != null ? parseFloat(input.deporte_semana_ponderador_extra) : null,
           ]
+        );
+        semanaIdPorNumero.set(s.numero_semana, semanaRow.id);
+      }
+    }
+
+    // Challenges: entidad propia de la competencia, opcionalmente asociados a una semana si hay fechas.
+    if (Array.isArray(challenges)) {
+      for (const c of challenges) {
+        if (!c.texto?.trim()) continue;
+        const semanaId = c.numero_semana != null ? (semanaIdPorNumero.get(parseInt(c.numero_semana)) ?? null) : null;
+        await client.query(
+          `INSERT INTO challenges (competencia_id, semana_id, texto, puntos) VALUES ($1,$2,$3,$4)`,
+          [comp.id, semanaId, c.texto.trim(), parseFloat(c.puntos) || 0]
         );
       }
     }
@@ -247,27 +260,25 @@ router.get('/:id', authMiddleware, async (req, res) => {
       `SELECT id, competencia_id, numero_semana,
               TO_CHAR(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
               TO_CHAR(fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
-              challenge_texto, challenge_puntos, deporte_semana_nombre, deporte_semana_ponderador_extra
+              deporte_semana_nombre, deporte_semana_ponderador_extra
        FROM competencia_semanas WHERE competencia_id=$1 ORDER BY numero_semana`,
       [id]
     );
 
     const hoy = new Date().toISOString().slice(0, 10);
     const semanaActual = semanas.find(s => s.fecha_inicio <= hoy && hoy <= s.fecha_fin);
-    let miChallengeCompletado = false;
-    if (semanaActual) {
-      const { rows: [cc] } = await pool.query(
-        'SELECT 1 FROM challenge_completados WHERE semana_id=$1 AND user_id=$2',
-        [semanaActual.id, req.user.id]
-      );
-      miChallengeCompletado = !!cc;
-    }
+
+    const { rows: challenges } = await pool.query(
+      `SELECT ch.id, ch.competencia_id, ch.semana_id, ch.texto, ch.puntos,
+              EXISTS(SELECT 1 FROM challenge_completados cc WHERE cc.challenge_id=ch.id AND cc.user_id=$2) AS completado
+       FROM challenges ch WHERE ch.competencia_id=$1 ORDER BY ch.created_at`,
+      [id, req.user.id]
+    );
 
     res.json({
-      ...comp, deportes, participantes, equipos, semanas,
+      ...comp, deportes, participantes, equipos, semanas, challenges,
       mi_equipo_id: part.equipo_id,
       semana_actual_id: semanaActual?.id ?? null,
-      mi_challenge_completado: miChallengeCompletado,
     });
   } catch (err) {
     console.error(err);
@@ -416,10 +427,10 @@ router.put('/:id/equipos/asignaciones', authMiddleware, async (req, res) => {
 
 // ── SEMANAS: CHALLENGES Y DEPORTE DE LA SEMANA ──────────────────────────────
 
-// PUT /competencias/:id/semanas — editar challenges/deporte de la semana (solo creador)
+// PUT /competencias/:id/semanas — editar deporte de la semana (solo creador)
 router.put('/:id/semanas', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { semanas } = req.body; // [{ id, challenge_texto, challenge_puntos, deporte_semana_nombre, deporte_semana_ponderador_extra }]
+  const { semanas } = req.body; // [{ id, deporte_semana_nombre, deporte_semana_ponderador_extra }]
 
   try {
     const { rows: [comp] } = await pool.query('SELECT creador_id FROM competencias WHERE id=$1', [id]);
@@ -432,11 +443,9 @@ router.put('/:id/semanas', authMiddleware, async (req, res) => {
       if (s.id == null) continue;
       await pool.query(
         `UPDATE competencia_semanas
-         SET challenge_texto=$1, challenge_puntos=$2, deporte_semana_nombre=$3, deporte_semana_ponderador_extra=$4, updated_at=NOW()
-         WHERE id=$5 AND competencia_id=$6`,
+         SET deporte_semana_nombre=$1, deporte_semana_ponderador_extra=$2, updated_at=NOW()
+         WHERE id=$3 AND competencia_id=$4`,
         [
-          s.challenge_texto || null,
-          s.challenge_puntos != null && s.challenge_puntos !== '' ? parseFloat(s.challenge_puntos) : null,
           s.deporte_semana_nombre || null,
           s.deporte_semana_ponderador_extra != null && s.deporte_semana_ponderador_extra !== '' ? parseFloat(s.deporte_semana_ponderador_extra) : null,
           parseInt(s.id), id,
@@ -451,9 +460,95 @@ router.put('/:id/semanas', authMiddleware, async (req, res) => {
   }
 });
 
-// POST /competencias/:id/semanas/:semanaId/completar — marcar el challenge de esta semana como completado
-router.post('/:id/semanas/:semanaId/completar', authMiddleware, async (req, res) => {
-  const { id, semanaId } = req.params;
+// ── CHALLENGES ───────────────────────────────────────────────────────────────
+
+// POST /competencias/:id/challenges — agregar un challenge nuevo (solo creador), en cualquier momento
+router.post('/:id/challenges', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { texto, puntos, numero_semana } = req.body;
+
+  if (!texto?.trim()) return res.status(400).json({ error: 'El texto del challenge es obligatorio' });
+
+  try {
+    const { rows: [comp] } = await pool.query('SELECT creador_id FROM competencias WHERE id=$1', [id]);
+    if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
+    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede agregar challenges' });
+
+    let semanaId = null;
+    if (numero_semana != null) {
+      const { rows: [semana] } = await pool.query(
+        'SELECT id FROM competencia_semanas WHERE competencia_id=$1 AND numero_semana=$2',
+        [id, parseInt(numero_semana)]
+      );
+      semanaId = semana?.id ?? null;
+    }
+
+    const { rows: [challenge] } = await pool.query(
+      `INSERT INTO challenges (competencia_id, semana_id, texto, puntos) VALUES ($1,$2,$3,$4) RETURNING *`,
+      [id, semanaId, texto.trim(), parseFloat(puntos) || 0]
+    );
+
+    res.status(201).json({ ...challenge, completado: false });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al agregar el challenge' });
+  }
+});
+
+// PUT /competencias/:id/challenges/:challengeId — editar un challenge (solo creador)
+router.put('/:id/challenges/:challengeId', authMiddleware, async (req, res) => {
+  const { id, challengeId } = req.params;
+  const { texto, puntos, numero_semana } = req.body;
+
+  if (!texto?.trim()) return res.status(400).json({ error: 'El texto del challenge es obligatorio' });
+
+  try {
+    const { rows: [comp] } = await pool.query('SELECT creador_id FROM competencias WHERE id=$1', [id]);
+    if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
+    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede editar challenges' });
+
+    let semanaId = null;
+    if (numero_semana != null) {
+      const { rows: [semana] } = await pool.query(
+        'SELECT id FROM competencia_semanas WHERE competencia_id=$1 AND numero_semana=$2',
+        [id, parseInt(numero_semana)]
+      );
+      semanaId = semana?.id ?? null;
+    }
+
+    const { rows: [challenge] } = await pool.query(
+      `UPDATE challenges SET texto=$1, puntos=$2, semana_id=$3, updated_at=NOW()
+       WHERE id=$4 AND competencia_id=$5 RETURNING *`,
+      [texto.trim(), parseFloat(puntos) || 0, semanaId, challengeId, id]
+    );
+    if (!challenge) return res.status(404).json({ error: 'Challenge no encontrado' });
+
+    res.json(challenge);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al editar el challenge' });
+  }
+});
+
+// DELETE /competencias/:id/challenges/:challengeId — eliminar un challenge (solo creador)
+router.delete('/:id/challenges/:challengeId', authMiddleware, async (req, res) => {
+  const { id, challengeId } = req.params;
+  try {
+    const { rows: [comp] } = await pool.query('SELECT creador_id FROM competencias WHERE id=$1', [id]);
+    if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
+    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede eliminar challenges' });
+
+    await pool.query('DELETE FROM challenges WHERE id=$1 AND competencia_id=$2', [challengeId, id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar el challenge' });
+  }
+});
+
+// POST /competencias/:id/challenges/:challengeId/completar — marcar un challenge como completado
+router.post('/:id/challenges/:challengeId/completar', authMiddleware, async (req, res) => {
+  const { id, challengeId } = req.params;
 
   try {
     const { rows: [part] } = await pool.query(
@@ -462,22 +557,26 @@ router.post('/:id/semanas/:semanaId/completar', authMiddleware, async (req, res)
     );
     if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
-    const { rows: [semana] } = await pool.query(
-      `SELECT id, challenge_texto, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
-       FROM competencia_semanas WHERE id=$1 AND competencia_id=$2`,
-      [semanaId, id]
+    const { rows: [challenge] } = await pool.query(
+      `SELECT ch.id, TO_CHAR(s.fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(s.fecha_fin,'YYYY-MM-DD') AS fecha_fin
+       FROM challenges ch LEFT JOIN competencia_semanas s ON s.id = ch.semana_id
+       WHERE ch.id=$1 AND ch.competencia_id=$2`,
+      [challengeId, id]
     );
-    if (!semana) return res.status(404).json({ error: 'Semana no encontrada' });
-    if (!semana.challenge_texto) return res.status(400).json({ error: 'Esta semana no tiene un challenge definido' });
+    if (!challenge) return res.status(404).json({ error: 'Challenge no encontrado' });
 
-    const hoy = new Date().toISOString().slice(0, 10);
-    if (hoy < semana.fecha_inicio || hoy > semana.fecha_fin)
-      return res.status(400).json({ error: 'Este challenge no está disponible esta semana' });
+    // Si el challenge está atado a una semana, solo se puede completar dentro de su rango.
+    // Si no tiene semana asociada (challenge libre), está siempre disponible.
+    if (challenge.fecha_inicio && challenge.fecha_fin) {
+      const hoy = new Date().toISOString().slice(0, 10);
+      if (hoy < challenge.fecha_inicio || hoy > challenge.fecha_fin)
+        return res.status(400).json({ error: 'Este challenge no está disponible esta semana' });
+    }
 
     const { rows } = await pool.query(
-      `INSERT INTO challenge_completados (semana_id, user_id) VALUES ($1,$2)
-       ON CONFLICT (semana_id, user_id) DO NOTHING RETURNING *`,
-      [semanaId, req.user.id]
+      `INSERT INTO challenge_completados (challenge_id, user_id) VALUES ($1,$2)
+       ON CONFLICT (challenge_id, user_id) DO NOTHING RETURNING *`,
+      [challengeId, req.user.id]
     );
 
     if (!rows.length) return res.json({ ya_completado: true });
@@ -488,9 +587,9 @@ router.post('/:id/semanas/:semanaId/completar', authMiddleware, async (req, res)
   }
 });
 
-// GET /competencias/:id/semanas/:semanaId/completados — quién completó el challenge de esa semana
-router.get('/:id/semanas/:semanaId/completados', authMiddleware, async (req, res) => {
-  const { id, semanaId } = req.params;
+// GET /competencias/:id/challenges/:challengeId/completados — quién completó este challenge
+router.get('/:id/challenges/:challengeId/completados', authMiddleware, async (req, res) => {
+  const { id, challengeId } = req.params;
   try {
     const { rows: [part] } = await pool.query(
       'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
@@ -502,10 +601,10 @@ router.get('/:id/semanas/:semanaId/completados', authMiddleware, async (req, res
       `SELECT u.id AS user_id, u.nombre, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url, cc.completed_at
        FROM challenge_completados cc
        JOIN users u ON u.id = cc.user_id
-       JOIN competencia_semanas s ON s.id = cc.semana_id
-       WHERE cc.semana_id=$1 AND s.competencia_id=$2
+       JOIN challenges ch ON ch.id = cc.challenge_id
+       WHERE cc.challenge_id=$1 AND ch.competencia_id=$2
        ORDER BY cc.completed_at ASC`,
-      [semanaId, id]
+      [challengeId, id]
     );
     res.json(rows);
   } catch (err) {

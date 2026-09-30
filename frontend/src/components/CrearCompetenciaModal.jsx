@@ -133,12 +133,13 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
   const [addingCustom, setAddingCustom]   = useState(false);
   const [customError, setCustomError]     = useState('');
 
-  // Fechas, equipos, semanas (challenge + deporte de la semana), bonus por compañía
+  // Fechas, equipos, deporte de la semana, challenges, bonus por compañía
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin]       = useState('');
   const [equiposNombres, setEquiposNombres] = useState(['Equipo 1', 'Equipo 2']);
-  const [semanasData, setSemanasData] = useState({}); // { [numero_semana]: {challenge_texto, challenge_puntos, deporte_semana_nombre, deporte_semana_ponderador_extra} }
+  const [semanasData, setSemanasData] = useState({}); // { [numero_semana]: {deporte_semana_nombre, deporte_semana_ponderador_extra} }
   const [semanaAbierta, setSemanaAbierta] = useState(null);
+  const [challengesData, setChallengesData] = useState([]); // [{texto, puntos, numero_semana}]
   const [bonusCompaneros, setBonusCompaneros] = useState('0');
 
   const semanasCalculadas = calcularSemanas(fechaInicio, fechaFin);
@@ -160,7 +161,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
       setNombre(''); setError(''); setPinInput('');
       setCustomNombre(''); setCustomEmoji(''); setCustomPond('1.0'); setAddingCustom(false); setCustomError('');
       setFechaInicio(''); setFechaFin(''); setEquiposNombres(['Equipo 1', 'Equipo 2']);
-      setSemanasData({}); setSemanaAbierta(null); setBonusCompaneros('0');
+      setSemanasData({}); setSemanaAbierta(null); setChallengesData([]); setBonusCompaneros('0');
       withLoading(() => reloadDeportes());
     }
   }, [open]);
@@ -190,7 +191,10 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
       const equipos_nombres = equiposNombres.map(n => n.trim()).filter(Boolean);
       const semanas = semanasCalculadas
         .map(s => ({ numero_semana: s.numero_semana, ...semanasData[s.numero_semana] }))
-        .filter(s => s.challenge_texto?.trim() || s.deporte_semana_nombre);
+        .filter(s => s.deporte_semana_nombre);
+      const challenges = challengesData
+        .filter(c => c.texto?.trim())
+        .map(c => ({ texto: c.texto.trim(), puntos: parseFloat(c.puntos) || 0, numero_semana: c.numero_semana ?? null }));
       const comp = await withLoading(() => createCompetencia({
         nombre: nombre.trim(),
         ponderadores,
@@ -198,6 +202,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
         fecha_fin: fechaFin || undefined,
         equipos_nombres,
         semanas,
+        challenges,
         bonus_companeros_pts: parseFloat(bonusCompaneros) || 0,
       }));
       setPinData({ nombre: comp.nombre, pin: comp.pin, id: comp.id });
@@ -384,16 +389,60 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
               </div>
             )}
 
-            {/* Semanas: challenge + deporte de la semana */}
+            {/* Challenges (opcional, no depende de tener fechas configuradas) */}
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Challenges (opcional)</label>
+              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Podés agregar más después, editando la competencia.</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {challengesData.map((c, i) => (
+                  <div key={i} style={{ border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 12px', display:'flex', flexDirection:'column', gap:8, background:'var(--t-surface2)' }}>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <input
+                        type="text" placeholder="Challenge (ej: Hacer 100 flexiones)"
+                        value={c.texto || ''}
+                        onChange={e => setChallengesData(prev => prev.map((x, j) => j === i ? { ...x, texto: e.target.value } : x))}
+                        style={{ ...inputStyle, flex:1 }}
+                      />
+                      <button type="button" onClick={() => setChallengesData(prev => prev.filter((_, j) => j !== i))}
+                        style={{ width:38, flexShrink:0, borderRadius:10, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer' }}>✕</button>
+                    </div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <input
+                        type="number" inputMode="decimal" min="0" step="1" placeholder="Puntos"
+                        value={c.puntos ?? ''}
+                        onChange={e => setChallengesData(prev => prev.map((x, j) => j === i ? { ...x, puntos: e.target.value } : x))}
+                        style={{ ...inputStyle, width:90, flexShrink:0 }}
+                      />
+                      {semanasCalculadas.length > 0 && (
+                        <select
+                          value={c.numero_semana ?? ''}
+                          onChange={e => setChallengesData(prev => prev.map((x, j) => j === i ? { ...x, numero_semana: e.target.value ? parseInt(e.target.value) : null } : x))}
+                          style={{ ...inputStyle, flex:1, appearance:'none' }}
+                        >
+                          <option value="">Sin semana (siempre vigente)</option>
+                          {semanasCalculadas.map(s => <option key={s.numero_semana} value={s.numero_semana}>Semana {s.numero_semana} — {fechaLabel(s.fecha_inicio)} al {fechaLabel(s.fecha_fin)}</option>)}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={() => setChallengesData(prev => [...prev, { texto: '', puntos: 0, numero_semana: null }])}
+                style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px', borderRadius:10, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13, fontWeight:600, width:'100%', justifyContent:'center' }}>
+                + Agregar challenge
+              </button>
+            </div>
+
+            {/* Deporte de la semana (solo si hay rango de fechas) */}
             {semanasCalculadas.length > 0 && (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Challenges semanales (opcional)</label>
-                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Podés dejarlos vacíos y completarlos después editando la competencia.</div>
+                <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Deporte de la semana (opcional)</label>
+                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Podés dejarlo vacío y completarlo después editando la competencia.</div>
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   {semanasCalculadas.map(s => {
                     const abierta = semanaAbierta === s.numero_semana;
                     const data = semanasData[s.numero_semana] || {};
-                    const tieneContenido = !!(data.challenge_texto?.trim() || data.deporte_semana_nombre);
+                    const tieneContenido = !!data.deporte_semana_nombre;
                     return (
                       <div key={s.numero_semana} style={{ border:'1px solid var(--t-dim)', borderRadius:12, overflow:'hidden', background:'var(--t-surface2)' }}>
                         <button type="button" onClick={() => setSemanaAbierta(abierta ? null : s.numero_semana)}
@@ -405,36 +454,22 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
                           <span style={{ color:'var(--t-muted)' }}>{abierta ? '▲' : '▼'}</span>
                         </button>
                         {abierta && (
-                          <div style={{ padding:'0 12px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+                          <div style={{ padding:'0 12px 12px', display:'flex', gap:8 }}>
+                            <select
+                              value={data.deporte_semana_nombre || ''}
+                              onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_nombre: e.target.value } }))}
+                              style={{ ...inputStyle, flex:1, appearance:'none' }}
+                            >
+                              <option value="">Sin deporte de la semana</option>
+                              {deportes.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
+                            </select>
                             <input
-                              type="text" placeholder="Challenge (ej: Hacer 100 flexiones)"
-                              value={data.challenge_texto || ''}
-                              onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], challenge_texto: e.target.value } }))}
-                              style={inputStyle}
+                              type="number" inputMode="decimal" min="0.1" step="0.1" placeholder="Extra"
+                              value={data.deporte_semana_ponderador_extra ?? ''}
+                              onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_ponderador_extra: e.target.value } }))}
+                              disabled={!data.deporte_semana_nombre}
+                              style={{ ...inputStyle, width:70, flexShrink:0, textAlign:'center', opacity: data.deporte_semana_nombre ? 1 : 0.5 }}
                             />
-                            <input
-                              type="number" inputMode="decimal" min="0" step="1" placeholder="Puntos del challenge"
-                              value={data.challenge_puntos ?? ''}
-                              onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], challenge_puntos: e.target.value } }))}
-                              style={inputStyle}
-                            />
-                            <div style={{ display:'flex', gap:8 }}>
-                              <select
-                                value={data.deporte_semana_nombre || ''}
-                                onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_nombre: e.target.value } }))}
-                                style={{ ...inputStyle, flex:1, appearance:'none' }}
-                              >
-                                <option value="">Sin deporte de la semana</option>
-                                {deportes.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
-                              </select>
-                              <input
-                                type="number" inputMode="decimal" min="0.1" step="0.1" placeholder="Extra"
-                                value={data.deporte_semana_ponderador_extra ?? ''}
-                                onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_ponderador_extra: e.target.value } }))}
-                                disabled={!data.deporte_semana_nombre}
-                                style={{ ...inputStyle, width:70, flexShrink:0, textAlign:'center', opacity: data.deporte_semana_nombre ? 1 : 0.5 }}
-                              />
-                            </div>
                           </div>
                         )}
                       </div>

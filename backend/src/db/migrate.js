@@ -221,6 +221,51 @@ CREATE TABLE IF NOT EXISTS actividad_competencias (
   PRIMARY KEY (actividad_id, competencia_id)
 );
 CREATE INDEX IF NOT EXISTS idx_actividad_competencias_competencia ON actividad_competencias(competencia_id);
+
+-- Challenges: entidad propia de la competencia (ya no columnas escalares en competencia_semanas),
+-- para poder tener varios por semana y agregar nuevos en cualquier momento. semana_id nullable:
+-- NULL = challenge "libre", siempre vigente (usado por competencias sin rango de fechas configurado).
+CREATE TABLE IF NOT EXISTS challenges (
+  id             SERIAL PRIMARY KEY,
+  competencia_id INTEGER NOT NULL REFERENCES competencias(id) ON DELETE CASCADE,
+  semana_id      INTEGER REFERENCES competencia_semanas(id) ON DELETE SET NULL,
+  texto          TEXT NOT NULL,
+  puntos         NUMERIC(6,2) NOT NULL DEFAULT 0,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_challenges_competencia ON challenges(competencia_id);
+CREATE INDEX IF NOT EXISTS idx_challenges_semana ON challenges(semana_id);
+
+-- challenge_completados pasa a apuntar a challenges en vez de a competencia_semanas directamente.
+ALTER TABLE challenge_completados ADD COLUMN IF NOT EXISTS challenge_id INTEGER REFERENCES challenges(id) ON DELETE CASCADE;
+
+-- Migra los datos viejos (challenge_texto/challenge_puntos en competencia_semanas, challenge_completados.semana_id)
+-- a la tabla challenges nueva. Solo corre si las columnas viejas siguen existiendo (una sola vez, luego se dropean).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='competencia_semanas' AND column_name='challenge_texto') THEN
+    INSERT INTO challenges (competencia_id, semana_id, texto, puntos, created_at, updated_at)
+    SELECT s.competencia_id, s.id, s.challenge_texto, s.challenge_puntos, s.created_at, s.updated_at
+    FROM competencia_semanas s
+    WHERE s.challenge_texto IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM challenges c WHERE c.semana_id = s.id);
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='challenge_completados' AND column_name='semana_id') THEN
+    UPDATE challenge_completados cc
+    SET challenge_id = ch.id
+    FROM challenges ch
+    WHERE cc.challenge_id IS NULL AND ch.semana_id = cc.semana_id;
+  END IF;
+END $$;
+
+ALTER TABLE competencia_semanas DROP COLUMN IF EXISTS challenge_texto;
+ALTER TABLE competencia_semanas DROP COLUMN IF EXISTS challenge_puntos;
+ALTER TABLE challenge_completados DROP COLUMN IF EXISTS semana_id;
+ALTER TABLE challenge_completados ALTER COLUMN challenge_id SET NOT NULL;
+DROP INDEX IF EXISTS challenge_completados_semana_id_user_id_key;
+CREATE UNIQUE INDEX IF NOT EXISTS challenge_completados_challenge_id_user_id_key ON challenge_completados(challenge_id, user_id);
 `;
 
 async function migrate() {
