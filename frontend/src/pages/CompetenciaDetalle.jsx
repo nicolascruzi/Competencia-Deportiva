@@ -1781,42 +1781,68 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
       {/* Contenido scrollable (header + tabs + contenido) */}
       <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
 
-        {/* Header perfil: foto a la izquierda, nombre debajo, detalles minimalistas a la derecha */}
-        <div style={{ padding:'52px 20px 14px', display:'flex', alignItems:'flex-start', gap:14 }}>
-          <div style={{ flexShrink:0 }}>
-            <div
-              onClick={() => fotoUrl && setFotoLightbox(true)}
-              style={{ width:72, height:72, borderRadius:'50%', overflow:'hidden', background:'var(--t-surface2)', border:'2px solid var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', cursor: fotoUrl ? 'pointer' : 'default' }}>
-              {fotoUrl
-                ? <img src={fotoUrl} alt={displayNombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:28, color:'var(--t-muted)' }}>{displayNombre.charAt(0).toUpperCase()}</span>
-              }
-            </div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:17, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:8, maxWidth:88, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-              {displayNombre}
-            </div>
-            {(deporteFavorito || rachaActual > 0) && (
-              <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2, lineHeight:1.4, maxWidth:100, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                {rachaActual > 0 && <span>🔥 {rachaActual}d</span>}
-                {deporteFavorito && rachaActual > 0 && <span> · </span>}
-                {deporteFavorito && <span>{sportIcon(deporteFavorito)} {deporteFavorito}</span>}
-              </div>
-            )}
-          </div>
+        {/* Header perfil: foto a la izquierda, nombre debajo, stats destacados a la derecha */}
+        <div style={{
+          position:'relative', overflow:'hidden',
+          padding:'52px 20px 20px',
+          background:'linear-gradient(180deg, rgba(var(--t-accent-r),0.14) 0%, rgba(var(--t-accent-r),0.03) 60%, transparent 100%)',
+        }}>
+          {/* Glow decorativo de fondo */}
+          <div style={{ position:'absolute', top:-60, right:-40, width:180, height:180, borderRadius:'50%', background:'radial-gradient(circle, rgba(var(--t-accent-r),0.22) 0%, transparent 70%)', pointerEvents:'none' }} />
 
-          {/* Stats minimalistas a la derecha */}
-          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8, paddingTop:6, paddingRight:4 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
-              <span style={{ fontSize:11, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>Posts</span>
-              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-text)' }}>{data.length}</span>
+          <div style={{ position:'relative', display:'flex', alignItems:'flex-start', gap:16 }}>
+            <div style={{ flexShrink:0 }}>
+              <div
+                onClick={() => fotoUrl && setFotoLightbox(true)}
+                style={{
+                  width:76, height:76, borderRadius:'50%', overflow:'hidden',
+                  background:'var(--t-surface2)',
+                  border:'2.5px solid var(--t-ground)',
+                  boxShadow:'0 0 0 2.5px rgba(var(--t-accent-r),0.55), 0 6px 16px rgba(0,0,0,0.18)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  cursor: fotoUrl ? 'pointer' : 'default',
+                }}>
+                {fotoUrl
+                  ? <img src={fotoUrl} alt={displayNombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:30, color:'var(--t-accent)' }}>{displayNombre.charAt(0).toUpperCase()}</span>
+                }
+              </div>
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:10, maxWidth:92, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {displayNombre}
+              </div>
+              {(deporteFavorito || rachaActual > 0) && (
+                <div style={{ display:'flex', flexDirection:'column', gap:3, marginTop:5 }}>
+                  {rachaActual > 0 && (
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:4, alignSelf:'flex-start', padding:'2px 8px 2px 6px', borderRadius:20, background:'rgba(251,146,60,0.14)', border:'1px solid rgba(251,146,60,0.3)' }}>
+                      <span style={{ fontSize:11 }}>🔥</span>
+                      <span style={{ fontSize:11, fontWeight:700, color:'#FB923C' }}>{rachaActual}d</span>
+                    </div>
+                  )}
+                  {deporteFavorito && (
+                    <div style={{ fontSize:11, color:'var(--t-muted)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:100 }}>
+                      {sportIcon(deporteFavorito)} {deporteFavorito}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
-              <span style={{ fontSize:11, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>Puntos</span>
-              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)' }}>{Math.round(pts)}</span>
-            </div>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
-              <span style={{ fontSize:11, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>Racha</span>
-              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-text)' }}>{rachaActual}</span>
+
+            {/* Stats destacados a la derecha, estilo tarjeta */}
+            <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8, paddingTop:2 }}>
+              {[
+                { label:'Posts',  value: data.length,        color:'var(--t-text)' },
+                { label:'Puntos', value: Math.round(pts),    color:'var(--t-accent)' },
+                { label:'Racha',  value: rachaActual,        color:'var(--t-text)' },
+              ].map(s => (
+                <div key={s.label} style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  padding:'8px 12px', borderRadius:10,
+                  background:'var(--t-surface)', border:'1px solid var(--t-dim)',
+                }}>
+                  <span style={{ fontSize:11, fontWeight:600, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{s.label}</span>
+                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:800, fontSize:17, color: s.color }}>{s.value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
