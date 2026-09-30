@@ -14,6 +14,7 @@ export const updateEquipos         = (id, equipos)      => apiFetch(`/competenci
 export const updateAsignaciones    = (id, asignaciones) => apiFetch(`/competencias/${id}/equipos/asignaciones`, { method: 'PUT', body: JSON.stringify({ asignaciones }) });
 export const getRankingEquiposComp = (id, mes)          => apiFetch(`/competencias/${id}/ranking-equipos${mes ? `?mes=${mes}` : ''}`);
 export const updateSemanas         = (id, semanas)      => apiFetch(`/competencias/${id}/semanas`, { method: 'PUT', body: JSON.stringify({ semanas }) });
+export const updateConfiguracion   = (id, data)         => apiFetch(`/competencias/${id}/configuracion`, { method: 'PUT', body: JSON.stringify(data) });
 
 export const crearChallenge         = (id, data)              => apiFetch(`/competencias/${id}/challenges`, { method: 'POST', body: JSON.stringify(data) });
 export const updateChallenge        = (id, challengeId, data)  => apiFetch(`/competencias/${id}/challenges/${challengeId}`, { method: 'PUT', body: JSON.stringify(data) });

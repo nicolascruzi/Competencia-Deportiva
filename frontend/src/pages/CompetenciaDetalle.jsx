@@ -3,13 +3,12 @@ import { createPortal } from 'react-dom';
 import {
   getRankingComp, getActividadesComp, updatePonderadores,
   getRankingEquiposComp, updateEquipos, updateAsignaciones, updateSemanas,
-  crearChallenge, updateChallenge, deleteChallenge,
+  crearChallenge, updateChallenge, deleteChallenge, updateConfiguracion,
 } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
 import { getDeportes as getAllDeportes, createDeporte, getActividades } from '../api/actividades';
 import { FeedCard } from '../components/FeedCard';
-import ProfileSettingsSheet from '../components/ProfileSettingsSheet';
 import { sportIcon } from '../lib/sportIcons';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
@@ -1581,7 +1580,6 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
   const [lightbox, setLightbox] = useState(null);
   const [profileTab, setProfileTab] = useState('posts'); // 'posts' | 'calendar' | 'evolucion'
   const [activePostId, setActivePostId] = useState(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const postRefs = useRef({});
   // allData: actividades acumuladas del jugador (todas sus competencias si isOwnProfile, o de esta competencia) para stats/evolución/posts
   const [allData, setAllData] = useState(null); // null = cargando
@@ -1684,22 +1682,8 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
         document.body
       )}
 
-      {/* Sheet de ajustes (solo perfil propio) */}
-      {settingsOpen && isOwnProfile && (
-        <ProfileSettingsSheet onClose={() => setSettingsOpen(false)} />
-      )}
-
-      {/* Botones flotantes: ajustes (propio) + cerrar (si no es página embebida) */}
+      {/* Botón flotante: cerrar (si no es página embebida) */}
       <div style={{ position:'absolute', top:14, right:14, zIndex:20, display:'flex', gap:8 }}>
-        {isOwnProfile && (
-          <button onClick={() => setSettingsOpen(true)} aria-label="Editar perfil"
-            style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-            </svg>
-          </button>
-        )}
         {!asPage && (
           <button onClick={onClose}
             style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
@@ -2175,6 +2159,112 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
 
 // ─── SHEET ADMIN: gestión de equipos (nombres + asignación de participantes) ──
 
+// ─── SHEET ADMIN: configuración general (fechas + bonus por compañía) ────────
+
+function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
+  const [fechaInicio, setFechaInicio] = useState(competencia.fecha_inicio || '');
+  const [fechaFin, setFechaFin]       = useState(competencia.fecha_fin || '');
+  const [bonusCompaneros, setBonusCompaneros] = useState(String(competencia.bonus_companeros_pts ?? 0));
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState('');
+  const startY = useRef(null);
+
+  const tieneSemanas = (competencia.semanas?.length ?? 0) > 0;
+
+  function onTouchStart(e) { startY.current = e.touches[0].clientY; }
+  function onTouchEnd(e) {
+    if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 80) onClose();
+    startY.current = null;
+  }
+
+  async function handleSave() {
+    setSaving(true); setError('');
+    try {
+      const actualizada = await updateConfiguracion(competencia.id, {
+        fecha_inicio: fechaInicio || null,
+        fecha_fin: fechaFin || null,
+        bonus_companeros_pts: parseFloat(bonusCompaneros) || 0,
+      });
+      onSaved(actualizada);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'90dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
+
+        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0, cursor:'grab' }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+        </div>
+
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
+          <div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>Configuración general</div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>{competencia.nombre}</div>
+          </div>
+          <button onClick={onClose}
+            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>✕</button>
+        </div>
+
+        {error && (
+          <div style={{ margin:'8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>{error}</div>
+        )}
+
+        <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:18 }}>
+
+          {/* Fechas */}
+          <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Duración</div>
+            {tieneSemanas && (
+              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>
+                Esta competencia ya tiene semanas generadas: la fecha de inicio no se puede cambiar, y la de fin solo se puede extender hacia adelante.
+              </div>
+            )}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <input
+                type="date" value={fechaInicio} disabled={readOnly || tieneSemanas}
+                onChange={e => setFechaInicio(e.target.value)}
+                style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', opacity: tieneSemanas ? 0.6 : 1 }}
+              />
+              <input
+                type="date" value={fechaFin} min={tieneSemanas ? competencia.fecha_fin : (fechaInicio || undefined)} disabled={readOnly}
+                onChange={e => setFechaFin(e.target.value)}
+                style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+              />
+            </div>
+          </div>
+
+          {/* Bonus por compañía */}
+          <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Bonus por actividad en compañía</div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Puntos extra fijos si un participante marca que hizo la actividad con un compañero de equipo. 0 = desactivado.</div>
+            <input
+              type="number" inputMode="decimal" min="0" step="1" disabled={readOnly}
+              value={bonusCompaneros} onChange={e => setBonusCompaneros(e.target.value)}
+              style={{ width:100, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+            />
+          </div>
+        </div>
+
+        {!readOnly && (
+          <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
+            <button onClick={handleSave} disabled={saving}
+              style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false }) {
   const [equipos, setEquipos] = useState((competencia.equipos || []).map(e => ({ id: e.id, nombre: e.nombre, color: e.color })));
   const [asignaciones, setAsignaciones] = useState(() => {
@@ -2494,7 +2584,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
   );
 }
 
-export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, navYear, navMonth, onNavYear, onNavMonth }) {
+export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, configSheetOpen, onConfigSheetClose, navYear, navMonth, onNavYear, onNavMonth }) {
   const { user } = useAuth();
   const { withLoading } = useLoading();
   const now = new Date();
@@ -2687,6 +2777,19 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
           onClose={onSemanasSheetClose}
           onSaved={(updatedSemanas, updatedChallenges) => {
             setCompConDeportes(prev => ({ ...prev, semanas: updatedSemanas, challenges: updatedChallenges }));
+            setRankingRefreshKey(k => k + 1);
+          }}
+        />,
+        document.body
+      )}
+
+      {configSheetOpen && createPortal(
+        <AdminConfigSheet
+          competencia={compConDeportes}
+          readOnly={user?.id !== competencia.creador_id}
+          onClose={onConfigSheetClose}
+          onSaved={actualizada => {
+            setCompConDeportes(prev => ({ ...prev, ...actualizada }));
             setRankingRefreshKey(k => k + 1);
           }}
         />,

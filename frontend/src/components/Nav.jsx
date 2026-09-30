@@ -50,12 +50,12 @@ const IconBell = () => (
   </svg>
 );
 
-export default function Nav({ onNewActivity, competenciaActiva, onSelectCompetencia, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, isGlobalAdmin, onNotifClick }) {
+export default function Nav({ onNewActivity, competenciaActiva, onSelectCompetencia, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
   const { themeId, setTheme, palettes } = useTheme();
   const { notifs, unread, markRead, markAll } = useNotifications() || { notifs: [], unread: 0, markRead: () => {}, markAll: () => {} };
   const [selectorOpen, setSelectorOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen]   = useState(false);
-  const [paletteOpen, setPaletteOpen]     = useState(false);
+  const [settingsView, setSettingsView]   = useState('root'); // 'root' | 'paleta' | 'competencia'
   const [notifOpen, setNotifOpen]         = useState(false);
   const [competencias, setCompetencias]   = useState([]);
   const [loadingComps, setLoadingComps]   = useState(false);
@@ -79,7 +79,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
   // Cierra settings al click exterior
   useEffect(() => {
     if (!settingsOpen) return;
-    function h(e) { if (settingsRef.current && !settingsRef.current.contains(e.target)) { setSettingsOpen(false); setPaletteOpen(false); } }
+    function h(e) { if (settingsRef.current && !settingsRef.current.contains(e.target)) { setSettingsOpen(false); setSettingsView('root'); } }
     document.addEventListener('mousedown', h);
     document.addEventListener('touchstart', h);
     return () => { document.removeEventListener('mousedown', h); document.removeEventListener('touchstart', h); };
@@ -198,7 +198,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
               )}
             </div>
           )}
-          <button onClick={() => { setSettingsOpen(o => !o); setPaletteOpen(false); setNotifOpen(false); }} aria-label="Configuración"
+          <button onClick={() => { setSettingsOpen(o => !o); setSettingsView('root'); setNotifOpen(false); }} aria-label="Configuración"
             style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-accent)', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'color 0.15s' }}>
             <IconSettings />
           </button>
@@ -206,7 +206,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
       </header>
 
       {/* ── OVERLAY compartido ── */}
-      <div onClick={() => { setSelectorOpen(false); setSettingsOpen(false); setPaletteOpen(false); setNotifOpen(false); }} style={{
+      <div onClick={() => { setSelectorOpen(false); setSettingsOpen(false); setSettingsView('root'); setNotifOpen(false); }} style={{
         position:'fixed', inset:0, zIndex:49,
         background:'rgba(0,0,0,0.35)',
         backdropFilter:'blur(2px)', WebkitBackdropFilter:'blur(2px)',
@@ -304,16 +304,16 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
           </div>
         </div>
 
-        {/* Vista: lista de opciones */}
+        {/* Vista: lista raíz de secciones */}
         <div style={{
           display: 'grid',
-          gridTemplateRows: paletteOpen ? '0fr' : '1fr',
+          gridTemplateRows: settingsView === 'root' ? '1fr' : '0fr',
           transition: 'grid-template-rows 0.2s ease',
           overflow: 'hidden',
         }}>
           <div style={{ overflow:'hidden' }}>
             <button
-              onClick={() => setPaletteOpen(true)}
+              onClick={() => setSettingsView('paleta')}
               style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
               <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconPalette /></span>
               <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Paleta de colores</span>
@@ -321,44 +321,138 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
             </button>
             {competenciaActiva && (
               <button
-                onClick={() => { setSettingsOpen(false); onAdminPonderadores?.(); }}
+                onClick={() => setSettingsView('competencia')}
                 style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
                 <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                    <path d="M6 9H4.5a2.5 2.5 0 000 5H6"/><path d="M18 9h1.5a2.5 2.5 0 010 5H18"/>
+                    <path d="M8 9h8"/><path d="M8 15h8"/>
                   </svg>
                 </span>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Ponderadores</span>
-                <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
+                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Competencia</span>
+                <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
               </button>
             )}
+            <button
+              onClick={() => { setSettingsOpen(false); setSettingsView('root'); onOpenPerfil?.(); }}
+              style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+              <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+              </span>
+              <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Perfil</span>
+              <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
+            </button>
+          </div>
+        </div>
+
+        {/* Vista: selector de paleta */}
+        <div style={{
+          display: 'grid',
+          gridTemplateRows: settingsView === 'paleta' ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.2s ease',
+          overflow: 'hidden',
+        }}>
+          <div style={{ overflow:'hidden' }}>
+            {/* Volver */}
+            <button
+              onClick={() => setSettingsView('root')}
+              style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', background:'transparent', border:'none', borderBottom:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+              <span style={{ color:'var(--t-muted)' }}><IconBack /></span>
+              <span style={{ fontSize:13, fontWeight:600, color:'var(--t-muted)' }}>Paleta de colores</span>
+            </button>
+
+            {/* Opciones de paleta */}
+            {PALETTE_ORDER.map(id => {
+              const p = palettes[id];
+              const isActive = themeId === id;
+              return (
+                <button key={id} onClick={() => setTheme(id)}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'11px 16px', background: isActive ? 'rgba(var(--t-accent-r),0.07)' : 'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                  {/* Muestras */}
+                  <div style={{ display:'flex', gap:2, flexShrink:0 }}>
+                    {p.preview.slice(0, 4).map((hex, i) => (
+                      <div key={i} style={{ width:10, height:10, borderRadius:3, background:hex, border: (hex === '#FFFFFF' || hex.toLowerCase() === '#fafaf8' || hex.toLowerCase() === '#f5f2ed' || hex.toLowerCase() === '#fdf9fb') ? '1px solid #ccc' : 'none' }} />
+                    ))}
+                    <div style={{ width:14, height:10, borderRadius:4, background:p.preview[5] || p.preview[4], flexShrink:0 }} />
+                  </div>
+                  <span style={{ flex:1, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.03em', color: isActive ? 'var(--t-accent)' : 'var(--t-text)' }}>
+                    {p.nombre}
+                  </span>
+                  {isActive && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Vista: competencia (Ponderadores, Equipos, Challenges, Config general, PIN) */}
+        <div style={{
+          display: 'grid',
+          gridTemplateRows: settingsView === 'competencia' ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.2s ease',
+          overflow: 'hidden',
+        }}>
+          <div style={{ overflow:'hidden' }}>
+            {/* Volver */}
+            <button
+              onClick={() => setSettingsView('root')}
+              style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', background:'transparent', border:'none', borderBottom:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+              <span style={{ color:'var(--t-muted)' }}><IconBack /></span>
+              <span style={{ fontSize:13, fontWeight:600, color:'var(--t-muted)' }}>Competencia</span>
+            </button>
+
             {competenciaActiva && (
-              <button
-                onClick={() => { setSettingsOpen(false); onAdminEquipos?.(); }}
-                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
-                  </svg>
-                </span>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Equipos</span>
-                <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
-              </button>
-            )}
-            {competenciaActiva && (
-              <button
-                onClick={() => { setSettingsOpen(false); onAdminSemanas?.(); }}
-                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
-                </span>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Challenges semanales</span>
-                <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
-              </button>
+              <>
+                <button
+                  onClick={() => { setSettingsOpen(false); setSettingsView('root'); onAdminPonderadores?.(); }}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                    </svg>
+                  </span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Ponderadores</span>
+                  <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
+                </button>
+                <button
+                  onClick={() => { setSettingsOpen(false); setSettingsView('root'); onAdminEquipos?.(); }}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                    </svg>
+                  </span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Equipos</span>
+                  <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
+                </button>
+                <button
+                  onClick={() => { setSettingsOpen(false); setSettingsView('root'); onAdminSemanas?.(); }}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                  </span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Challenges semanales</span>
+                  <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
+                </button>
+                <button
+                  onClick={() => { setSettingsOpen(false); setSettingsView('root'); onAdminConfig?.(); }}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                    </svg>
+                  </span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Configuración general</span>
+                  <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
+                </button>
+              </>
             )}
             {competenciaActiva?.pin && (
               <button
@@ -387,46 +481,6 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
                 </span>
               </button>
             )}
-          </div>
-        </div>
-
-        {/* Vista: selector de paleta */}
-        <div style={{
-          display: 'grid',
-          gridTemplateRows: paletteOpen ? '1fr' : '0fr',
-          transition: 'grid-template-rows 0.2s ease',
-          overflow: 'hidden',
-        }}>
-          <div style={{ overflow:'hidden' }}>
-            {/* Volver */}
-            <button
-              onClick={() => setPaletteOpen(false)}
-              style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', background:'transparent', border:'none', borderBottom:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-              <span style={{ color:'var(--t-muted)' }}><IconBack /></span>
-              <span style={{ fontSize:13, fontWeight:600, color:'var(--t-muted)' }}>Paleta de colores</span>
-            </button>
-
-            {/* Opciones de paleta */}
-            {PALETTE_ORDER.map(id => {
-              const p = palettes[id];
-              const isActive = themeId === id;
-              return (
-                <button key={id} onClick={() => setTheme(id)}
-                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'11px 16px', background: isActive ? 'rgba(var(--t-accent-r),0.07)' : 'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                  {/* Muestras */}
-                  <div style={{ display:'flex', gap:2, flexShrink:0 }}>
-                    {p.preview.slice(0, 4).map((hex, i) => (
-                      <div key={i} style={{ width:10, height:10, borderRadius:3, background:hex, border: (hex === '#FFFFFF' || hex.toLowerCase() === '#fafaf8' || hex.toLowerCase() === '#f5f2ed' || hex.toLowerCase() === '#fdf9fb') ? '1px solid #ccc' : 'none' }} />
-                    ))}
-                    <div style={{ width:14, height:10, borderRadius:4, background:p.preview[5] || p.preview[4], flexShrink:0 }} />
-                  </div>
-                  <span style={{ flex:1, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.03em', color: isActive ? 'var(--t-accent)' : 'var(--t-text)' }}>
-                    {p.nombre}
-                  </span>
-                  {isActive && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
-                </button>
-              );
-            })}
           </div>
         </div>
       </div>

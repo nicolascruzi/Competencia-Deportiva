@@ -67,7 +67,10 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   const { withLoading } = useLoading();
 
   // Competencias en curso donde tengo equipo con al menos un compañero — una sección de chips por cada una
-  const competenciasConEquipo = misCompetencias.filter(c => c.en_curso && c.mi_equipo_id != null && (c.mis_companeros_equipo?.length ?? 0) > 0);
+  const competenciasConEquipo = misCompetencias.filter(c =>
+    c.en_curso && c.mi_equipo_id != null && (c.mis_companeros_equipo?.length ?? 0) > 0
+    && parseFloat(c.bonus_companeros_pts) > 0
+  );
 
   // Mapa de ponderadores de la competencia activa: { deporte_nombre → ponderador }
   // Solo se considera "activo" si la competencia tiene deportes configurados con al menos un valor

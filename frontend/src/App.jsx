@@ -11,6 +11,7 @@ import MiPerfil from './pages/MiPerfil';
 import SemanaPanel from './pages/SemanaPanel';
 import AdminPanel from './pages/AdminPanel';
 import SinCompetencia from './components/SinCompetencia';
+import ProfileSettingsSheet from './components/ProfileSettingsSheet';
 import Nav from './components/Nav';
 import BottomTabBar from './components/BottomTabBar';
 import ActivityModal from './components/ActivityModal';
@@ -118,6 +119,8 @@ function AppShell() {
   const [adminSheetOpen, setAdminSheetOpen]   = useState(false);
   const [equiposSheetOpen, setEquiposSheetOpen] = useState(false);
   const [semanasSheetOpen, setSemanasSheetOpen] = useState(false);
+  const [configSheetOpen, setConfigSheetOpen] = useState(false);
+  const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
   const [restoringComp, setRestoringComp]     = useState(true);
   const [toast, setToast]                     = useState(null); // { actividad, ptsAntes, ptsDespues }
   const [evolucionSignal, setEvolucionSignal] = useState(0);
@@ -242,6 +245,8 @@ function AppShell() {
           onEquiposSheetClose={() => setEquiposSheetOpen(false)}
           semanasSheetOpen={semanasSheetOpen}
           onSemanasSheetClose={() => setSemanasSheetOpen(false)}
+          configSheetOpen={configSheetOpen}
+          onConfigSheetClose={() => setConfigSheetOpen(false)}
           navYear={navYear}
           navMonth={navMonth}
           onNavYear={setNavYear}
@@ -277,12 +282,18 @@ function AppShell() {
         onAdminPonderadores={() => setAdminSheetOpen(true)}
         onAdminEquipos={() => setEquiposSheetOpen(true)}
         onAdminSemanas={() => setSemanasSheetOpen(true)}
+        onAdminConfig={() => setConfigSheetOpen(true)}
+        onOpenPerfil={() => setProfileSettingsOpen(true)}
         isGlobalAdmin={isGlobalAdmin}
         onNotifClick={(actividadId) => {
           setNotifScroll({ id: actividadId, ts: Date.now() });
           setMainTab('feed');
         }}
       />
+
+      {profileSettingsOpen && (
+        <ProfileSettingsSheet onClose={() => setProfileSettingsOpen(false)} />
+      )}
 
       {/* Indicador PTR fijo debajo de la navbar */}
       <PullToRefreshIndicator pullY={ptrState.pullY} refreshing={ptrState.refreshing} closing={ptrState.closing} />

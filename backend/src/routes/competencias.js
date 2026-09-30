@@ -43,7 +43,7 @@ function calcularSemanas(fechaInicio, fechaFin) {
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at,
+      `SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at, c.bonus_companeros_pts,
               TO_CHAR(c.fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
               TO_CHAR(c.fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
               (c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR CURRENT_DATE BETWEEN c.fecha_inicio AND c.fecha_fin) AS en_curso,
@@ -283,6 +283,85 @@ router.get('/:id', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener competencia' });
+  }
+});
+
+// PUT /competencias/:id/configuracion — editar fechas y bonus por compañía (solo creador)
+router.put('/:id/configuracion', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { fecha_inicio, fecha_fin, bonus_companeros_pts } = req.body;
+
+  try {
+    const { rows: [comp] } = await pool.query(
+      `SELECT id, creador_id, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
+       FROM competencias WHERE id=$1`,
+      [id]
+    );
+    if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
+    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede editar la configuración' });
+
+    const { rows: [{ count: numSemanas }] } = await pool.query(
+      'SELECT COUNT(*)::int AS count FROM competencia_semanas WHERE competencia_id=$1',
+      [id]
+    );
+    const tieneSemanas = numSemanas > 0;
+
+    const nuevaFechaInicio = fecha_inicio !== undefined ? (fecha_inicio || null) : comp.fecha_inicio;
+    const nuevaFechaFin    = fecha_fin    !== undefined ? (fecha_fin    || null) : comp.fecha_fin;
+
+    if ((nuevaFechaInicio && !nuevaFechaFin) || (!nuevaFechaInicio && nuevaFechaFin))
+      return res.status(400).json({ error: 'Definí fecha de inicio y fin, o ninguna de las dos' });
+    if (nuevaFechaInicio && nuevaFechaFin && nuevaFechaFin < nuevaFechaInicio)
+      return res.status(400).json({ error: 'La fecha de fin no puede ser anterior a la de inicio' });
+
+    if (tieneSemanas) {
+      if (fecha_inicio !== undefined && fecha_inicio !== comp.fecha_inicio)
+        return res.status(400).json({ error: 'No se puede cambiar la fecha de inicio de una competencia que ya tiene semanas generadas' });
+      if (fecha_fin !== undefined && comp.fecha_fin && fecha_fin < comp.fecha_fin)
+        return res.status(400).json({ error: 'No se puede acortar la fecha de fin por debajo de las semanas ya generadas' });
+    }
+
+    const sets = [];
+    const params = [];
+    if (fecha_inicio !== undefined) { params.push(nuevaFechaInicio); sets.push(`fecha_inicio=$${params.length}`); }
+    if (fecha_fin !== undefined)    { params.push(nuevaFechaFin);    sets.push(`fecha_fin=$${params.length}`); }
+    if (bonus_companeros_pts !== undefined) { params.push(parseFloat(bonus_companeros_pts) || 0); sets.push(`bonus_companeros_pts=$${params.length}`); }
+
+    if (sets.length) {
+      params.push(id);
+      await pool.query(`UPDATE competencias SET ${sets.join(', ')} WHERE id=$${params.length}`, params);
+    }
+
+    // Si quedó un rango de fechas válido, generar las semanas que falten (no duplica las existentes).
+    if (nuevaFechaInicio && nuevaFechaFin) {
+      const semanasCalculadas = calcularSemanas(nuevaFechaInicio, nuevaFechaFin);
+      for (const s of semanasCalculadas) {
+        await pool.query(
+          `INSERT INTO competencia_semanas (competencia_id, numero_semana, fecha_inicio, fecha_fin)
+           VALUES ($1,$2,$3,$4) ON CONFLICT (competencia_id, numero_semana) DO NOTHING`,
+          [id, s.numero_semana, s.fecha_inicio, s.fecha_fin]
+        );
+      }
+    }
+
+    const { rows: [actualizada] } = await pool.query(
+      `SELECT id, bonus_companeros_pts, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
+       FROM competencias WHERE id=$1`,
+      [id]
+    );
+    const { rows: semanas } = await pool.query(
+      `SELECT id, competencia_id, numero_semana,
+              TO_CHAR(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
+              TO_CHAR(fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
+              deporte_semana_nombre, deporte_semana_ponderador_extra
+       FROM competencia_semanas WHERE competencia_id=$1 ORDER BY numero_semana`,
+      [id]
+    );
+
+    res.json({ ...actualizada, semanas });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar la configuración' });
   }
 });
 
