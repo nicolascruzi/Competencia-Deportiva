@@ -302,6 +302,22 @@ BEGIN
 END $$;
 
 DROP TABLE IF EXISTS actividad_companeros;
+
+-- Extra de ponderador (aditivo sobre el ponderador_default del deporte) cuando un deporte
+-- gana la votación semanal o es fijado a mano en la semana 1.
+ALTER TABLE competencias ADD COLUMN IF NOT EXISTS bonus_deporte_semana_extra NUMERIC(4,2) NOT NULL DEFAULT 0.3;
+
+-- Votos de los participantes por el deporte de una semana futura (semana 2+; la semana 1 la fija el admin a mano).
+-- Un voto por persona por semana (se puede cambiar, vía upsert).
+CREATE TABLE IF NOT EXISTS votos_deporte_semana (
+  id                      SERIAL PRIMARY KEY,
+  competencia_semana_id   INTEGER NOT NULL REFERENCES competencia_semanas(id) ON DELETE CASCADE,
+  user_id                 INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  deporte_id              INTEGER NOT NULL REFERENCES deportes(id) ON DELETE CASCADE,
+  created_at              TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (competencia_semana_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_votos_semana ON votos_deporte_semana(competencia_semana_id);
 `;
 
 async function migrate() {

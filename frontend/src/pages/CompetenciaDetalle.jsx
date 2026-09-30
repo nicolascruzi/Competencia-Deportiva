@@ -2372,6 +2372,7 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
   const [bonus1, setBonus1]         = useState(String(parseFloat(competencia.bonus_1_companero_pts) || 0));
   const [bonus2, setBonus2]         = useState(String(parseFloat(competencia.bonus_2_companeros_pts) || 0));
   const [bonus3mas, setBonus3mas]   = useState(String(parseFloat(competencia.bonus_3mas_companeros_pts) || 0));
+  const [bonusDeporteSemana, setBonusDeporteSemana] = useState(String(parseFloat(competencia.bonus_deporte_semana_extra) ?? 0.3));
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
   const startY = useRef(null);
@@ -2393,6 +2394,7 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
         bonus_1_companero_pts: parseFloat(bonus1) || 0,
         bonus_2_companeros_pts: parseFloat(bonus2) || 0,
         bonus_3mas_companeros_pts: parseFloat(bonus3mas) || 0,
+        bonus_deporte_semana_extra: parseFloat(bonusDeporteSemana) || 0,
       });
       onSaved(actualizada);
       onClose();
@@ -2470,6 +2472,22 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
                   />
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Extra ponderador deporte de la semana */}
+          <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Extra ponderador deporte de la semana</div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>
+              Se suma al ponderador propio del deporte elegido (a mano en la semana 1, por votación desde la semana 2) durante esa semana.
+            </div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'10px 12px', borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)' }}>
+              <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Extra (×)</span>
+              <input
+                type="number" inputMode="decimal" min="0" step="0.1" disabled={readOnly}
+                value={bonusDeporteSemana} onChange={e => setBonusDeporteSemana(e.target.value)}
+                style={{ width:80, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+              />
             </div>
           </div>
         </div>
@@ -2645,7 +2663,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
   async function handleSave() {
     setSaving(true); setError('');
     try {
-      await updateSemanas(competencia.id, semanas.map(s => ({
+      await updateSemanas(competencia.id, semanas.filter(s => s.numero_semana === 1).map(s => ({
         id: s.id,
         deporte_semana_nombre: s.deporte_semana_nombre,
         deporte_semana_ponderador_extra: s.deporte_semana_ponderador_extra,
@@ -2749,11 +2767,14 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
             )}
           </div>
 
-          {/* ── Deporte de la semana ────────────────────────────────── */}
-          {semanas.length > 0 && (
+          {/* ── Deporte de la semana 1 (única editable a mano; desde la semana 2 se decide por votación) ── */}
+          {semanas.some(s => s.numero_semana === 1) && (
             <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deporte de la semana</div>
-              {semanas.map(s => {
+              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deporte de la semana 1</div>
+              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>
+                Desde la semana 2 el deporte se decide por votación de los participantes, en la pestaña Semana.
+              </div>
+              {semanas.filter(s => s.numero_semana === 1).map(s => {
                 const isOpen = abierta === s.id;
                 const isActual = s.id === competencia.semana_actual_id;
                 const tieneContenido = !!s.deporte_semana_nombre;
