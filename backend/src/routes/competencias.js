@@ -651,6 +651,29 @@ router.post('/:id/challenges/:challengeId/completar', authMiddleware, async (req
   }
 });
 
+// DELETE /competencias/:id/challenges/:challengeId/completar — desmarcar un challenge (deshacer)
+router.delete('/:id/challenges/:challengeId/completar', authMiddleware, async (req, res) => {
+  const { id, challengeId } = req.params;
+
+  try {
+    const { rows: [part] } = await pool.query(
+      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
+      [id, req.user.id]
+    );
+    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+
+    await pool.query(
+      `DELETE FROM challenge_completados WHERE challenge_id=$1 AND user_id=$2`,
+      [challengeId, req.user.id]
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al desmarcar el challenge' });
+  }
+});
+
 // GET /competencias/:id/challenges/:challengeId/completados — quién completó este challenge
 router.get('/:id/challenges/:challengeId/completados', authMiddleware, async (req, res) => {
   const { id, challengeId } = req.params;

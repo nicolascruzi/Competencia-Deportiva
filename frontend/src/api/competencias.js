@@ -20,6 +20,7 @@ export const crearChallenge         = (id, data)              => apiFetch(`/comp
 export const updateChallenge        = (id, challengeId, data)  => apiFetch(`/competencias/${id}/challenges/${challengeId}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteChallenge        = (id, challengeId)        => apiFetch(`/competencias/${id}/challenges/${challengeId}`, { method: 'DELETE' });
 export const completarChallenge     = (id, challengeId)        => apiFetch(`/competencias/${id}/challenges/${challengeId}/completar`, { method: 'POST' });
+export const descompletarChallenge  = (id, challengeId)        => apiFetch(`/competencias/${id}/challenges/${challengeId}/completar`, { method: 'DELETE' });
 export const getCompletadosChallenge = (id, challengeId)       => apiFetch(`/competencias/${id}/challenges/${challengeId}/completados`);
 
 export const getComentarios    = (actividadId)           => apiFetch(`/comentarios/${actividadId}`);

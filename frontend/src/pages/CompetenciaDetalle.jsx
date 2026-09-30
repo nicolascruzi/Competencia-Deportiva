@@ -432,6 +432,172 @@ function RankingEvolucion({ acts, nombres }) {
 
 const AVATAR_COLORS = ['#C25E2A','#5E83A6','#B08534','#7E6BB0','#3F9B86','#C07D3F','#4A7C59','#A6455E'];
 
+// ─── EVOLUCIÓN DE EQUIPOS ─────────────────────────────────────────────────────
+// Mismo dibujo de canvas que RankingEvolucion, agrupando por equipo en vez de por persona.
+
+function TeamEvolucion({ acts, equipos, rankingData }) {
+  const canvasRef = useRef(null);
+  const [hidden, setHidden] = useState(new Set());
+
+  const equipoPorUser = new Map(rankingData.map(r => [String(r.id), r.equipo_id]));
+  const colorPorEquipo = new Map(equipos.map((eq, i) => [eq.id, eq.color || AVATAR_COLORS[i % AVATAR_COLORS.length]]));
+  const nombrePorEquipoId = new Map(equipos.map(eq => [eq.id, eq.nombre]));
+
+  // Solo cuentan actividades de usuarios con equipo asignado
+  const actsConEquipo = acts
+    .map(a => ({ ...a, _equipoId: equipoPorUser.get(String(a.user_id)) }))
+    .filter(a => a._equipoId != null);
+
+  const equipoNombres = equipos.filter(eq => actsConEquipo.some(a => a._equipoId === eq.id)).map(eq => eq.nombre);
+  const allDates = [...new Set(actsConEquipo.map(a => a.fecha.slice(0,10)))].sort();
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !actsConEquipo.length) return;
+    const ctx = canvas.getContext('2d');
+
+    const cumulMap = {};
+    equipoNombres.forEach(n => { cumulMap[n] = 0; });
+    const series = {};
+    equipoNombres.forEach(n => { series[n] = {}; });
+    [...actsConEquipo].sort((a, b) => a.fecha.localeCompare(b.fecha)).forEach(a => {
+      const nombreEquipo = nombrePorEquipoId.get(a._equipoId);
+      if (nombreEquipo == null) return;
+      cumulMap[nombreEquipo] += a.puntos;
+      series[nombreEquipo][a.fecha.slice(0,10)] = cumulMap[nombreEquipo];
+    });
+    const equipoLines = equipoNombres.map(n => {
+      let last = 0;
+      return allDates.map(d => { if (series[n][d] !== undefined) last = series[n][d]; return last; });
+    });
+
+    const W = canvas.parentElement?.offsetWidth || 300;
+    const H = 240;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.scale(dpr, dpr);
+
+    const pad = { top:16, right:16, bottom:28, left:46 };
+    const w = W - pad.left - pad.right;
+    const h = H - pad.top - pad.bottom;
+    const maxVal = Math.max(...equipoLines.flat()) || 1;
+    const n = allDates.length;
+
+    // Gridlines
+    [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+      const y = pad.top + h * (1 - t);
+      ctx.strokeStyle = 'rgba(50,65,90,0.7)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + w, y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(120,145,180,0.7)';
+      ctx.font = `10px JetBrains Mono, monospace`;
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.round(maxVal * t).toLocaleString('es'), pad.left - 5, y + 4);
+    });
+
+    // Etiquetas eje X
+    const maxLabels = W < 340 ? 3 : 5;
+    const step = Math.max(1, Math.floor(n / maxLabels));
+    ctx.fillStyle = 'rgba(120,145,180,0.7)';
+    ctx.font = `9px Inter, sans-serif`;
+    ctx.textAlign = 'center';
+    allDates.forEach((d, i) => {
+      if (i % step === 0 || i === n - 1) {
+        const x = pad.left + (i / Math.max(n - 1, 1)) * w;
+        const parts = d.split('-');
+        ctx.fillText(`${parts[2]}/${parts[1]}`, x, H - 6);
+      }
+    });
+
+    // Líneas por equipo
+    equipoLines.forEach((line, ei) => {
+      const nombreEquipo = equipoNombres[ei];
+      if (hidden.has(nombreEquipo)) return;
+      const eq = equipos.find(e => e.nombre === nombreEquipo);
+      const color = eq ? colorPorEquipo.get(eq.id) : AVATAR_COLORS[ei % AVATAR_COLORS.length];
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      line.forEach((val, i) => {
+        const x = pad.left + (i / Math.max(n - 1, 1)) * w;
+        const y = pad.top + h * (1 - val / maxVal);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      // Punto final
+      const lx = pad.left + w;
+      const ly = pad.top + h * (1 - line[line.length - 1] / maxVal);
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'var(--t-ground, #0e0f11)';
+      ctx.beginPath(); ctx.arc(lx, ly, 2, 0, Math.PI * 2); ctx.fill();
+    });
+  }, [actsConEquipo, equipoNombres, allDates, hidden]);
+
+  useEffect(() => { draw(); }, [draw]);
+  useEffect(() => {
+    const ro = new ResizeObserver(draw);
+    if (canvasRef.current?.parentElement) ro.observe(canvasRef.current.parentElement);
+    return () => ro.disconnect();
+  }, [draw]);
+
+  if (!actsConEquipo.length) return <EmptyState icon="📈" title="Sin datos" />;
+
+  return (
+    <div style={{ padding:'12px 0 24px' }}>
+      <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 12px 10px', margin:'0 16px', overflow:'hidden' }}>
+        <canvas ref={canvasRef} style={{ display:'block', width:'100%', maxWidth:'100%' }} />
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:12 }}>
+          {equipoNombres.map((n, i) => {
+            const eq = equipos.find(e => e.nombre === n);
+            const color = eq ? colorPorEquipo.get(eq.id) : AVATAR_COLORS[i % AVATAR_COLORS.length];
+            return (
+              <button key={n}
+                onClick={() => setHidden(h => { const s = new Set(h); s.has(n) ? s.delete(n) : s.add(n); return s; })}
+                style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, fontWeight:600, padding:'4px 9px', borderRadius:7, border:'1px solid var(--t-dim)', background: hidden.has(n) ? 'transparent' : 'rgba(var(--t-accent-r),0.04)', color: hidden.has(n) ? 'var(--t-muted)' : 'var(--t-text)', opacity: hidden.has(n) ? 0.4 : 1, cursor:'pointer', WebkitTapHighlightColor:'transparent', maxWidth:'100%' }}>
+                <span style={{ width:8, height:8, borderRadius:'50%', background: color, flexShrink:0, display:'inline-block', opacity: hidden.has(n) ? 0.3 : 1 }} />
+                <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RankingEquiposConTabs({ data, rankingData, acts }) {
+  const [subtab, setSubtab] = useState('tabla');
+
+  const tabBtn = (id, label) => (
+    <button key={id} onClick={() => setSubtab(id)}
+      style={{ padding:'8px 16px', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', background:'transparent',
+        color: subtab === id ? 'var(--t-accent)' : 'var(--t-muted)',
+        borderBottom: subtab === id ? '2.5px solid var(--t-accent)' : '2.5px solid transparent',
+      }}>{label}</button>
+  );
+
+  return (
+    <div>
+      <div style={{ display:'flex', borderBottom:'1px solid var(--t-dim)' }}>
+        {tabBtn('tabla', 'Tabla')}
+        {tabBtn('evolucion', 'Evolución')}
+      </div>
+      {subtab === 'evolucion'
+        ? <TeamEvolucion acts={acts} equipos={data} rankingData={rankingData} />
+        : <RankingEquipos data={data} rankingData={rankingData} />
+      }
+    </div>
+  );
+}
+
 // Calcula puntos por semana sobre un array de actividades ya filtrado
 function weeklyPtsFromData(data, n = 4) {
   const now = new Date();
@@ -451,6 +617,23 @@ function weeklyPtsFromData(data, n = 4) {
 function fechaNum(s) {
   const clean = (s || '').slice(0, 10).replace(/-/g, '');
   return parseInt(clean, 10) || 0;
+}
+
+// Racha: días consecutivos con actividad, terminando hoy o ayer
+function computeRacha(actsDeLaPersona) {
+  const dias = new Set(actsDeLaPersona.map(a => fechaNum(a.fecha)));
+  if (dias.size === 0) return 0;
+  const hoyNum = fechaNum(new Date().toISOString());
+  let cursor = dias.has(hoyNum) ? hoyNum : fechaNum(new Date(Date.now() - 86400000).toISOString());
+  if (!dias.has(cursor)) return 0;
+  let streak = 0;
+  while (dias.has(cursor)) {
+    streak++;
+    const d = new Date(String(cursor).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') + 'T12:00:00');
+    d.setDate(d.getDate() - 1);
+    cursor = fechaNum(d.toISOString());
+  }
+  return streak;
 }
 
 // Calcula puntos por semana (últimas N semanas) anclado a la última actividad del jugador
@@ -611,7 +794,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector 
             const isMe    = p.nombre === myId;
             const color   = AVATAR_COLORS[i % AVATAR_COLORS.length];
             const horas   = Math.round(p.minutos / 60);
-            const sparkValues = weeklyPts(acts, p.nombre);
+            const racha   = computeRacha(acts.filter(a => (a.nombre_display || a.nombre) === p.nombre || String(a.user_id) === String(p.id)));
 
             return (
               <div key={p.nombre}
@@ -655,10 +838,12 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector 
                   </div>
                 </div>
 
-                {/* Sparkline — últimas 4 semanas */}
-                <div style={{ flexShrink:0 }}>
-                  <Spark values={sparkValues} accent="var(--t-accent)" />
-                </div>
+                {/* Racha */}
+                {racha > 0 && (
+                  <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:3, fontSize:12, fontWeight:700, color:'#FB923C' }}>
+                    🔥 {racha}d
+                  </div>
+                )}
 
                 {/* Puntos */}
                 <div style={{ textAlign:'right', flexShrink:0, minWidth:36 }}>
@@ -1623,22 +1808,7 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
   const sportRows = Object.entries(sportMap).sort((a, b) => b[1].pts - a[1].pts);
   const deporteFavorito = sportRows[0]?.[0] ?? null;
 
-  // Racha: días consecutivos con actividad, terminando hoy o ayer
-  const rachaActual = (() => {
-    const dias = new Set(data.map(a => fechaNum(a.fecha)));
-    if (dias.size === 0) return 0;
-    const hoyNum = fechaNum(new Date().toISOString());
-    let cursor = dias.has(hoyNum) ? hoyNum : fechaNum(new Date(Date.now() - 86400000).toISOString());
-    if (!dias.has(cursor)) return 0;
-    let streak = 0;
-    while (dias.has(cursor)) {
-      streak++;
-      const d = new Date(String(cursor).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') + 'T12:00:00');
-      d.setDate(d.getDate() - 1);
-      cursor = fechaNum(d.toISOString());
-    }
-    return streak;
-  })();
+  const rachaActual = computeRacha(data);
 
   const posts = [...data].sort((a, b) => {
     const tA = a.created_at ? new Date(a.created_at).getTime() : new Date(a.fecha + 'T12:00:00').getTime();
@@ -2627,10 +2797,18 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   // después con un refetch en App.jsx sin que cambie el `key` del componente — sincronizar cuando eso pase.
   useEffect(() => { setCompConDeportes(competencia); }, [competencia]);
   const [rankingRefreshKey, setRankingRefreshKey] = useState(0);
-  const [rankingSubTab, setRankingSubTab] = useState('ranking'); // 'ranking' | 'equipos'
+  const [equipoSeleccionadoId, setEquipoSeleccionadoId] = useState(null);
 
   const isAdmin = user?.id === competencia.creador_id;
   const tieneEquipos = (compConDeportes.equipos?.length ?? 0) > 0;
+
+  // Por defecto, el equipo del usuario; si no tiene, el primero de la lista.
+  useEffect(() => {
+    const equipos = compConDeportes.equipos || [];
+    if (!equipos.length) { setEquipoSeleccionadoId(null); return; }
+    const miEquipoId = compConDeportes.mi_equipo_id;
+    setEquipoSeleccionadoId(equipos.some(e => e.id === miEquipoId) ? miEquipoId : equipos[0].id);
+  }, [competencia.id, compConDeportes.equipos, compConDeportes.mi_equipo_id]);
 
   // Cargar actividades + ranking (que incluye participantes con 0 pts) cuando cambia mes o ponderadores
   useEffect(() => {
@@ -2680,24 +2858,43 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   const mesSelectorEl = <MesSelector prev={prev} next={next} canNext={canNext} />;
 
   function renderRankingTab() {
+    if (!tieneEquipos) {
+      return <Ranking acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />;
+    }
+
+    const equipos = compConDeportes.equipos || [];
+    const rankingEquipoData = rankingData.filter(r => r.equipo_id === equipoSeleccionadoId);
+    const nombresEquipo = [...new Set(rankingEquipoData.map(r => r.nombre_display || r.nombre))].sort();
+    const idsEquipo = new Set(rankingEquipoData.map(r => String(r.id)));
+    const actsEquipo = acts.filter(a => idsEquipo.has(String(a.user_id)));
+
     return (
-      <>
-        {tieneEquipos && (
-          <div style={{ display:'flex', gap:0, marginBottom:12, borderBottom:'1px solid var(--t-dim)' }}>
-            {[{ id:'ranking', label:'Ranking' }, { id:'equipos', label:'Equipos' }].map(t => (
-              <button key={t.id} onClick={() => setRankingSubTab(t.id)}
-                style={{ padding:'8px 16px', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', background:'transparent',
-                  color: rankingSubTab === t.id ? 'var(--t-accent)' : 'var(--t-muted)',
-                  borderBottom: rankingSubTab === t.id ? '2.5px solid var(--t-accent)' : '2.5px solid transparent',
-                }}>{t.label}</button>
+      <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+        {/* Columna Grupal */}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', padding:'0 4px 6px' }}>Grupal</div>
+          <RankingEquiposConTabs data={rankingEquiposData} rankingData={rankingData} acts={acts} />
+        </div>
+
+        {/* Columna Individual (equipo seleccionado) */}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, padding:'0 4px 6px', overflowX:'auto' }}>
+            {equipos.map(eq => (
+              <button key={eq.id} onClick={() => setEquipoSeleccionadoId(eq.id)}
+                style={{
+                  padding:'4px 10px', borderRadius:20, border:'1px solid', flexShrink:0,
+                  borderColor: eq.id === equipoSeleccionadoId ? 'var(--t-accent)' : 'var(--t-dim)',
+                  background: eq.id === equipoSeleccionadoId ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
+                  color: eq.id === equipoSeleccionadoId ? 'var(--t-accent)' : 'var(--t-muted)',
+                  fontSize:11, fontWeight:700, cursor:'pointer', WebkitTapHighlightColor:'transparent', whiteSpace:'nowrap',
+                }}>
+                {eq.nombre}
+              </button>
             ))}
           </div>
-        )}
-        {rankingSubTab === 'equipos' && tieneEquipos
-          ? <RankingEquipos data={rankingEquiposData} rankingData={rankingData} />
-          : <Ranking acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />
-        }
-      </>
+          <Ranking acts={actsEquipo} rankingData={rankingEquipoData} nombres={nombresEquipo} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />
+        </div>
+      </div>
     );
   }
 

@@ -1,18 +1,23 @@
 import { useEffect, useState } from 'react';
-import { completarChallenge } from '../api/competencias';
+import { completarChallenge, descompletarChallenge } from '../api/competencias';
 import { sportIcon } from '../lib/sportIcons';
 import SinCompetencia from '../components/SinCompetencia';
 
-function ChallengeRow({ competenciaId, challenge, onCompletado }) {
+function ChallengeRow({ competenciaId, challenge, onCompletado, readOnly }) {
   const [completando, setCompletando] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleCompletar() {
-    if (challenge.completado || completando) return;
+  async function handleToggle() {
+    if (readOnly || completando) return;
     setCompletando(true); setError('');
     try {
-      await completarChallenge(competenciaId, challenge.id);
-      onCompletado?.(challenge.id);
+      if (challenge.completado) {
+        await descompletarChallenge(competenciaId, challenge.id);
+        onCompletado?.(challenge.id, false);
+      } else {
+        await completarChallenge(competenciaId, challenge.id);
+        onCompletado?.(challenge.id, true);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -21,18 +26,35 @@ function ChallengeRow({ competenciaId, challenge, onCompletado }) {
   }
 
   return (
-    <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 16px', display:'flex', flexDirection:'column', gap:8 }}>
+    <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 16px', display:'flex', flexDirection:'column', gap:8, opacity: readOnly ? 0.75 : 1 }}>
       <div style={{ fontSize:15, fontWeight:600, color:'var(--t-text)' }}>{challenge.texto}</div>
       {error && <div style={{ fontSize:12, color:'#F87171' }}>{error}</div>}
-      <button onClick={handleCompletar} disabled={challenge.completado || completando}
+      <button onClick={handleToggle} disabled={readOnly || completando}
         style={{
-          alignSelf:'flex-start', padding:'8px 16px', borderRadius:10, border:'none', cursor: challenge.completado ? 'default' : 'pointer',
+          alignSelf:'flex-start', padding:'8px 16px', borderRadius:10, border:'none', cursor: (readOnly || completando) ? 'default' : 'pointer',
           fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em',
-          background: challenge.completado ? 'var(--t-surface2)' : 'var(--t-accent)',
-          color: challenge.completado ? 'var(--t-muted)' : 'var(--t-ground)',
-          opacity: completando ? 0.7 : 1,
+          background: challenge.completado ? 'var(--t-surface2)' : (readOnly ? 'var(--t-dim)' : 'var(--t-accent)'),
+          color: challenge.completado ? 'var(--t-muted)' : (readOnly ? 'var(--t-muted)' : 'var(--t-ground)'),
+          opacity: (completando || readOnly) ? 0.6 : 1,
         }}>
-        {challenge.completado ? '✓ Completado' : completando ? 'Guardando…' : `Marqué el challenge (+${challenge.puntos ?? 0} pts)`}
+        {challenge.completado
+          ? (readOnly ? '✓ Completado' : '✓ Completado · Tocá para desmarcar')
+          : completando ? 'Guardando…' : `Marqué el challenge (+${challenge.puntos ?? 0} pts)`}
+      </button>
+    </div>
+  );
+}
+
+function WeekNav({ prev, next, canPrev, canNext }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:2 }}>
+      <button onClick={prev} disabled={!canPrev}
+        style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color: canPrev ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canPrev ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button onClick={next} disabled={!canNext}
+        style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color: canNext ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
       </button>
     </div>
   );
@@ -40,17 +62,28 @@ function ChallengeRow({ competenciaId, challenge, onCompletado }) {
 
 export default function SemanaPanel({ competencia, onOpenSelector }) {
   const [challenges, setChallenges] = useState(competencia?.challenges || []);
+  const [viewingSemanaId, setViewingSemanaId] = useState(competencia?.semana_actual_id ?? null);
 
-  useEffect(() => { setChallenges(competencia?.challenges || []); }, [competencia]);
+  useEffect(() => {
+    setChallenges(competencia?.challenges || []);
+    setViewingSemanaId(competencia?.semana_actual_id ?? null);
+  }, [competencia]);
 
   if (!competencia) return <SinCompetencia onOpen={onOpenSelector} />;
 
-  const semanaActual = competencia.semanas?.find(s => s.id === competencia.semana_actual_id);
-  const vigentes = challenges.filter(ch => ch.semana_id == null || ch.semana_id === competencia.semana_actual_id);
-  const tieneDeporte = !!semanaActual?.deporte_semana_nombre;
+  const semanasOrdenadas = [...(competencia.semanas || [])].sort((a, b) => a.numero_semana - b.numero_semana);
+  const viewingIndex = semanasOrdenadas.findIndex(s => s.id === viewingSemanaId);
+  const semanaVista = viewingIndex >= 0 ? semanasOrdenadas[viewingIndex] : null;
+  const esSemanaActual = viewingSemanaId === competencia.semana_actual_id;
 
-  function handleCompletado(challengeId) {
-    setChallenges(prev => prev.map(ch => ch.id === challengeId ? { ...ch, completado: true } : ch));
+  function goPrev() { if (viewingIndex > 0) setViewingSemanaId(semanasOrdenadas[viewingIndex - 1].id); }
+  function goNext() { if (viewingIndex < semanasOrdenadas.length - 1) setViewingSemanaId(semanasOrdenadas[viewingIndex + 1].id); }
+
+  const vigentes = challenges.filter(ch => ch.semana_id == null || ch.semana_id === viewingSemanaId);
+  const tieneDeporte = !!semanaVista?.deporte_semana_nombre;
+
+  function handleCompletado(challengeId, nuevoValor) {
+    setChallenges(prev => prev.map(ch => ch.id === challengeId ? { ...ch, completado: nuevoValor } : ch));
   }
 
   return (
@@ -66,12 +99,18 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
           <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', marginBottom:5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {competencia.nombre}
           </div>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(26px,7vw,36px)', textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
-            {semanaActual ? `Semana ${semanaActual.numero_semana}` : 'Semana'}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(26px,7vw,36px)', textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
+              {semanaVista ? `Semana ${semanaVista.numero_semana}` : 'Semana'}
+              {esSemanaActual && semanaVista && <span style={{ color:'var(--t-accent)' }}> · actual</span>}
+            </div>
+            {semanasOrdenadas.length > 1 && (
+              <WeekNav prev={goPrev} next={goNext} canPrev={viewingIndex > 0} canNext={viewingIndex < semanasOrdenadas.length - 1} />
+            )}
           </div>
-          {semanaActual && (
+          {semanaVista && (
             <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:4 }}>
-              {semanaActual.fecha_inicio} al {semanaActual.fecha_fin}
+              {semanaVista.fecha_inicio} al {semanaVista.fecha_fin}
             </div>
           )}
         </div>
@@ -86,14 +125,14 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
             background:'linear-gradient(135deg, rgba(var(--t-accent-r),0.14), rgba(var(--t-accent-r),0.04))',
             border:'1.5px solid rgba(var(--t-accent-r),0.3)',
           }}>
-            <div style={{ fontSize:40, lineHeight:1 }}>{sportIcon(semanaActual.deporte_semana_nombre)}</div>
+            <div style={{ fontSize:40, lineHeight:1 }}>{sportIcon(semanaVista.deporte_semana_nombre)}</div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Deporte de la semana</div>
               <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, marginTop:2 }}>
-                {semanaActual.deporte_semana_nombre}
+                {semanaVista.deporte_semana_nombre}
               </div>
               <div style={{ fontSize:12, color:'var(--t-accent)', fontWeight:700, marginTop:2 }}>
-                ×{semanaActual.deporte_semana_ponderador_extra} puntos esta semana
+                ×{semanaVista.deporte_semana_ponderador_extra} puntos esta semana
               </div>
             </div>
           </div>
@@ -105,7 +144,7 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Challenges</div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {vigentes.map(ch => (
-                <ChallengeRow key={ch.id} competenciaId={competencia.id} challenge={ch} onCompletado={handleCompletado} />
+                <ChallengeRow key={ch.id} competenciaId={competencia.id} challenge={ch} onCompletado={handleCompletado} readOnly={!esSemanaActual} />
               ))}
             </div>
           </div>
