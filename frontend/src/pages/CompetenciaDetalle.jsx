@@ -3,13 +3,14 @@ import { createPortal } from 'react-dom';
 import {
   getRankingComp, getActividadesComp, updatePonderadores,
   getRankingEquiposComp, updateEquipos, updateAsignaciones, updateSemanas,
-  crearChallenge, updateChallenge, deleteChallenge, completarChallenge,
+  crearChallenge, updateChallenge, deleteChallenge,
 } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
 import { getDeportes as getAllDeportes, createDeporte, getActividades } from '../api/actividades';
 import { FeedCard } from '../components/FeedCard';
 import ProfileSettingsSheet from '../components/ProfileSettingsSheet';
+import { sportIcon } from '../lib/sportIcons';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -18,16 +19,8 @@ const PERSON_COLORS = [
   '#FB923C','#2DD4BF','#E879F9','#86EFAC','#FDE68A',
   '#67E8F9','#FCA5A5'
 ];
-const SPORT_ICONS = {
-  'Bicicleta MTB':'🚵','Bicicleta Rodillo':'🚴','Bicicleta Ruta':'🚴','Box':'🥊',
-  'Buceo':'🤿','Crossfit':'🏋️','Cuerda':'🪢','Escalada':'🧗','Funcional':'💪',
-  'Fútbol':'⚽','Gimnasio':'🏋️','Golf':'⛳','Natación':'🏊','Padel':'🏓',
-  'Spinning':'🚴','Surf':'🏄','Tenis':'🎾','Trail Running':'🏃','Trekking':'🥾','Trote':'🏃',
-};
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-const sportIcon = s => SPORT_ICONS[s] || '🏅';
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -512,71 +505,6 @@ function MesSelector({ prev, next, canNext }) {
         style={{ width:24, height:24, borderRadius:6, border:'none', background:'transparent', color: canNext ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
       </button>
-    </div>
-  );
-}
-
-// ─── CARD DEL CHALLENGE DE LA SEMANA ACTUAL ───────────────────────────────────
-
-function ChallengeCard({ competencia, challenge, onCompletado }) {
-  const [completando, setCompletando] = useState(false);
-  const [error, setError] = useState('');
-
-  const semana = challenge.semana_id != null ? competencia.semanas?.find(s => s.id === challenge.semana_id) : null;
-
-  async function handleCompletar() {
-    if (challenge.completado || completando) return;
-    setCompletando(true); setError('');
-    try {
-      await completarChallenge(competencia.id, challenge.id);
-      onCompletado?.(challenge.id);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setCompletando(false);
-    }
-  }
-
-  return (
-    <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 16px', display:'flex', flexDirection:'column', gap:8 }}>
-      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <span style={{ fontSize:18 }}>🎯</span>
-        <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>
-          {semana ? `Challenge de la semana ${semana.numero_semana}` : 'Challenge'}
-        </span>
-      </div>
-      <div style={{ fontSize:15, fontWeight:600, color:'var(--t-text)' }}>{challenge.texto}</div>
-      {semana?.deporte_semana_nombre && (
-        <div style={{ fontSize:12, color:'var(--t-muted)' }}>
-          {sportIcon(semana.deporte_semana_nombre)} {semana.deporte_semana_nombre} vale ×{semana.deporte_semana_ponderador_extra} esta semana
-        </div>
-      )}
-      {error && <div style={{ fontSize:12, color:'#F87171' }}>{error}</div>}
-      <button onClick={handleCompletar} disabled={challenge.completado || completando}
-        style={{
-          alignSelf:'flex-start', padding:'8px 16px', borderRadius:10, border:'none', cursor: challenge.completado ? 'default' : 'pointer',
-          fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em',
-          background: challenge.completado ? 'var(--t-surface2)' : 'var(--t-accent)',
-          color: challenge.completado ? 'var(--t-muted)' : 'var(--t-ground)',
-          opacity: completando ? 0.7 : 1,
-        }}>
-        {challenge.completado ? '✓ Completado' : completando ? 'Guardando…' : `Marqué el challenge (+${challenge.puntos ?? 0} pts)`}
-      </button>
-    </div>
-  );
-}
-
-function ChallengesCard({ competencia, onCompletado }) {
-  const vigentes = (competencia.challenges || []).filter(ch =>
-    ch.semana_id == null || ch.semana_id === competencia.semana_actual_id
-  );
-  if (!vigentes.length) return null;
-
-  return (
-    <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:14 }}>
-      {vigentes.map(ch => (
-        <ChallengeCard key={ch.id} competencia={competencia} challenge={ch} onCompletado={onCompletado} />
-      ))}
     </div>
   );
 }
@@ -2647,16 +2575,6 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   function renderRankingTab() {
     return (
       <>
-        <ChallengesCard
-          competencia={compConDeportes}
-          onCompletado={challengeId => {
-            setCompConDeportes(prev => ({
-              ...prev,
-              challenges: (prev.challenges || []).map(ch => ch.id === challengeId ? { ...ch, completado: true } : ch),
-            }));
-            setRankingRefreshKey(k => k + 1);
-          }}
-        />
         {tieneEquipos && (
           <div style={{ display:'flex', gap:0, marginBottom:12, borderBottom:'1px solid var(--t-dim)' }}>
             {[{ id:'ranking', label:'Ranking' }, { id:'equipos', label:'Equipos' }].map(t => (

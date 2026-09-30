@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { getActividades, deleteActividad, updateActividad, getDeportes } from '../api/actividades';
 import { uploadFoto, deleteFoto } from '../api/fotos';
 import { useLoading } from '../context/LoadingContext';
+import Calendario from './Calendario';
 
 const IconCamera = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1044,7 +1045,7 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
   const [actividades, setActividades] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [detalle, setDetalle]         = useState(null);
-  const [subtab, setSubtab]           = useState('historial');
+  const [subtab, setSubtab]           = useState('calendario');
 
   async function load() {
     setLoading(true);
@@ -1113,7 +1114,7 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
 
         {/* Subtabs */}
         <div style={{ display:'flex', padding:'0 16px', gap:4 }}>
-          {[{ id:'historial', label:'Historial' }, { id:'objetivos', label:'Objetivos' }, { id:'evolucion', label:'Evolución' }].map(t => (
+          {[{ id:'calendario', label:'Calendario' }, { id:'historial', label:'Historial' }, { id:'objetivos', label:'Objetivos' }, { id:'evolucion', label:'Evolución' }].map(t => (
             <button key={t.id} onClick={() => setSubtab(t.id)}
               style={{ padding:'7px 16px', borderRadius:'10px 10px 0 0', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', transition:'all 0.15s',
                 background: subtab === t.id ? 'var(--t-surface)' : 'transparent',
@@ -1128,7 +1129,9 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
 
       {/* ── CONTENIDO ── */}
       <div style={{ padding:'0 0 40px' }}>
-        {loading ? (
+        {subtab === 'calendario' ? (
+          <Calendario />
+        ) : loading ? (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, padding:'80px 20px', color:'var(--t-muted)', fontSize:14 }}>
             <div style={{ width:20, height:20, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
             Cargando…

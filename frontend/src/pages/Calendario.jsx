@@ -3,17 +3,11 @@ import { createPortal } from 'react-dom';
 import { getActividades, deleteActividad } from '../api/actividades';
 import { uploadFoto, deleteFoto } from '../api/fotos';
 import { useLoading } from '../context/LoadingContext';
+import { SPORT_ICONS } from '../lib/sportIcons';
 
 const DAYS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-const SPORT_ICONS = {
-  'Bicicleta MTB':'🚵','Bicicleta Rodillo':'🚴','Bicicleta Ruta':'🚴','Box':'🥊',
-  'Buceo':'🤿','Crossfit':'🏋️','Cuerda':'🪢','Escalada':'🧗','Funcional':'💪',
-  'Fútbol':'⚽','Gimnasio':'🏋️','Golf':'⛳','Natación':'🏊','Padel':'🏓',
-  'Spinning':'🚴','Surf':'🏄','Tenis':'🎾','Trail Running':'🏃','Trekking':'🥾','Trote':'🏃',
-};
 
 const IconCamera = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -251,11 +245,17 @@ function DaySheet({ fecha, acts, onClose, onSelectAct }) {
 
 // ─── Calendario ───────────────────────────────────────────────────────────────
 
-export default function Calendario({ competenciaActiva, navYear, navMonth }) {
+export default function Calendario() {
   const now = new Date();
-  // Mes sincronizado con Ranking (solo lectura acá — se cambia desde el tab Ranking)
-  const year  = navYear  ?? now.getFullYear();
-  const month = navMonth ?? now.getMonth();
+  const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() });
+  const { year, month } = cursor;
+
+  function prevMonth() {
+    setCursor(c => c.month === 0 ? { year: c.year - 1, month: 11 } : { year: c.year, month: c.month - 1 });
+  }
+  function nextMonth() {
+    setCursor(c => c.month === 11 ? { year: c.year + 1, month: 0 } : { year: c.year, month: c.month + 1 });
+  }
 
   const [acts, setActs]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -319,20 +319,20 @@ export default function Calendario({ competenciaActiva, navYear, navMonth }) {
     <div style={{ paddingBottom:32 }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-      {/* Header competencia + mes (subtítulo de solo lectura — el mes se cambia desde Ranking) */}
-      {competenciaActiva && (
-        <div style={{ padding:'8px 20px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {competenciaActiva.nombre}
-          </div>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)', marginTop:2 }}>
-            Calendario
-          </div>
-          <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
-            {MONTHS_ES[month]} {year}
-          </div>
+      {/* Selector de mes */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 20px 10px' }}>
+        <button onClick={prevMonth} aria-label="Mes anterior"
+          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', color:'var(--t-text)' }}>
+          {MONTHS_ES[month]} {year}
         </div>
-      )}
+        <button onClick={nextMonth} aria-label="Mes siguiente"
+          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
 
       {/* Cabecera días de semana */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', padding:'0 12px', marginBottom:6 }}>
