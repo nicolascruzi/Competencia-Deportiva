@@ -57,28 +57,26 @@ router.get('/', authMiddleware, async (req, res) => {
       [req.user.id]
     );
 
-    const equipoIds = rows.map(r => r.mi_equipo_id).filter(id => id != null);
-    let miembrosPorEquipo = new Map();
-    if (equipoIds.length) {
-      const { rows: miembros } = await pool.query(
-        `SELECT cp.equipo_id, u.id, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url
+    const compIds = rows.map(r => r.id);
+    let participantesPorCompetencia = new Map();
+    if (compIds.length) {
+      const { rows: participantes } = await pool.query(
+        `SELECT cp.competencia_id, u.id, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url
          FROM competencia_participantes cp
          JOIN users u ON u.id = cp.user_id
-         WHERE cp.equipo_id = ANY($1::int[])`,
-        [equipoIds]
+         WHERE cp.competencia_id = ANY($1::int[])`,
+        [compIds]
       );
-      miembrosPorEquipo = miembros.reduce((map, m) => {
-        if (!map.has(m.equipo_id)) map.set(m.equipo_id, []);
-        map.get(m.equipo_id).push({ id: m.id, nombre_display: m.nombre_display, foto_perfil_url: m.foto_perfil_url });
+      participantesPorCompetencia = participantes.reduce((map, p) => {
+        if (!map.has(p.competencia_id)) map.set(p.competencia_id, []);
+        map.get(p.competencia_id).push({ id: p.id, nombre_display: p.nombre_display, foto_perfil_url: p.foto_perfil_url });
         return map;
       }, new Map());
     }
 
     res.json(rows.map(r => ({
       ...r,
-      mis_companeros_equipo: r.mi_equipo_id != null
-        ? (miembrosPorEquipo.get(r.mi_equipo_id) || []).filter(m => m.id !== req.user.id)
-        : [],
+      otros_participantes: (participantesPorCompetencia.get(r.id) || []).filter(p => p.id !== req.user.id),
     })));
   } catch (err) {
     console.error(err);

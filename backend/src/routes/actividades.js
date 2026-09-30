@@ -10,11 +10,12 @@ router.use(authMiddleware);
 const COMPETENCIA_EN_CURSO_SQL = `(c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR CURRENT_DATE BETWEEN c.fecha_inicio AND c.fecha_fin)`;
 
 // Vincula una actividad a todas las competencias en curso del usuario y, dentro de cada una,
-// resuelve el bonus de compañía según el equipo que le corresponda ahí.
+// resuelve el bonus de compañía si el compañero marcado también participa en esa competencia
+// (ya no depende de compartir equipo — cualquier participante de la competencia es válido).
 // companerosIds: array plano de user_id marcados como "hecho en compañía" (mismo picker para todas las competencias).
 async function vincularCompetencias(actividadId, userId, companerosIds) {
   const { rows: participaciones } = await pool.query(
-    `SELECT cp.competencia_id, cp.equipo_id
+    `SELECT cp.competencia_id
      FROM competencia_participantes cp
      JOIN competencias c ON c.id = cp.competencia_id
      WHERE cp.user_id = $1 AND ${COMPETENCIA_EN_CURSO_SQL}`,
@@ -33,12 +34,11 @@ async function vincularCompetencias(actividadId, userId, companerosIds) {
   const ids = companerosIds.map(id => parseInt(id)).filter(id => Number.isInteger(id) && id !== userId);
   if (!ids.length) return;
 
-  for (const { competencia_id, equipo_id } of participaciones) {
-    if (!equipo_id) continue;
+  for (const { competencia_id } of participaciones) {
     const { rows: validos } = await pool.query(
       `SELECT user_id FROM competencia_participantes
-       WHERE competencia_id = $1 AND equipo_id = $2 AND user_id = ANY($3::int[])`,
-      [competencia_id, equipo_id, ids]
+       WHERE competencia_id = $1 AND user_id = ANY($2::int[])`,
+      [competencia_id, ids]
     );
     if (!validos.length) continue;
     const compValues = validos.map((_, i) => `($1, $${i + 2})`).join(', ');

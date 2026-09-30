@@ -2164,7 +2164,9 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
 function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
   const [fechaInicio, setFechaInicio] = useState(competencia.fecha_inicio || '');
   const [fechaFin, setFechaFin]       = useState(competencia.fecha_fin || '');
-  const [bonusCompaneros, setBonusCompaneros] = useState(String(competencia.bonus_companeros_pts ?? 0));
+  const bonusInicial = parseFloat(competencia.bonus_companeros_pts) || 0;
+  const [bonusActivo, setBonusActivo] = useState(bonusInicial > 0);
+  const [bonusCompaneros, setBonusCompaneros] = useState(String(bonusInicial > 0 ? bonusInicial : 10));
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
   const startY = useRef(null);
@@ -2183,7 +2185,7 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
       const actualizada = await updateConfiguracion(competencia.id, {
         fecha_inicio: fechaInicio || null,
         fecha_fin: fechaFin || null,
-        bonus_companeros_pts: parseFloat(bonusCompaneros) || 0,
+        bonus_companeros_pts: bonusActivo ? (parseFloat(bonusCompaneros) || 0) : 0,
       });
       onSaved(actualizada);
       onClose();
@@ -2241,14 +2243,44 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
           </div>
 
           {/* Bonus por compañía */}
-          <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Bonus por actividad en compañía</div>
-            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Puntos extra fijos si un participante marca que hizo la actividad con un compañero de equipo. 0 = desactivado.</div>
-            <input
-              type="number" inputMode="decimal" min="0" step="1" disabled={readOnly}
-              value={bonusCompaneros} onChange={e => setBonusCompaneros(e.target.value)}
-              style={{ width:100, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
-            />
+            <div style={{ borderRadius:12, border:'1px solid var(--t-dim)', overflow:'hidden' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 14px', gap:12 }}>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-text)' }}>
+                    {bonusActivo ? 'Activado' : 'Desactivado'}
+                  </div>
+                  <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2, lineHeight:1.4 }}>
+                    Puntos extra si un participante marca que hizo la actividad con alguien más de la competencia.
+                  </div>
+                </div>
+                <button
+                  onClick={() => !readOnly && setBonusActivo(v => !v)}
+                  disabled={readOnly}
+                  style={{
+                    flexShrink: 0, width: 48, height: 28, borderRadius: 14, border: 'none',
+                    background: bonusActivo ? 'var(--t-accent)' : 'var(--t-surface2)',
+                    cursor: readOnly ? 'default' : 'pointer', position: 'relative', transition: 'background 0.2s',
+                  }}>
+                  <span style={{
+                    position: 'absolute', top: 3, left: bonusActivo ? 23 : 3,
+                    width: 22, height: 22, borderRadius: '50%', background: '#fff',
+                    transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                  }} />
+                </button>
+              </div>
+              {bonusActivo && (
+                <div style={{ padding:'0 14px 14px', display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:13, color:'var(--t-muted)' }}>Puntos</span>
+                  <input
+                    type="number" inputMode="decimal" min="0" step="1" disabled={readOnly}
+                    value={bonusCompaneros} onChange={e => setBonusCompaneros(e.target.value)}
+                    style={{ width:80, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

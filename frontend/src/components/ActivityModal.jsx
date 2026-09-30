@@ -66,10 +66,9 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   const fileInputRef                = useRef(null);
   const { withLoading } = useLoading();
 
-  // Competencias en curso donde tengo equipo con al menos un compañero — una sección de chips por cada una
-  const competenciasConEquipo = misCompetencias.filter(c =>
-    c.en_curso && c.mi_equipo_id != null && (c.mis_companeros_equipo?.length ?? 0) > 0
-    && parseFloat(c.bonus_companeros_pts) > 0
+  // Competencias en curso con bonus por compañía activado y al menos otro participante — una sección de chips por cada una
+  const competenciasConBonus = misCompetencias.filter(c =>
+    c.en_curso && parseFloat(c.bonus_companeros_pts) > 0 && (c.otros_participantes?.length ?? 0) > 0
   );
 
   // Mapa de ponderadores de la competencia activa: { deporte_nombre → ponderador }
@@ -265,15 +264,15 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
               value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
           </Field>
 
-          {/* Hecho en compañía — una sección por cada competencia en curso donde tengo equipo con compañeros */}
-          {competenciasConEquipo.map(c => {
+          {/* Hecho en compañía — una sección por cada competencia en curso con bonus activado */}
+          {competenciasConBonus.map(c => {
             const seleccionados = companerosPorComp[c.id] ?? [];
             return (
-              <Field key={c.id} label={competenciasConEquipo.length > 1
-                ? `¿Lo hiciste con alguien de tu equipo en "${c.nombre}"?`
-                : '¿Lo hiciste con alguien de tu equipo?'}>
+              <Field key={c.id} label={competenciasConBonus.length > 1
+                ? `¿Lo hiciste con alguien de "${c.nombre}"?`
+                : '¿Lo hiciste con algún compañero de la competencia?'}>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-                  {c.mis_companeros_equipo.map(m => {
+                  {c.otros_participantes.map(m => {
                     const selected = seleccionados.includes(m.id);
                     return (
                       <button key={m.id} type="button" onClick={() => toggleCompanero(c.id, m.id)}
