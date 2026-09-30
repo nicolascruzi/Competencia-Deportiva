@@ -165,6 +165,39 @@ function VotacionDeporte({ competenciaId, semanaId }) {
   );
 }
 
+function AvisoVotacionPendiente({ competenciaId, proximaSemana, onIrAVotar }) {
+  const [mostrar, setMostrar] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    setMostrar(false);
+    getVotacionSemana(competenciaId, proximaSemana.id)
+      .then(res => { if (!cancelado) setMostrar(!res.cerrada && res.mi_voto_deporte_id == null); })
+      .catch(() => {});
+    return () => { cancelado = true; };
+  }, [competenciaId, proximaSemana.id]);
+
+  if (!mostrar) return null; // ya votó, la votación cerró, o todavía está cargando
+
+  return (
+    <button onClick={onIrAVotar}
+      style={{
+        display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderRadius:14, textAlign:'left',
+        border:'1.5px dashed rgba(var(--t-accent-r),0.45)', background:'rgba(var(--t-accent-r),0.08)',
+        cursor:'pointer', WebkitTapHighlightColor:'transparent', width:'100%',
+      }}>
+      <div style={{ fontSize:24, lineHeight:1, flexShrink:0 }}>🗳️</div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
+          Todavía no votaste el deporte de la semana {proximaSemana.numero_semana}
+        </div>
+        <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Tocá para ir a votar</div>
+      </div>
+      <div style={{ fontSize:18, color:'var(--t-accent)', flexShrink:0 }}>›</div>
+    </button>
+  );
+}
+
 export default function SemanaPanel({ competencia, onOpenSelector }) {
   const [challenges, setChallenges] = useState(competencia?.challenges || []);
   const [viewingSemanaId, setViewingSemanaId] = useState(competencia?.semana_actual_id ?? null);
@@ -187,6 +220,12 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
   const vigentes = challenges.filter(ch => ch.semana_id == null || ch.semana_id === viewingSemanaId);
   const tieneDeporte = !!semanaVista?.deporte_semana_nombre;
   const seVota = !!semanaVista && semanaVista.numero_semana > 1 && !tieneDeporte;
+
+  // Si estoy viendo la semana actual, la próxima (si existe y aún no tiene deporte) es la que se vota ahora.
+  const proximaSemana = esSemanaActual && viewingIndex >= 0 && viewingIndex < semanasOrdenadas.length - 1
+    ? semanasOrdenadas[viewingIndex + 1]
+    : null;
+  const avisarVotacion = proximaSemana && !proximaSemana.deporte_semana_nombre;
 
   function handleCompletado(challengeId, nuevoValor) {
     setChallenges(prev => prev.map(ch => ch.id === challengeId ? { ...ch, completado: nuevoValor } : ch));
@@ -227,6 +266,15 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Aviso: la próxima semana ya tiene votación abierta y todavía no voté */}
+        {avisarVotacion && (
+          <AvisoVotacionPendiente
+            competenciaId={competencia.id}
+            proximaSemana={proximaSemana}
+            onIrAVotar={goNext}
+          />
         )}
 
         {/* Votación del deporte de la semana (semana 2+, hasta que cierre) */}
