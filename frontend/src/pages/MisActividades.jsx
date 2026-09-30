@@ -4,6 +4,8 @@ import { getActividades, deleteActividad, updateActividad, getDeportes } from '.
 import { uploadFoto, deleteFoto } from '../api/fotos';
 import { useLoading } from '../context/LoadingContext';
 import Calendario from './Calendario';
+import PageHeader from '../components/PageHeader';
+import SubTabs from '../components/SubTabs';
 
 const IconCamera = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1101,31 +1103,12 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:0 }}>
 
-      {/* ── HEADER ── */}
-      <div style={{ background:'var(--t-ground)', borderBottom:'1px solid var(--t-surface2)' }}>
-        <div style={{ padding:'20px 20px 14px' }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', marginBottom:5 }}>
-            Personal
-          </div>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(26px,7vw,36px)', textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
-            Mis actividades
-          </div>
-        </div>
-
-        {/* Subtabs */}
-        <div style={{ display:'flex', padding:'0 16px', gap:4 }}>
-          {[{ id:'calendario', label:'Calendario' }, { id:'historial', label:'Historial' }, { id:'objetivos', label:'Objetivos' }, { id:'evolucion', label:'Evolución' }].map(t => (
-            <button key={t.id} onClick={() => setSubtab(t.id)}
-              style={{ padding:'7px 16px', borderRadius:'10px 10px 0 0', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', transition:'all 0.15s',
-                background: subtab === t.id ? 'var(--t-surface)' : 'transparent',
-                color: subtab === t.id ? 'var(--t-accent)' : 'var(--t-muted)',
-                borderBottom: subtab === t.id ? '2px solid var(--t-accent)' : '2px solid transparent',
-              }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageHeader eyebrow="Personal" title="Mis actividades" />
+      <SubTabs
+        tabs={[{ id:'calendario', label:'Calendario' }, { id:'historial', label:'Historial' }, { id:'objetivos', label:'Objetivos' }, { id:'evolucion', label:'Evolución' }]}
+        active={subtab}
+        onChange={setSubtab}
+      />
 
       {/* ── CONTENIDO ── */}
       <div style={{ padding:'0 0 40px' }}>

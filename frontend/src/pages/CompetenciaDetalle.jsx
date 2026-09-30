@@ -10,6 +10,8 @@ import { useLoading } from '../context/LoadingContext';
 import { getDeportes as getAllDeportes, createDeporte, getActividades } from '../api/actividades';
 import { FeedCard } from '../components/FeedCard';
 import { sportIcon } from '../lib/sportIcons';
+import PageHeader from '../components/PageHeader';
+import SubTabs from '../components/SubTabs';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -1906,11 +1908,11 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
         {/* Header perfil: foto a la izquierda, nombre debajo, stats destacados a la derecha */}
         <div style={{
           position:'relative', overflow:'hidden',
-          padding:'52px 20px 20px',
+          padding: asPage ? '20px 20px 20px' : '52px 20px 20px',
           background:'linear-gradient(180deg, rgba(var(--t-accent-r),0.14) 0%, rgba(var(--t-accent-r),0.03) 60%, transparent 100%)',
         }}>
           {/* Glow decorativo de fondo */}
-          <div style={{ position:'absolute', top:-60, right:-40, width:180, height:180, borderRadius:'50%', background:'radial-gradient(circle, rgba(var(--t-accent-r),0.22) 0%, transparent 70%)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', top:-60, right:-40, width:180, height:180, borderRadius:'50%', background:'radial-gradient(circle, rgba(var(--t-accent-r),0.2) 0%, transparent 70%)', pointerEvents:'none' }} />
 
           <div style={{ position:'relative', display:'flex', alignItems:'flex-start', gap:16 }}>
             <div style={{ flexShrink:0 }}>
@@ -1970,14 +1972,7 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
         </div>
 
         {/* Sub-navbar de tabs */}
-        <div style={{ display:'flex', borderBottom:'1px solid var(--t-dim)', borderTop:'1px solid var(--t-dim)', position:'sticky', top:0, background:'var(--t-surface)', zIndex:10 }}>
-          {TABS.map(t => (
-              <button key={t.id} onClick={() => setProfileTab(t.id)}
-                style={{ flex:1, padding:'11px 4px', background:'transparent', border:'none', borderBottom: profileTab === t.id ? '2px solid var(--t-accent)' : '2px solid transparent', color: profileTab === t.id ? 'var(--t-text)' : 'var(--t-muted)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+        <SubTabs tabs={TABS} active={profileTab} onChange={setProfileTab} />
 
           {allData === null && (
             <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t-muted)', fontSize:12 }}>Cargando…</div>
@@ -2905,14 +2900,8 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
 
     return (
       <>
-        <div style={{ display:'flex', gap:0, marginBottom:12, borderBottom:'1px solid var(--t-dim)' }}>
-          {[{ id:'general', label:'General' }, { id:'equipos', label:'Equipos' }].map(t => (
-            <button key={t.id} onClick={() => setRankingSubTab(t.id)}
-              style={{ padding:'8px 16px', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', background:'transparent',
-                color: rankingSubTab === t.id ? 'var(--t-accent)' : 'var(--t-muted)',
-                borderBottom: rankingSubTab === t.id ? '2.5px solid var(--t-accent)' : '2.5px solid transparent',
-              }}>{t.label}</button>
-          ))}
+        <div style={{ marginBottom:12, marginLeft:-16, marginRight:-16 }}>
+          <SubTabs tabs={[{ id:'general', label:'General' }, { id:'equipos', label:'Equipos' }]} active={rankingSubTab} onChange={setRankingSubTab} />
         </div>
         {rankingSubTab === 'equipos' ? (
           <EquiposTab
@@ -2955,21 +2944,11 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* ── SUBHEADER ───────────────────────────────────────────── */}
-      <div style={{ position:'relative', zIndex:10, background:'var(--t-ground)' }}>
-
-        {/* Fila 1: nombre competencia + tab activo + mes (subtítulo, solo lectura salvo en Ranking) */}
-        <div style={{ padding:'8px 20px 4px', borderBottom:'1px solid var(--t-surface2)' }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', lineHeight:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {competencia.nombre}
-          </div>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)', marginTop:2 }}>
-            {tab === 'ranking' ? 'Ranking' : tab === 'podio' ? 'Podio' : tab === 'calendar' ? 'Calendario' : tab === 'evolucion' ? 'Evolución' : tab === 'carrera' ? 'Carrera' : tab === 'deportes' ? 'Deportes' : tab === 'records' ? 'Récords' : tab === 'comparar' ? 'Comparar' : tab === 'insights' ? 'Insights' : 'Competencia'}
-          </div>
-          <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
-            {mesLabel} {mesSubLabel}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={competencia.nombre}
+        title={tab === 'ranking' ? 'Ranking' : tab === 'podio' ? 'Podio' : tab === 'calendar' ? 'Calendario' : tab === 'evolucion' ? 'Evolución' : tab === 'carrera' ? 'Carrera' : tab === 'deportes' ? 'Deportes' : tab === 'records' ? 'Récords' : tab === 'comparar' ? 'Comparar' : tab === 'insights' ? 'Insights' : 'Competencia'}
+        meta={`${mesLabel} ${mesSubLabel}`}
+      />
 
       {/* Contenido */}
       <div style={{ padding:'12px 16px 32px' }}>

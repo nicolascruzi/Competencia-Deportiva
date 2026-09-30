@@ -4,6 +4,7 @@ import { getActividadesComp } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 import { FeedCard } from '../components/FeedCard';
 import { ProfilePanel } from './CompetenciaDetalle';
+import PageHeader from '../components/PageHeader';
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
@@ -103,18 +104,7 @@ export default function FeedGrupal({ competencia, scrollSignal }) {
         document.body
       )}
 
-      {/* Header */}
-      <div style={{ padding:'14px 16px 12px', borderBottom:'1px solid var(--t-surface2)' }}>
-        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-accent)', marginBottom:4 }}>
-          {competencia.nombre}
-        </div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:26, textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
-          Feed del grupo
-        </div>
-        <div style={{ fontSize:12, color:'var(--t-muted2)', marginTop:4 }}>
-          {acts.length} actividades
-        </div>
-      </div>
+      <PageHeader eyebrow={competencia.nombre} title="Feed del grupo" meta={`${acts.length} actividades`} />
 
       {/* Cards */}
       <div style={{ paddingBottom:24 }}>

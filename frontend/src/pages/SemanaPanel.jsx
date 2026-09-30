@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { completarChallenge, descompletarChallenge } from '../api/competencias';
 import { sportIcon } from '../lib/sportIcons';
 import SinCompetencia from '../components/SinCompetencia';
+import PageHeader from '../components/PageHeader';
 
 function ChallengeRow({ competenciaId, challenge, onCompletado, readOnly }) {
   const [completando, setCompletando] = useState(false);
@@ -89,32 +90,17 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
   return (
     <div style={{ paddingBottom:32 }}>
 
-      {/* Header */}
-      <div style={{
-        position:'relative', overflow:'hidden', padding:'20px 20px 18px',
-        background:'linear-gradient(180deg, rgba(var(--t-accent-r),0.14) 0%, rgba(var(--t-accent-r),0.03) 60%, transparent 100%)',
-      }}>
-        <div style={{ position:'absolute', top:-60, right:-40, width:180, height:180, borderRadius:'50%', background:'radial-gradient(circle, rgba(var(--t-accent-r),0.2) 0%, transparent 70%)', pointerEvents:'none' }} />
-        <div style={{ position:'relative' }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', marginBottom:5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {competencia.nombre}
-          </div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(26px,7vw,36px)', textTransform:'uppercase', lineHeight:1, color:'var(--t-text)' }}>
-              {semanaVista ? `Semana ${semanaVista.numero_semana}` : 'Semana'}
-              {esSemanaActual && semanaVista && <span style={{ color:'var(--t-accent)' }}> · actual</span>}
-            </div>
-            {semanasOrdenadas.length > 1 && (
-              <WeekNav prev={goPrev} next={goNext} canPrev={viewingIndex > 0} canNext={viewingIndex < semanasOrdenadas.length - 1} />
-            )}
-          </div>
-          {semanaVista && (
-            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:4 }}>
-              {semanaVista.fecha_inicio} al {semanaVista.fecha_fin}
-            </div>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={competencia.nombre}
+        title={<>
+          {semanaVista ? `Semana ${semanaVista.numero_semana}` : 'Semana'}
+          {esSemanaActual && semanaVista && <span style={{ color:'var(--t-accent)' }}> · actual</span>}
+        </>}
+        titleAction={semanasOrdenadas.length > 1 && (
+          <WeekNav prev={goPrev} next={goNext} canPrev={viewingIndex > 0} canNext={viewingIndex < semanasOrdenadas.length - 1} />
+        )}
+        meta={semanaVista && `${semanaVista.fecha_inicio} al ${semanaVista.fecha_fin}`}
+      />
 
       <div style={{ padding:'16px 20px 0', display:'flex', flexDirection:'column', gap:14 }}>
 
