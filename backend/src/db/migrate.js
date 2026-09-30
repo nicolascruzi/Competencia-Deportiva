@@ -212,6 +212,15 @@ CREATE TABLE IF NOT EXISTS actividad_companeros (
   PRIMARY KEY (actividad_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_actividad_companeros_user ON actividad_companeros(user_id);
+
+-- Muchos-a-muchos: una actividad puede contar para varias competencias en curso a la vez
+CREATE TABLE IF NOT EXISTS actividad_competencias (
+  actividad_id   INTEGER NOT NULL REFERENCES actividades(id) ON DELETE CASCADE,
+  competencia_id INTEGER NOT NULL REFERENCES competencias(id) ON DELETE CASCADE,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (actividad_id, competencia_id)
+);
+CREATE INDEX IF NOT EXISTS idx_actividad_competencias_competencia ON actividad_competencias(competencia_id);
 `;
 
 async function migrate() {

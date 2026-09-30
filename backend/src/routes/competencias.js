@@ -44,15 +44,42 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at,
+              TO_CHAR(c.fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
+              TO_CHAR(c.fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
+              (c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR CURRENT_DATE BETWEEN c.fecha_inicio AND c.fecha_fin) AS en_curso,
               u.nombre AS creador_nombre,
-              (SELECT COUNT(*) FROM competencia_participantes cp WHERE cp.competencia_id = c.id) AS participantes
+              cp.equipo_id AS mi_equipo_id,
+              (SELECT COUNT(*) FROM competencia_participantes cp2 WHERE cp2.competencia_id = c.id) AS participantes
        FROM competencias c
        JOIN competencia_participantes cp ON cp.competencia_id = c.id AND cp.user_id = $1
        JOIN users u ON u.id = c.creador_id
        ORDER BY c.created_at DESC`,
       [req.user.id]
     );
-    res.json(rows);
+
+    const equipoIds = rows.map(r => r.mi_equipo_id).filter(id => id != null);
+    let miembrosPorEquipo = new Map();
+    if (equipoIds.length) {
+      const { rows: miembros } = await pool.query(
+        `SELECT cp.equipo_id, u.id, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url
+         FROM competencia_participantes cp
+         JOIN users u ON u.id = cp.user_id
+         WHERE cp.equipo_id = ANY($1::int[])`,
+        [equipoIds]
+      );
+      miembrosPorEquipo = miembros.reduce((map, m) => {
+        if (!map.has(m.equipo_id)) map.set(m.equipo_id, []);
+        map.get(m.equipo_id).push({ id: m.id, nombre_display: m.nombre_display, foto_perfil_url: m.foto_perfil_url });
+        return map;
+      }, new Map());
+    }
+
+    res.json(rows.map(r => ({
+      ...r,
+      mis_companeros_equipo: r.mi_equipo_id != null
+        ? (miembrosPorEquipo.get(r.mi_equipo_id) || []).filter(m => m.id !== req.user.id)
+        : [],
+    })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al listar competencias' });
@@ -565,7 +592,7 @@ router.get('/:id/meses', authMiddleware, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT DISTINCT TO_CHAR(a.fecha,'YYYY-MM') AS mes
        FROM actividades a
-       WHERE a.competencia_id = $1
+       WHERE EXISTS (SELECT 1 FROM actividad_competencias ac WHERE ac.actividad_id = a.id AND ac.competencia_id = $1)
        ORDER BY mes DESC`,
       [id]
     );
@@ -578,7 +605,8 @@ router.get('/:id/meses', authMiddleware, async (req, res) => {
 
 // GET /competencias/:id/actividades — actividades registradas EN esta competencia (para gráficos/feed)
 // Cambio de comportamiento: antes traía TODAS las actividades de cualquier participante (sin filtrar por
-// competencia_id); ahora solo las que fueron registradas explícitamente con esta competencia activa.
+// competencia); ahora solo las vinculadas a esta competencia vía actividad_competencias (una actividad puede
+// estar vinculada a varias competencias en curso a la vez).
 router.get('/:id/actividades', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { mes } = req.query; // YYYY-MM opcional
@@ -616,7 +644,7 @@ router.get('/:id/actividades', authMiddleware, async (req, res) => {
               a.notas, a.foto_url, a.created_at
        FROM actividades a
        JOIN users u ON u.id = a.user_id
-       WHERE a.competencia_id = $1 ${mesFilter}
+       WHERE EXISTS (SELECT 1 FROM actividad_competencias ac WHERE ac.actividad_id = a.id AND ac.competencia_id = $1) ${mesFilter}
        ORDER BY a.fecha ASC, a.created_at ASC`,
       params
     );

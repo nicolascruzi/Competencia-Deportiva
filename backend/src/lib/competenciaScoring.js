@@ -2,8 +2,9 @@ const pool = require('../db/pool');
 
 // CTEs compartidos para calcular puntos por persona dentro de una competencia:
 // - acts_calc: puntos por actividad = minutos * ponderador_deporte_competencia * ponderador_extra_semana_si_aplica
-//   Solo considera actividades con a.competencia_id = la competencia (cambio de comportamiento respecto al
-//   ranking histórico, que sumaba todas las actividades del usuario sin filtrar).
+//   Solo considera actividades vinculadas a la competencia vía actividad_competencias (una actividad puede
+//   estar vinculada a varias competencias en curso a la vez — cambio de comportamiento respecto al ranking
+//   histórico, que sumaba todas las actividades del usuario sin filtrar).
 // - bonus_companeros: puntos fijos por actividad con al menos un compañero marcado (una vez por actividad).
 // - challenge_pts: puntos fijos por cada challenge semanal completado (no filtra por mes: un challenge
 //   completado cuenta para el total general, no solo para el mes en que se completó).
@@ -33,14 +34,14 @@ function buildScoringCtes(mesFilter = '') {
       a.minutos AS minutos,
       a.id AS actividad_id
     FROM actividades a
-    WHERE a.competencia_id = $1 ${mesFilter}
+    WHERE EXISTS (SELECT 1 FROM actividad_competencias ac2 WHERE ac2.actividad_id = a.id AND ac2.competencia_id = $1) ${mesFilter}
   ),
   bonus_companeros AS (
     SELECT a.user_id, COUNT(DISTINCT a.id)::numeric * c.bonus_companeros_pts AS pts_bonus
     FROM actividades a
     JOIN actividad_companeros ac ON ac.actividad_id = a.id
     JOIN competencias c ON c.id = $1
-    WHERE a.competencia_id = $1 ${mesFilter}
+    WHERE EXISTS (SELECT 1 FROM actividad_competencias ac2 WHERE ac2.actividad_id = a.id AND ac2.competencia_id = $1) ${mesFilter}
     GROUP BY a.user_id, c.bonus_companeros_pts
   ),
   challenge_pts AS (
