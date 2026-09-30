@@ -2166,7 +2166,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
           )}
 
           {deportes.map(d => (
-            <div key={d.nombre} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px' }}>
+            <div key={d.nombre} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px', flexShrink:0 }}>
               <span style={{ fontSize:18, flexShrink:0 }}>{d.icono}</span>
               <span style={{ flex:1, fontSize:14, fontWeight:500, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.nombre}</span>
               {readOnly
@@ -2268,10 +2268,10 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false }) 
         <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:16 }}>
 
           {/* Nombres de equipo */}
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Nombres</div>
             {equipos.map((e, i) => (
-              <div key={e.id ?? `nuevo-${i}`} style={{ display:'flex', gap:8 }}>
+              <div key={e.id ?? `nuevo-${i}`} style={{ display:'flex', gap:8, flexShrink:0 }}>
                 <input
                   type="text" value={e.nombre} disabled={readOnly}
                   onChange={ev => setEquipos(prev => prev.map((x, j) => j === i ? { ...x, nombre: ev.target.value } : x))}
@@ -2292,10 +2292,10 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false }) 
           </div>
 
           {/* Asignación de participantes */}
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Participantes</div>
             {(competencia.participantes || []).map(p => (
-              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px' }}>
+              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px', flexShrink:0 }}>
                 <span style={{ flex:1, fontSize:14, color:'var(--t-text)' }}>{p.nombre_display || p.nombre}</span>
                 <select
                   value={asignaciones[p.id] ?? ''} disabled={readOnly}
@@ -2397,7 +2397,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
             const isActual = s.id === competencia.semana_actual_id;
             const tieneContenido = !!(s.challenge_texto?.trim() || s.deporte_semana_nombre);
             return (
-              <div key={s.id} style={{ border: isActual ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)', borderRadius:12, overflow:'hidden', background:'var(--t-surface2)' }}>
+              <div key={s.id} style={{ border: isActual ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)', borderRadius:12, overflow:'hidden', background:'var(--t-surface2)', flexShrink:0 }}>
                 <button onClick={() => setAbierta(isOpen ? null : s.id)}
                   style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' }}>
                   <span style={{ fontSize:13, fontWeight:600, color:'var(--t-text)' }}>
