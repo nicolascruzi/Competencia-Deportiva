@@ -60,15 +60,18 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   const [fotoPreview, setFotoPreview] = useState(null);
   const [error, setError]           = useState('');
   const [loading, setLoading]       = useState(false);
-  // { [competencia_id]: number[] } — un set de compañeros marcados por cada competencia en curso con equipo
-  const [companerosPorComp, setCompanerosPorComp] = useState({});
+  const [cantidadCompaneros, setCantidadCompaneros] = useState(0); // 0-3, 3 = "3 o más"
   const [misCompetencias, setMisCompetencias] = useState([]);
   const fileInputRef                = useRef(null);
   const { withLoading } = useLoading();
 
-  // Competencias en curso con bonus por compañía activado y al menos otro participante — una sección de chips por cada una
-  const competenciasConBonus = misCompetencias.filter(c =>
-    c.en_curso && parseFloat(c.bonus_companeros_pts) > 0 && (c.otros_participantes?.length ?? 0) > 0
+  // Se muestra el selector si al menos una competencia en curso tiene el bonus activado en algún tramo
+  const mostrarSelectorCompaneros = misCompetencias.some(c =>
+    c.en_curso && (
+      parseFloat(c.bonus_1_companero_pts) > 0 ||
+      parseFloat(c.bonus_2_companeros_pts) > 0 ||
+      parseFloat(c.bonus_3mas_companeros_pts) > 0
+    )
   );
 
   // Mapa de ponderadores de la competencia activa: { deporte_nombre → ponderador }
@@ -98,18 +101,10 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
       setError('');
       setFoto(null);
       setFotoPreview(null);
-      setCompanerosPorComp({});
+      setCantidadCompaneros(0);
       getCompetencias().then(setMisCompetencias).catch(() => setMisCompetencias([]));
     }
   }, [open]);
-
-  function toggleCompanero(competenciaId, userId) {
-    setCompanerosPorComp(prev => {
-      const actuales = prev[competenciaId] ?? [];
-      const nuevos = actuales.includes(userId) ? actuales.filter(x => x !== userId) : [...actuales, userId];
-      return { ...prev, [competenciaId]: nuevos };
-    });
-  }
 
   useEffect(() => {
     if (deportes.length) {
@@ -150,14 +145,13 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
     try {
       let savedActividad = null;
       await withLoading(async () => {
-        const companerosIds = [...new Set(Object.values(companerosPorComp).flat())];
         const actividad = await createActividad({
           deporte_nombre: form.deporte_nombre,
           minutos:        parseFloat(form.minutos),
           ponderador:     parseFloat(form.ponderador),
           fecha:          form.fecha,
           notas:          form.notas || null,
-          companeros_ids: companerosIds,
+          cantidad_companeros: cantidadCompaneros,
         });
         if (foto && actividad.id) {
           await uploadFoto(actividad.id, foto).catch(() => {});
@@ -264,38 +258,33 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
               value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
           </Field>
 
-          {/* Hecho en compañía — una sección por cada competencia en curso con bonus activado */}
-          {competenciasConBonus.map(c => {
-            const seleccionados = companerosPorComp[c.id] ?? [];
-            return (
-              <Field key={c.id} label={competenciasConBonus.length > 1
-                ? `¿Lo hiciste con alguien de "${c.nombre}"?`
-                : '¿Lo hiciste con algún compañero de la competencia?'}>
-                <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-                  {c.otros_participantes.map(m => {
-                    const selected = seleccionados.includes(m.id);
-                    return (
-                      <button key={m.id} type="button" onClick={() => toggleCompanero(c.id, m.id)}
-                        style={{
-                          display:'flex', alignItems:'center', gap:6, padding:'6px 12px 6px 6px', borderRadius:20,
-                          border: selected ? '1.5px solid var(--t-accent)' : '1.5px solid var(--t-dim)',
-                          background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
-                          color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
-                          cursor:'pointer', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent',
-                        }}>
-                        <span style={{ width:22, height:22, borderRadius:'50%', overflow:'hidden', flexShrink:0, background:'rgba(var(--t-accent-r),0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800 }}>
-                          {m.foto_perfil_url
-                            ? <img src={m.foto_perfil_url} alt={m.nombre_display} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                            : m.nombre_display?.charAt(0).toUpperCase()}
-                        </span>
-                        {m.nombre_display}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Field>
-            );
-          })}
+          {/* Hecho en compañía — cantidad de amigos con los que se hizo la actividad */}
+          {mostrarSelectorCompaneros && (
+            <Field label="¿Con cuántos compañeros lo hiciste?">
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                {[
+                  { value: 0, label: 'Solo yo' },
+                  { value: 1, label: '1' },
+                  { value: 2, label: '2' },
+                  { value: 3, label: '3 o más' },
+                ].map(opt => {
+                  const selected = cantidadCompaneros === opt.value;
+                  return (
+                    <button key={opt.value} type="button" onClick={() => setCantidadCompaneros(opt.value)}
+                      style={{
+                        padding:'7px 16px', borderRadius:20,
+                        border: selected ? '1.5px solid var(--t-accent)' : '1.5px solid var(--t-dim)',
+                        background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
+                        color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
+                        cursor:'pointer', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent',
+                      }}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
 
           {/* Foto */}
           <Field label="Foto (opcional)">

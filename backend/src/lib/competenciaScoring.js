@@ -5,7 +5,8 @@ const pool = require('../db/pool');
 //   Solo considera actividades vinculadas a la competencia vía actividad_competencias (una actividad puede
 //   estar vinculada a varias competencias en curso a la vez — cambio de comportamiento respecto al ranking
 //   histórico, que sumaba todas las actividades del usuario sin filtrar).
-// - bonus_companeros: puntos fijos por actividad con al menos un compañero marcado (una vez por actividad).
+// - bonus_companeros: por cada actividad, suma el monto del tramo de la competencia que corresponda a
+//   actividades.cantidad_companeros (1, 2, o 3+), independientes entre sí (no hay fórmula, son 3 valores libres).
 // - challenge_pts: puntos fijos por cada challenge semanal completado (no filtra por mes: un challenge
 //   completado cuenta para el total general, no solo para el mes en que se completó).
 //
@@ -37,12 +38,17 @@ function buildScoringCtes(mesFilter = '') {
     WHERE EXISTS (SELECT 1 FROM actividad_competencias ac2 WHERE ac2.actividad_id = a.id AND ac2.competencia_id = $1) ${mesFilter}
   ),
   bonus_companeros AS (
-    SELECT a.user_id, COUNT(DISTINCT a.id)::numeric * c.bonus_companeros_pts AS pts_bonus
+    SELECT a.user_id,
+      SUM(CASE
+        WHEN a.cantidad_companeros = 1 THEN c.bonus_1_companero_pts
+        WHEN a.cantidad_companeros = 2 THEN c.bonus_2_companeros_pts
+        WHEN a.cantidad_companeros >= 3 THEN c.bonus_3mas_companeros_pts
+        ELSE 0
+      END) AS pts_bonus
     FROM actividades a
-    JOIN actividad_companeros ac ON ac.actividad_id = a.id
     JOIN competencias c ON c.id = $1
     WHERE EXISTS (SELECT 1 FROM actividad_competencias ac2 WHERE ac2.actividad_id = a.id AND ac2.competencia_id = $1) ${mesFilter}
-    GROUP BY a.user_id, c.bonus_companeros_pts
+    GROUP BY a.user_id
   ),
   challenge_pts AS (
     SELECT cc.user_id, SUM(ch.puntos) AS pts_challenge

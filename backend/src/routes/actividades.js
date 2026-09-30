@@ -9,11 +9,9 @@ router.use(authMiddleware);
 // "En curso" = sin fechas definidas (competencias viejas, tratadas como siempre vigentes) o CURRENT_DATE dentro del rango.
 const COMPETENCIA_EN_CURSO_SQL = `(c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR CURRENT_DATE BETWEEN c.fecha_inicio AND c.fecha_fin)`;
 
-// Vincula una actividad a todas las competencias en curso del usuario y, dentro de cada una,
-// resuelve el bonus de compañía si el compañero marcado también participa en esa competencia
-// (ya no depende de compartir equipo — cualquier participante de la competencia es válido).
-// companerosIds: array plano de user_id marcados como "hecho en compañía" (mismo picker para todas las competencias).
-async function vincularCompetencias(actividadId, userId, companerosIds) {
+// Vincula una actividad a todas las competencias en curso del usuario (el bonus por compañía
+// ya no depende de esta vinculación con detalle de personas — vive directo en actividades.cantidad_companeros).
+async function vincularCompetencias(actividadId, userId) {
   const { rows: participaciones } = await pool.query(
     `SELECT cp.competencia_id
      FROM competencia_participantes cp
@@ -29,24 +27,13 @@ async function vincularCompetencias(actividadId, userId, companerosIds) {
     `INSERT INTO actividad_competencias (actividad_id, competencia_id) VALUES ${values} ON CONFLICT DO NOTHING`,
     [actividadId, ...participaciones.map(p => p.competencia_id)]
   );
+}
 
-  if (!Array.isArray(companerosIds) || !companerosIds.length) return;
-  const ids = companerosIds.map(id => parseInt(id)).filter(id => Number.isInteger(id) && id !== userId);
-  if (!ids.length) return;
-
-  for (const { competencia_id } of participaciones) {
-    const { rows: validos } = await pool.query(
-      `SELECT user_id FROM competencia_participantes
-       WHERE competencia_id = $1 AND user_id = ANY($2::int[])`,
-      [competencia_id, ids]
-    );
-    if (!validos.length) continue;
-    const compValues = validos.map((_, i) => `($1, $${i + 2})`).join(', ');
-    await pool.query(
-      `INSERT INTO actividad_companeros (actividad_id, user_id) VALUES ${compValues} ON CONFLICT DO NOTHING`,
-      [actividadId, ...validos.map(v => v.user_id)]
-    );
-  }
+// Normaliza la cantidad de compañeros a un entero entre 0 y 3 (3 = "3 o más").
+function normalizarCantidadCompaneros(value) {
+  const n = parseInt(value);
+  if (!Number.isInteger(n) || n < 0) return 0;
+  return Math.min(n, 3);
 }
 
 // GET /actividades — lista actividades
@@ -99,7 +86,7 @@ router.get('/', async (req, res) => {
 
 // POST /actividades — crear actividad
 router.post('/', async (req, res) => {
-  const { deporte_nombre, minutos, ponderador, fecha, notas, user_id, companeros_ids } = req.body;
+  const { deporte_nombre, minutos, ponderador, fecha, notas, user_id, cantidad_companeros } = req.body;
   const isAdmin = req.user.role === 'admin';
 
   // Admin puede cargar en nombre de otro usuario
@@ -118,14 +105,14 @@ router.post('/', async (req, res) => {
     const deporteId = deporte.rows[0]?.id || null;
 
     const result = await pool.query(`
-      INSERT INTO actividades (user_id, deporte_id, deporte_nombre, minutos, ponderador, fecha, notas)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, fecha, notas, foto_url, created_at
-    `, [targetUserId, deporteId, deporte_nombre.trim(), parseFloat(minutos), parseFloat(ponderador), fecha, notas || null]);
+      INSERT INTO actividades (user_id, deporte_id, deporte_nombre, minutos, ponderador, fecha, notas, cantidad_companeros)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, fecha, notas, foto_url, created_at, cantidad_companeros
+    `, [targetUserId, deporteId, deporte_nombre.trim(), parseFloat(minutos), parseFloat(ponderador), fecha, notas || null, normalizarCantidadCompaneros(cantidad_companeros)]);
 
     const act = result.rows[0];
 
-    await vincularCompetencias(act.id, targetUserId, companeros_ids);
+    await vincularCompetencias(act.id, targetUserId);
 
     res.status(201).json(act);
 
@@ -168,12 +155,13 @@ router.put('/:id', async (req, res) => {
     if (!isAdmin && act.user_id !== req.user.id)
       return res.status(403).json({ error: 'No tenés permiso para editar esta actividad' });
 
-    const { deporte_nombre, minutos, ponderador, fecha, notas, companeros_ids } = req.body;
+    const { deporte_nombre, minutos, ponderador, fecha, notas, cantidad_companeros } = req.body;
     const newDeporte    = deporte_nombre ?? act.deporte_nombre;
     const newMinutos    = minutos        != null ? parseFloat(minutos)    : parseFloat(act.minutos);
     const newPonderador = ponderador     != null ? parseFloat(ponderador) : parseFloat(act.ponderador);
     const newFecha      = fecha          ?? act.fecha;
     const newNotas      = notas          !== undefined ? notas : act.notas;
+    const newCantidadCompaneros = cantidad_companeros !== undefined ? normalizarCantidadCompaneros(cantidad_companeros) : act.cantidad_companeros;
 
     const deporte = await pool.query('SELECT id FROM deportes WHERE nombre = $1', [newDeporte]);
     const deporteId = deporte.rows[0]?.id || null;
@@ -181,19 +169,13 @@ router.put('/:id', async (req, res) => {
     const result = await pool.query(`
       UPDATE actividades
       SET deporte_id = $1, deporte_nombre = $2, minutos = $3, ponderador = $4,
-          fecha = $5, notas = $6, updated_at = NOW()
-      WHERE id = $7
-      RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, fecha, notas, updated_at
-    `, [deporteId, newDeporte, newMinutos, newPonderador, newFecha, newNotas, id]);
+          fecha = $5, notas = $6, cantidad_companeros = $7, updated_at = NOW()
+      WHERE id = $8
+      RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, fecha, notas, updated_at, cantidad_companeros
+    `, [deporteId, newDeporte, newMinutos, newPonderador, newFecha, newNotas, newCantidadCompaneros, id]);
 
-    let companerosFinal = companeros_ids;
-    if (companerosFinal === undefined) {
-      const { rows } = await pool.query('SELECT user_id FROM actividad_companeros WHERE actividad_id = $1', [id]);
-      companerosFinal = rows.map(r => r.user_id);
-    }
-    await pool.query('DELETE FROM actividad_companeros WHERE actividad_id = $1', [id]);
     await pool.query('DELETE FROM actividad_competencias WHERE actividad_id = $1', [id]);
-    await vincularCompetencias(id, act.user_id, companerosFinal);
+    await vincularCompetencias(id, act.user_id);
 
     res.json(result.rows[0]);
   } catch (err) {

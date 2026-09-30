@@ -140,7 +140,9 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
   const [semanasData, setSemanasData] = useState({}); // { [numero_semana]: {deporte_semana_nombre, deporte_semana_ponderador_extra} }
   const [semanaAbierta, setSemanaAbierta] = useState(null);
   const [challengesData, setChallengesData] = useState([]); // [{texto, puntos, numero_semana}]
-  const [bonusCompaneros, setBonusCompaneros] = useState('0');
+  const [bonus1, setBonus1]       = useState('0');
+  const [bonus2, setBonus2]       = useState('0');
+  const [bonus3mas, setBonus3mas] = useState('0');
 
   const semanasCalculadas = calcularSemanas(fechaInicio, fechaFin);
 
@@ -161,7 +163,8 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
       setNombre(''); setError(''); setPinInput('');
       setCustomNombre(''); setCustomEmoji(''); setCustomPond('1.0'); setAddingCustom(false); setCustomError('');
       setFechaInicio(''); setFechaFin(''); setEquiposNombres(['Equipo 1', 'Equipo 2']);
-      setSemanasData({}); setSemanaAbierta(null); setChallengesData([]); setBonusCompaneros('0');
+      setSemanasData({}); setSemanaAbierta(null); setChallengesData([]);
+      setBonus1('0'); setBonus2('0'); setBonus3mas('0');
       withLoading(() => reloadDeportes());
     }
   }, [open]);
@@ -203,7 +206,9 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
         equipos_nombres,
         semanas,
         challenges,
-        bonus_companeros_pts: parseFloat(bonusCompaneros) || 0,
+        bonus_1_companero_pts: parseFloat(bonus1) || 0,
+        bonus_2_companeros_pts: parseFloat(bonus2) || 0,
+        bonus_3mas_companeros_pts: parseFloat(bonus3mas) || 0,
       }));
       setPinData({ nombre: comp.nombre, pin: comp.pin, id: comp.id });
       setPaso('pin');
@@ -480,17 +485,26 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
             )}
 
             {/* Bonus por actividad en compañía */}
-            {fechaInicio && fechaFin && (
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Bonus por actividad en compañía (opcional)</label>
+              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Puntos extra según con cuántos compañeros de la competencia se hizo la actividad. Cada tramo es independiente; 0 = sin bonus.</div>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Bonus por actividad en compañía</label>
-                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Puntos extra fijos si marcás que hiciste la actividad con un compañero de equipo. 0 = desactivado.</div>
-                <input
-                  type="number" inputMode="decimal" min="0" step="1"
-                  value={bonusCompaneros} onChange={e => setBonusCompaneros(e.target.value)}
-                  style={{ ...inputStyle, width:100 }}
-                />
+                {[
+                  { label: '1 compañero',        value: bonus1,   setValue: setBonus1 },
+                  { label: '2 compañeros',       value: bonus2,   setValue: setBonus2 },
+                  { label: '3 o más compañeros', value: bonus3mas, setValue: setBonus3mas },
+                ].map(tier => (
+                  <div key={tier.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'8px 12px', borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)' }}>
+                    <span style={{ fontSize:14, color:'var(--t-text)' }}>{tier.label}</span>
+                    <input
+                      type="number" inputMode="decimal" min="0" step="1"
+                      value={tier.value} onChange={e => tier.setValue(e.target.value)}
+                      style={{ ...inputStyle, width:80, textAlign:'center' }}
+                    />
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
 
             <button type="submit" disabled={loading}
               style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: loading ? 0.7 : 1, cursor: loading ? 'default' : 'pointer', flexShrink:0 }}>

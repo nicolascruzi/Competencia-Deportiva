@@ -266,6 +266,42 @@ ALTER TABLE challenge_completados DROP COLUMN IF EXISTS semana_id;
 ALTER TABLE challenge_completados ALTER COLUMN challenge_id SET NOT NULL;
 DROP INDEX IF EXISTS challenge_completados_semana_id_user_id_key;
 CREATE UNIQUE INDEX IF NOT EXISTS challenge_completados_challenge_id_user_id_key ON challenge_completados(challenge_id, user_id);
+
+-- Bonus por compañía pasa de un monto único a 3 tramos independientes por cantidad de compañeros.
+ALTER TABLE competencias ADD COLUMN IF NOT EXISTS bonus_1_companero_pts     NUMERIC(6,2) NOT NULL DEFAULT 0;
+ALTER TABLE competencias ADD COLUMN IF NOT EXISTS bonus_2_companeros_pts    NUMERIC(6,2) NOT NULL DEFAULT 0;
+ALTER TABLE competencias ADD COLUMN IF NOT EXISTS bonus_3mas_companeros_pts NUMERIC(6,2) NOT NULL DEFAULT 0;
+
+-- Migra el valor único viejo a los 3 tramos nuevos (mismo monto en los tres, punto de partida razonable
+-- para que el admin los ajuste después). Solo corre si la columna vieja sigue existiendo.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='competencias' AND column_name='bonus_companeros_pts') THEN
+    UPDATE competencias
+    SET bonus_1_companero_pts = bonus_companeros_pts,
+        bonus_2_companeros_pts = bonus_companeros_pts,
+        bonus_3mas_companeros_pts = bonus_companeros_pts
+    WHERE bonus_companeros_pts > 0;
+  END IF;
+END $$;
+
+ALTER TABLE competencias DROP COLUMN IF EXISTS bonus_companeros_pts;
+
+-- La actividad ya no tagea personas específicas, solo guarda cuántos compañeros participaron (0-3, 3 = "3 o más").
+ALTER TABLE actividades ADD COLUMN IF NOT EXISTS cantidad_companeros SMALLINT NOT NULL DEFAULT 0;
+
+-- Migra actividad_companeros (conteo de tags por actividad, tope en 3) antes de eliminar la tabla.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='actividad_companeros') THEN
+    UPDATE actividades a
+    SET cantidad_companeros = LEAST(sub.cnt, 3)
+    FROM (SELECT actividad_id, COUNT(*) AS cnt FROM actividad_companeros GROUP BY actividad_id) sub
+    WHERE a.id = sub.actividad_id AND a.cantidad_companeros = 0;
+  END IF;
+END $$;
+
+DROP TABLE IF EXISTS actividad_companeros;
 `;
 
 async function migrate() {

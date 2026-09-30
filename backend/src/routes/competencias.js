@@ -43,7 +43,8 @@ function calcularSemanas(fechaInicio, fechaFin) {
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at, c.bonus_companeros_pts,
+      `SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at,
+              c.bonus_1_companero_pts, c.bonus_2_companeros_pts, c.bonus_3mas_companeros_pts,
               TO_CHAR(c.fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
               TO_CHAR(c.fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
               (c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR CURRENT_DATE BETWEEN c.fecha_inicio AND c.fecha_fin) AS en_curso,
@@ -57,27 +58,7 @@ router.get('/', authMiddleware, async (req, res) => {
       [req.user.id]
     );
 
-    const compIds = rows.map(r => r.id);
-    let participantesPorCompetencia = new Map();
-    if (compIds.length) {
-      const { rows: participantes } = await pool.query(
-        `SELECT cp.competencia_id, u.id, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url
-         FROM competencia_participantes cp
-         JOIN users u ON u.id = cp.user_id
-         WHERE cp.competencia_id = ANY($1::int[])`,
-        [compIds]
-      );
-      participantesPorCompetencia = participantes.reduce((map, p) => {
-        if (!map.has(p.competencia_id)) map.set(p.competencia_id, []);
-        map.get(p.competencia_id).push({ id: p.id, nombre_display: p.nombre_display, foto_perfil_url: p.foto_perfil_url });
-        return map;
-      }, new Map());
-    }
-
-    res.json(rows.map(r => ({
-      ...r,
-      otros_participantes: (participantesPorCompetencia.get(r.id) || []).filter(p => p.id !== req.user.id),
-    })));
+    res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al listar competencias' });
@@ -88,7 +69,8 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   const {
     nombre, ponderadores,
-    fecha_inicio, fecha_fin, bonus_companeros_pts,
+    fecha_inicio, fecha_fin,
+    bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts,
     equipos_nombres, semanas, challenges,
   } = req.body;
   // ponderadores: [{ deporte_nombre, ponderador }]
@@ -108,9 +90,10 @@ router.post('/', authMiddleware, async (req, res) => {
     const pin = await generarPin();
 
     const { rows: [comp] } = await client.query(
-      `INSERT INTO competencias (nombre, pin, creador_id, fecha_inicio, fecha_fin, bonus_companeros_pts)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [nombre.trim(), pin, req.user.id, fecha_inicio || null, fecha_fin || null, parseFloat(bonus_companeros_pts) || 0]
+      `INSERT INTO competencias (nombre, pin, creador_id, fecha_inicio, fecha_fin, bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [nombre.trim(), pin, req.user.id, fecha_inicio || null, fecha_fin || null,
+        parseFloat(bonus_1_companero_pts) || 0, parseFloat(bonus_2_companeros_pts) || 0, parseFloat(bonus_3mas_companeros_pts) || 0]
     );
 
     // Creador es participante automáticamente
@@ -224,7 +207,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
     if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
     const { rows: [comp] } = await pool.query(
-      `SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at, c.bonus_companeros_pts,
+      `SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at,
+              c.bonus_1_companero_pts, c.bonus_2_companeros_pts, c.bonus_3mas_companeros_pts,
               TO_CHAR(c.fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
               TO_CHAR(c.fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
               u.nombre AS creador_nombre
@@ -287,7 +271,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // PUT /competencias/:id/configuracion — editar fechas y bonus por compañía (solo creador)
 router.put('/:id/configuracion', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { fecha_inicio, fecha_fin, bonus_companeros_pts } = req.body;
+  const { fecha_inicio, fecha_fin, bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts } = req.body;
 
   try {
     const { rows: [comp] } = await pool.query(
@@ -323,7 +307,9 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
     const params = [];
     if (fecha_inicio !== undefined) { params.push(nuevaFechaInicio); sets.push(`fecha_inicio=$${params.length}`); }
     if (fecha_fin !== undefined)    { params.push(nuevaFechaFin);    sets.push(`fecha_fin=$${params.length}`); }
-    if (bonus_companeros_pts !== undefined) { params.push(parseFloat(bonus_companeros_pts) || 0); sets.push(`bonus_companeros_pts=$${params.length}`); }
+    if (bonus_1_companero_pts !== undefined)     { params.push(parseFloat(bonus_1_companero_pts) || 0);     sets.push(`bonus_1_companero_pts=$${params.length}`); }
+    if (bonus_2_companeros_pts !== undefined)    { params.push(parseFloat(bonus_2_companeros_pts) || 0);    sets.push(`bonus_2_companeros_pts=$${params.length}`); }
+    if (bonus_3mas_companeros_pts !== undefined) { params.push(parseFloat(bonus_3mas_companeros_pts) || 0); sets.push(`bonus_3mas_companeros_pts=$${params.length}`); }
 
     if (sets.length) {
       params.push(id);
@@ -343,7 +329,8 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
     }
 
     const { rows: [actualizada] } = await pool.query(
-      `SELECT id, bonus_companeros_pts, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
+      `SELECT id, bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts,
+              TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
        FROM competencias WHERE id=$1`,
       [id]
     );
