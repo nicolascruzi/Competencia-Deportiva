@@ -573,7 +573,38 @@ function TeamEvolucion({ acts, equipos, rankingData }) {
   );
 }
 
-function RankingEquiposConTabs({ data, rankingData, acts }) {
+// Resumen compacto: tarjetas de equipo lado a lado (nombre + puntos), tappables para seleccionar.
+function EquiposResumen({ data, equipoSeleccionadoId, onSelect }) {
+  if (!data.length) return <EmptyState icon="🤝" title="Sin equipos" text="Todavía no hay equipos configurados." />;
+  return (
+    <div style={{ display:'flex', gap:8, overflowX:'auto', padding:'10px 4px' }}>
+      {data.map(eq => {
+        const selected = eq.id === equipoSeleccionadoId;
+        return (
+          <button key={eq.id} onClick={() => onSelect(eq.id)}
+            style={{
+              flexShrink:0, minWidth:100, padding:'10px 14px', borderRadius:14, textAlign:'left', cursor:'pointer', WebkitTapHighlightColor:'transparent',
+              border: selected ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)',
+              background: selected ? 'rgba(var(--t-accent-r),0.1)' : 'var(--t-surface)',
+            }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+              <span style={{ width:20, height:20, borderRadius:6, flexShrink:0, background: eq.color || 'var(--t-accent)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:11, color:'#fff' }}>{eq.nombre?.charAt(0).toUpperCase()}</span>
+              </span>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color: selected ? 'var(--t-accent)' : 'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                {eq.nombre}
+              </span>
+            </div>
+            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)' }}>{Math.round(eq.puntos)}</div>
+            <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>pts</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function EquiposTab({ data, rankingData, acts, equipos, equipoSeleccionadoId, onSelectEquipo, nombres, myId, onOpenProfile, mesSelector }) {
   const [subtab, setSubtab] = useState('tabla');
 
   const tabBtn = (id, label) => (
@@ -584,16 +615,25 @@ function RankingEquiposConTabs({ data, rankingData, acts }) {
       }}>{label}</button>
   );
 
+  const rankingEquipoData = rankingData.filter(r => r.equipo_id === equipoSeleccionadoId);
+  const nombresEquipo = [...new Set(rankingEquipoData.map(r => r.nombre_display || r.nombre))].sort();
+  const idsEquipo = new Set(rankingEquipoData.map(r => String(r.id)));
+  const actsEquipo = acts.filter(a => idsEquipo.has(String(a.user_id)));
+
   return (
     <div>
       <div style={{ display:'flex', borderBottom:'1px solid var(--t-dim)' }}>
         {tabBtn('tabla', 'Tabla')}
         {tabBtn('evolucion', 'Evolución')}
       </div>
-      {subtab === 'evolucion'
-        ? <TeamEvolucion acts={acts} equipos={data} rankingData={rankingData} />
-        : <RankingEquipos data={data} rankingData={rankingData} />
-      }
+      {subtab === 'evolucion' ? (
+        <TeamEvolucion acts={acts} equipos={data} rankingData={rankingData} />
+      ) : (
+        <>
+          <EquiposResumen data={data} equipoSeleccionadoId={equipoSeleccionadoId} onSelect={onSelectEquipo} />
+          <Ranking acts={actsEquipo} rankingData={rankingEquipoData} nombres={nombresEquipo} myId={myId} onOpenProfile={onOpenProfile} mesSelector={mesSelector} />
+        </>
+      )}
     </div>
   );
 }
@@ -2797,6 +2837,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   // después con un refetch en App.jsx sin que cambie el `key` del componente — sincronizar cuando eso pase.
   useEffect(() => { setCompConDeportes(competencia); }, [competencia]);
   const [rankingRefreshKey, setRankingRefreshKey] = useState(0);
+  const [rankingSubTab, setRankingSubTab] = useState('general'); // 'general' | 'equipos'
   const [equipoSeleccionadoId, setEquipoSeleccionadoId] = useState(null);
 
   const isAdmin = user?.id === competencia.creador_id;
@@ -2862,39 +2903,34 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       return <Ranking acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />;
     }
 
-    const equipos = compConDeportes.equipos || [];
-    const rankingEquipoData = rankingData.filter(r => r.equipo_id === equipoSeleccionadoId);
-    const nombresEquipo = [...new Set(rankingEquipoData.map(r => r.nombre_display || r.nombre))].sort();
-    const idsEquipo = new Set(rankingEquipoData.map(r => String(r.id)));
-    const actsEquipo = acts.filter(a => idsEquipo.has(String(a.user_id)));
-
     return (
-      <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-        {/* Columna Grupal */}
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', padding:'0 4px 6px' }}>Grupal</div>
-          <RankingEquiposConTabs data={rankingEquiposData} rankingData={rankingData} acts={acts} />
+      <>
+        <div style={{ display:'flex', gap:0, marginBottom:12, borderBottom:'1px solid var(--t-dim)' }}>
+          {[{ id:'general', label:'General' }, { id:'equipos', label:'Equipos' }].map(t => (
+            <button key={t.id} onClick={() => setRankingSubTab(t.id)}
+              style={{ padding:'8px 16px', border:'none', cursor:'pointer', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', WebkitTapHighlightColor:'transparent', background:'transparent',
+                color: rankingSubTab === t.id ? 'var(--t-accent)' : 'var(--t-muted)',
+                borderBottom: rankingSubTab === t.id ? '2.5px solid var(--t-accent)' : '2.5px solid transparent',
+              }}>{t.label}</button>
+          ))}
         </div>
-
-        {/* Columna Individual (equipo seleccionado) */}
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:6, padding:'0 4px 6px', overflowX:'auto' }}>
-            {equipos.map(eq => (
-              <button key={eq.id} onClick={() => setEquipoSeleccionadoId(eq.id)}
-                style={{
-                  padding:'4px 10px', borderRadius:20, border:'1px solid', flexShrink:0,
-                  borderColor: eq.id === equipoSeleccionadoId ? 'var(--t-accent)' : 'var(--t-dim)',
-                  background: eq.id === equipoSeleccionadoId ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
-                  color: eq.id === equipoSeleccionadoId ? 'var(--t-accent)' : 'var(--t-muted)',
-                  fontSize:11, fontWeight:700, cursor:'pointer', WebkitTapHighlightColor:'transparent', whiteSpace:'nowrap',
-                }}>
-                {eq.nombre}
-              </button>
-            ))}
-          </div>
-          <Ranking acts={actsEquipo} rankingData={rankingEquipoData} nombres={nombresEquipo} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />
-        </div>
-      </div>
+        {rankingSubTab === 'equipos' ? (
+          <EquiposTab
+            data={rankingEquiposData}
+            rankingData={rankingData}
+            acts={acts}
+            equipos={compConDeportes.equipos || []}
+            equipoSeleccionadoId={equipoSeleccionadoId}
+            onSelectEquipo={setEquipoSeleccionadoId}
+            nombres={nombres}
+            myId={user?.nombre_display || user?.nombre}
+            onOpenProfile={(n, id) => setProfile({ nombre: n, id })}
+            mesSelector={mesSelectorEl}
+          />
+        ) : (
+          <Ranking acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />
+        )}
+      </>
     );
   }
 
