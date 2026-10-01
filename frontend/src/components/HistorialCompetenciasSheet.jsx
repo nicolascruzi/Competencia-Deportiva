@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { getCompetenciasGrupo } from '../api/grupos';
+import { getCompetenciasGrupo, cerrarCompetenciaGrupo } from '../api/grupos';
 import { getRankingComp } from '../api/competencias';
+import NuevaCompetenciaSheet from './NuevaCompetenciaSheet';
 
 function fmtFecha(iso) {
   if (!iso) return '';
@@ -68,10 +69,12 @@ function RankingCongelado({ competencia, onBack }) {
   );
 }
 
-export default function HistorialCompetenciasSheet({ grupoId, onClose }) {
+export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, onCompetenciaActualCambio }) {
   const [competencias, setCompetencias] = useState(null);
   const [error, setError] = useState('');
   const [verRanking, setVerRanking] = useState(null); // competencia seleccionada, o null
+  const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [cerrando, setCerrando] = useState(false);
   const startY = useRef(null);
 
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
@@ -80,11 +83,29 @@ export default function HistorialCompetenciasSheet({ grupoId, onClose }) {
     startY.current = null;
   }
 
-  useEffect(() => {
-    getCompetenciasGrupo(grupoId)
+  function reload() {
+    return getCompetenciasGrupo(grupoId)
       .then(setCompetencias)
       .catch(err => setError(err.message));
-  }, [grupoId]);
+  }
+
+  useEffect(() => { reload(); }, [grupoId]);
+
+  const enCurso = competencias?.find(c => c.estado === 'en_curso') ?? null;
+
+  async function handleCerrar() {
+    if (!enCurso || !confirm(`¿Cerrar "${enCurso.nombre}"? El ranking quedará congelado como histórico.`)) return;
+    setCerrando(true); setError('');
+    try {
+      await cerrarCompetenciaGrupo(grupoId, enCurso.id);
+      await reload();
+      onCompetenciaActualCambio?.(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCerrando(false);
+    }
+  }
 
   return (
     <>
@@ -115,6 +136,19 @@ export default function HistorialCompetenciasSheet({ grupoId, onClose }) {
             </div>
           ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {isAdmin && (
+                enCurso ? (
+                  <button onClick={handleCerrar} disabled={cerrando}
+                    style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid rgba(248,113,113,0.3)', background:'rgba(248,113,113,0.08)', color:'#F87171', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor: cerrando ? 'default' : 'pointer', opacity: cerrando ? 0.6 : 1, marginBottom:4 }}>
+                    {cerrando ? 'Cerrando…' : `Cerrar "${enCurso.nombre}"`}
+                  </button>
+                ) : (
+                  <button onClick={() => setNuevaOpen(true)}
+                    style={{ width:'100%', padding:'12px', borderRadius:12, border:'1.5px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.08)', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', marginBottom:4 }}>
+                    + Crear nueva competencia
+                  </button>
+                )
+              )}
               {competencias.map(c => (
                 <button key={c.id} onClick={() => setVerRanking(c)}
                   style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 14px', borderRadius:12, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
@@ -146,6 +180,17 @@ export default function HistorialCompetenciasSheet({ grupoId, onClose }) {
         </div>
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+
+      {nuevaOpen && (
+        <NuevaCompetenciaSheet
+          grupoId={grupoId}
+          onClose={() => setNuevaOpen(false)}
+          onCreated={competencia => {
+            reload();
+            onCompetenciaActualCambio?.(competencia);
+          }}
+        />
+      )}
     </>
   );
 }

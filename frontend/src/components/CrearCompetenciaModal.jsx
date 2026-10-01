@@ -225,7 +225,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
     if (pinInput.length !== 6) return setError('El PIN debe tener 6 dígitos');
     setError(''); setLoading(true);
     try {
-      const comp = await withLoading(() => joinCompetencia(pinInput));
+      const comp = await withLoading(() => joinGrupo(pinInput));
       onCreated?.(comp);
       onClose();
     } catch (err) {

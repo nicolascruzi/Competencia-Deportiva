@@ -394,7 +394,15 @@ function AppShell() {
       />
 
       {historialSheetOpen && grupoActivo && (
-        <HistorialCompetenciasSheet grupoId={grupoActivo.id} onClose={() => setHistorialSheetOpen(false)} />
+        <HistorialCompetenciasSheet
+          grupoId={grupoActivo.id}
+          isAdmin={isAdmin}
+          onClose={() => setHistorialSheetOpen(false)}
+          onCompetenciaActualCambio={competenciaActual => {
+            setGrupoActivo(prev => ({ ...prev, competencia_actual: competenciaActual }));
+            setRefreshKey(k => k + 1);
+          }}
+        />
       )}
 
       {showOnboarding && (
