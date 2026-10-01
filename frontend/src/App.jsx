@@ -133,7 +133,7 @@ function AppShell() {
   const [equiposSheetOpen, setEquiposSheetOpen] = useState(false);
   const [semanasSheetOpen, setSemanasSheetOpen] = useState(false);
   const [configSheetOpen, setConfigSheetOpen] = useState(false);
-  const [historialSheetOpen, setHistorialSheetOpen] = useState(false);
+  const [historialGrupo, setHistorialGrupo] = useState(null); // { id, soy_admin } | null
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
   const [restoringComp, setRestoringComp]     = useState(true);
   const [toast, setToast]                     = useState(null); // { actividad, ptsAntes, ptsDespues }
@@ -209,15 +209,15 @@ function AppShell() {
 
   if (!user) return <Login />;
 
-  async function handleSelectGrupo(g) {
+  async function handleSelectGrupo(g, competenciaId) {
     localStorage.setItem('lastGrupoId', g.id);
     setGrupoActivo(g);
-    selectCompetencia(g.competencias_en_curso?.[0]?.id ?? null);
+    selectCompetencia(competenciaId ?? g.competencias_en_curso?.[0]?.id ?? null);
     setCompTab('ranking');
     try {
       const detalle = await withLoading(() => getGrupo(g.id));
       setGrupoActivo(detalle);
-      selectCompetencia(detalle.competencias_en_curso?.[0]?.id ?? null);
+      selectCompetencia(competenciaId ?? detalle.competencias_en_curso?.[0]?.id ?? null);
     } catch { /* si falla, queda con los datos parciales del selector */ }
   }
 
@@ -307,7 +307,7 @@ function AppShell() {
         onAdminEquipos={() => setEquiposSheetOpen(true)}
         onAdminSemanas={() => setSemanasSheetOpen(true)}
         onAdminConfig={() => setConfigSheetOpen(true)}
-        onHistorial={() => setHistorialSheetOpen(true)}
+        onHistorial={grupo => setHistorialGrupo(grupo)}
         onOpenPerfil={() => setProfileSettingsOpen(true)}
         isGlobalAdmin={isGlobalAdmin}
         onNotifClick={(actividadId) => {
@@ -414,12 +414,13 @@ function AppShell() {
         }}
       />
 
-      {historialSheetOpen && grupoActivo && (
+      {historialGrupo && (
         <HistorialCompetenciasSheet
-          grupoId={grupoActivo.id}
-          isAdmin={isAdmin}
-          onClose={() => setHistorialSheetOpen(false)}
+          grupoId={historialGrupo.id}
+          isAdmin={historialGrupo.soy_admin}
+          onClose={() => setHistorialGrupo(null)}
           onCompetenciasEnCursoCambio={competenciasEnCurso => {
+            if (historialGrupo.id !== grupoActivo?.id) return; // historial de otro grupo que no estoy viendo
             setGrupoActivo(prev => ({ ...prev, competencias_en_curso: competenciasEnCurso }));
             // Si la competencia seleccionada ya no está en curso (se cerró), caer a la primera disponible.
             if (!competenciasEnCurso.some(c => c.id === competenciaSeleccionadaId)) {

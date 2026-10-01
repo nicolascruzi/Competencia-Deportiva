@@ -79,7 +79,7 @@ async function creaCompetenciaEnTransaccion(client, grupoId, body) {
   return comp;
 }
 
-// GET /grupos — mis grupos, con su competencia en_curso embebida
+// GET /grupos — mis grupos, con sus competencias en_curso y las últimas finalizadas embebidas
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { rows: grupos } = await pool.query(
@@ -96,13 +96,37 @@ router.get('/', authMiddleware, async (req, res) => {
       `SELECT c.* FROM competencias c WHERE c.grupo_id = ANY($1::int[]) AND c.estado = 'en_curso' ORDER BY c.created_at DESC`,
       [grupos.map(g => g.id)]
     );
-    const porGrupo = new Map();
+    const enCursoPorGrupo = new Map();
     for (const c of competenciasEnCurso) {
-      if (!porGrupo.has(c.grupo_id)) porGrupo.set(c.grupo_id, []);
-      porGrupo.get(c.grupo_id).push(c);
+      if (!enCursoPorGrupo.has(c.grupo_id)) enCursoPorGrupo.set(c.grupo_id, []);
+      enCursoPorGrupo.get(c.grupo_id).push(c);
     }
 
-    res.json(grupos.map(g => ({ ...g, competencias_en_curso: porGrupo.get(g.id) ?? [] })));
+    // Últimas 5 finalizadas por grupo (para mostrar un resumen corto en el selector sin traer todo el historial).
+    const { rows: finalizadasRecientes } = await pool.query(
+      `SELECT * FROM (
+         SELECT c.*, ROW_NUMBER() OVER (PARTITION BY c.grupo_id ORDER BY c.created_at DESC) AS rn
+         FROM competencias c WHERE c.grupo_id = ANY($1::int[]) AND c.estado = 'finalizada'
+       ) t WHERE rn <= 5 ORDER BY grupo_id, created_at DESC`,
+      [grupos.map(g => g.id)]
+    );
+    const finalizadasPorGrupo = new Map();
+    for (const c of finalizadasRecientes) {
+      if (!finalizadasPorGrupo.has(c.grupo_id)) finalizadasPorGrupo.set(c.grupo_id, []);
+      finalizadasPorGrupo.get(c.grupo_id).push(c);
+    }
+    const { rows: totalFinalizadas } = await pool.query(
+      `SELECT grupo_id, COUNT(*)::int AS total FROM competencias WHERE grupo_id = ANY($1::int[]) AND estado = 'finalizada' GROUP BY grupo_id`,
+      [grupos.map(g => g.id)]
+    );
+    const totalFinalizadasPorGrupo = new Map(totalFinalizadas.map(r => [r.grupo_id, r.total]));
+
+    res.json(grupos.map(g => ({
+      ...g,
+      competencias_en_curso: enCursoPorGrupo.get(g.id) ?? [],
+      competencias_finalizadas_recientes: finalizadasPorGrupo.get(g.id) ?? [],
+      total_competencias_finalizadas: totalFinalizadasPorGrupo.get(g.id) ?? 0,
+    })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al listar grupos' });

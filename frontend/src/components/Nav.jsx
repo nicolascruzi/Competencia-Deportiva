@@ -38,6 +38,12 @@ const IconChevronRight = () => (
     <path d="M9 18l6-6-6-6"/>
   </svg>
 );
+const IconUsers = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+  </svg>
+);
 const IconBack = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M15 18l-6-6 6-6"/>
@@ -246,46 +252,78 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
               No tenés grupos todavía.
             </div>
           ) : (
-            grupos.map(g => {
-              const isActive = grupoActivo?.id === g.id;
+            grupos.map((g, gi) => {
+              const isGrupoActivo = grupoActivo?.id === g.id;
+              const enCurso = g.competencias_en_curso ?? [];
+              const finalizadas = g.competencias_finalizadas_recientes ?? [];
+              const totalFinalizadas = g.total_competencias_finalizadas ?? 0;
+              const hayMasFinalizadas = totalFinalizadas > finalizadas.length;
+
               return (
-                <button key={g.id}
-                  onClick={() => { onSelectGrupo(g); setSelectorOpen(false); }}
-                  style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'11px 18px', background: isActive ? 'rgba(var(--t-accent-r),0.07)' : 'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.03em', color: isActive ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                      {g.nombre}
-                    </div>
-                    <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>
-                      {g.participantes} participante{g.participantes !== 1 ? 's' : ''}
-                      {!g.competencias_en_curso?.length && ' · sin competencia activa'}
+                <div key={g.id} style={{ borderTop: gi > 0 ? '1px solid var(--t-dim)' : 'none', padding:'10px 0' }}>
+                  {/* Fila del grupo */}
+                  <div style={{ display:'flex', alignItems:'center', gap:10, padding:'0 18px 6px' }}>
+                    <span style={{ color: isGrupoActivo ? 'var(--t-accent)' : 'var(--t-muted)', flexShrink:0 }}><IconUsers /></span>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color: isGrupoActivo ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {g.nombre}
+                      </div>
+                      <div style={{ fontSize:10.5, color:'var(--t-muted)', marginTop:1 }}>
+                        {g.participantes} participante{g.participantes !== 1 ? 's' : ''}
+                      </div>
                     </div>
                   </div>
-                  {isActive && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
-                </button>
+
+                  {/* Competencias anidadas: en curso primero, luego finalizadas recientes */}
+                  <div style={{ paddingLeft:16, borderLeft:'2px solid var(--t-dim)', marginLeft:23 }}>
+                    {enCurso.length === 0 && finalizadas.length === 0 && (
+                      <div style={{ padding:'6px 14px', fontSize:12, color:'var(--t-muted)' }}>Sin competencias todavía</div>
+                    )}
+                    {enCurso.map(c => {
+                      const isSel = isGrupoActivo && competenciaActiva?.id === c.id;
+                      return (
+                        <button key={c.id}
+                          onClick={() => {
+                            if (!isGrupoActivo) onSelectGrupo({ ...g, competencias_en_curso: enCurso }, c.id);
+                            else onSelectCompetenciaActiva(c.id);
+                            setSelectorOpen(false);
+                          }}
+                          style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'7px 14px', background: isSel ? 'rgba(var(--t-accent-r),0.07)' : 'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                          <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ADE80', flexShrink:0 }} />
+                          <span style={{ flex:1, fontSize:13.5, fontWeight:600, color: isSel ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                            {c.nombre}
+                          </span>
+                          <span style={{ fontSize:9.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'#4ADE80', flexShrink:0 }}>En vivo</span>
+                          {isSel && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
+                        </button>
+                      );
+                    })}
+                    {finalizadas.map(c => (
+                      <button key={c.id}
+                        onClick={() => { onSelectGrupo({ ...g, competencias_en_curso: enCurso }); setSelectorOpen(false); onHistorial?.(g); }}
+                        style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'7px 14px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                        <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--t-dim2)', flexShrink:0 }} />
+                        <span style={{ flex:1, fontSize:13.5, fontWeight:500, color:'var(--t-muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {c.nombre}
+                        </span>
+                        <span style={{ fontSize:9.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-muted)', flexShrink:0 }}>Finalizada</span>
+                      </button>
+                    ))}
+                    {(hayMasFinalizadas || finalizadas.length > 0) && (
+                      <button
+                        onClick={() => {
+                          if (!isGrupoActivo) onSelectGrupo({ ...g, competencias_en_curso: enCurso });
+                          setSelectorOpen(false);
+                          onHistorial?.(g);
+                        }}
+                        style={{ display:'block', width:'100%', padding:'6px 14px 2px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', fontSize:11.5, fontWeight:600, color:'var(--t-accent)', WebkitTapHighlightColor:'transparent' }}>
+                        Ver historial completo →
+                      </button>
+                    )}
+                  </div>
+                </div>
               );
             })
-          )}
-
-          {competenciasEnCurso?.length > 1 && (
-            <div style={{ borderTop:'1px solid var(--t-dim)', padding:'10px 0 6px' }}>
-              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-muted)', padding:'0 18px 8px' }}>
-                Viendo
-              </div>
-              {competenciasEnCurso.map(c => {
-                const isActive = competenciaActiva?.id === c.id;
-                return (
-                  <button key={c.id}
-                    onClick={() => { onSelectCompetenciaActiva(c.id); setSelectorOpen(false); }}
-                    style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'9px 18px', background: isActive ? 'rgba(var(--t-accent-r),0.07)' : 'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                    <span style={{ flex:1, fontSize:14, fontWeight:600, color: isActive ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                      {c.nombre}
-                    </span>
-                    {isActive && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
-                  </button>
-                );
-              })}
-            </div>
           )}
 
           <div style={{ borderTop:'1px solid var(--t-dim)', margin:'6px 0 0', padding:'6px 0' }}>
@@ -478,7 +516,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
             )}
             {grupoActivo && (
               <button
-                onClick={() => { setSettingsOpen(false); setSettingsView('root'); onHistorial?.(); }}
+                onClick={() => { setSettingsOpen(false); setSettingsView('root'); onHistorial?.(grupoActivo); }}
                 style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
                 <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
