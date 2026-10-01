@@ -1914,8 +1914,8 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
           {/* Glow decorativo de fondo */}
           <div style={{ position:'absolute', top:-60, right:-40, width:180, height:180, borderRadius:'50%', background:'radial-gradient(circle, rgba(var(--t-accent-r),0.2) 0%, transparent 70%)', pointerEvents:'none' }} />
 
-          <div style={{ position:'relative', display:'flex', alignItems:'flex-start', gap:16 }}>
-            <div style={{ flexShrink:0 }}>
+          <div style={{ position:'relative', display:'flex', alignItems:'center', gap:20 }}>
+            <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center' }}>
               <div
                 onClick={() => fotoUrl && setFotoLightbox(true)}
                 style={{
@@ -1931,40 +1931,32 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
                   : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:30, color:'var(--t-accent)' }}>{displayNombre.charAt(0).toUpperCase()}</span>
                 }
               </div>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:10, maxWidth:92, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {rachaActual > 0 && (
+                <div style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'2px 8px 2px 6px', borderRadius:20, background:'rgba(251,146,60,0.14)', border:'1px solid rgba(251,146,60,0.3)', marginTop:8 }}>
+                  <span style={{ fontSize:11 }}>🔥</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#FB923C' }}>{rachaActual}d</span>
+                </div>
+              )}
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:7, textAlign:'center', maxWidth:110, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 {displayNombre}
               </div>
-              {(deporteFavorito || rachaActual > 0) && (
-                <div style={{ display:'flex', flexDirection:'column', gap:3, marginTop:5 }}>
-                  {rachaActual > 0 && (
-                    <div style={{ display:'inline-flex', alignItems:'center', gap:4, alignSelf:'flex-start', padding:'2px 8px 2px 6px', borderRadius:20, background:'rgba(251,146,60,0.14)', border:'1px solid rgba(251,146,60,0.3)' }}>
-                      <span style={{ fontSize:11 }}>🔥</span>
-                      <span style={{ fontSize:11, fontWeight:700, color:'#FB923C' }}>{rachaActual}d</span>
-                    </div>
-                  )}
-                  {deporteFavorito && (
-                    <div style={{ fontSize:11, color:'var(--t-muted)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:100 }}>
-                      {sportIcon(deporteFavorito)} {deporteFavorito}
-                    </div>
-                  )}
+              {deporteFavorito && (
+                <div style={{ fontSize:11, color:'var(--t-muted)', textAlign:'center', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:110, marginTop:2 }}>
+                  {sportIcon(deporteFavorito)} {deporteFavorito}
                 </div>
               )}
             </div>
 
-            {/* Stats destacados a la derecha, estilo tarjeta */}
-            <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8, paddingTop:2 }}>
+            {/* Stats, minimalistas: solo texto, sin tarjetas */}
+            <div style={{ flex:1, display:'flex', flexDirection:'column', gap:10 }}>
               {[
                 { label:'Posts',  value: data.length,        color:'var(--t-text)' },
                 { label:'Puntos', value: Math.round(pts),    color:'var(--t-accent)' },
                 { label:'Racha',  value: rachaActual,        color:'var(--t-text)' },
               ].map(s => (
-                <div key={s.label} style={{
-                  display:'flex', alignItems:'center', justifyContent:'space-between',
-                  padding:'8px 12px', borderRadius:10,
-                  background:'var(--t-surface)', border:'1px solid var(--t-dim)',
-                }}>
+                <div key={s.label} style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between' }}>
                   <span style={{ fontSize:11, fontWeight:600, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{s.label}</span>
-                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:800, fontSize:17, color: s.color }}>{s.value}</span>
+                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color: s.color }}>{s.value}</span>
                 </div>
               ))}
             </div>
