@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getCompetenciasGrupo, cerrarCompetenciaGrupo } from '../api/grupos';
+import { getCompetenciasGrupo, cerrarCompetenciaGrupo, borrarCompetenciaGrupo } from '../api/grupos';
 import { getRankingComp } from '../api/competencias';
 import NuevaCompetenciaSheet from './NuevaCompetenciaSheet';
 
@@ -75,6 +75,7 @@ export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, 
   const [verRanking, setVerRanking] = useState(null); // competencia seleccionada, o null
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [cerrandoId, setCerrandoId] = useState(null);
+  const [borrandoId, setBorrandoId] = useState(null);
   const startY = useRef(null);
 
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
@@ -105,6 +106,19 @@ export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, 
       setError(err.message);
     } finally {
       setCerrandoId(null);
+    }
+  }
+
+  async function handleBorrar(comp) {
+    if (!confirm(`¿Borrar "${comp.nombre}" definitivamente? Se pierden su ranking, semanas y configuración. Esto no se puede deshacer.`)) return;
+    setBorrandoId(comp.id); setError('');
+    try {
+      await borrarCompetenciaGrupo(grupoId, comp.id);
+      await reload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBorrandoId(null);
     }
   }
 
@@ -168,9 +182,18 @@ export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, 
                     </span>
                   </button>
                   {isAdmin && c.estado === 'en_curso' && (
-                    <button onClick={() => handleCerrar(c)} disabled={cerrandoId === c.id}
+                    <button onClick={() => handleCerrar(c)} disabled={cerrandoId === c.id || borrandoId === c.id}
                       style={{ flexShrink:0, padding:'6px 10px', borderRadius:8, border:'1px solid rgba(248,113,113,0.3)', background:'rgba(248,113,113,0.08)', color:'#F87171', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.03em', cursor: cerrandoId === c.id ? 'default' : 'pointer', opacity: cerrandoId === c.id ? 0.6 : 1, WebkitTapHighlightColor:'transparent' }}>
                       {cerrandoId === c.id ? '…' : 'Cerrar'}
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button onClick={() => handleBorrar(c)} disabled={cerrandoId === c.id || borrandoId === c.id}
+                      title="Borrar competencia"
+                      style={{ flexShrink:0, width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor: borrandoId === c.id ? 'default' : 'pointer', opacity: borrandoId === c.id ? 0.5 : 1, WebkitTapHighlightColor:'transparent' }}>
+                      {borrandoId === c.id
+                        ? '…'
+                        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>}
                     </button>
                   )}
                 </div>

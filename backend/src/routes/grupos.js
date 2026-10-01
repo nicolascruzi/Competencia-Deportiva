@@ -311,6 +311,27 @@ router.post('/:id/competencias/:compId/cerrar', authMiddleware, async (req, res)
   }
 });
 
+// DELETE /grupos/:id/competencias/:compId — borra una competencia puntual (admin). El grupo y sus
+// otras competencias no se ven afectados; las semanas/challenges/ponderadores/vínculos de actividad
+// de ESTA competencia se borran en cascada (ON DELETE CASCADE), las actividades en sí no se tocan.
+router.delete('/:id/competencias/:compId', authMiddleware, async (req, res) => {
+  const { id, compId } = req.params;
+  try {
+    if (!(await esAdminDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede borrar una competencia' });
+
+    const { rows: [comp] } = await pool.query(
+      `DELETE FROM competencias WHERE id=$1 AND grupo_id=$2 RETURNING id, nombre`,
+      [compId, id]
+    );
+    if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
+
+    res.json({ ok: true, id: comp.id, nombre: comp.nombre });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al borrar la competencia' });
+  }
+});
+
 // ── EQUIPOS (del grupo) ──────────────────────────────────────────────────────
 
 // GET /grupos/:id/equipos — lista equipos con sus miembros

@@ -7,6 +7,7 @@ export const joinGrupo         = (pin)      => apiFetch('/grupos/join',     { me
 export const getCompetenciasGrupo  = (id)   => apiFetch(`/grupos/${id}/competencias`);
 export const crearCompetenciaGrupo = (id, body) => apiFetch(`/grupos/${id}/competencias`, { method: 'POST', body: JSON.stringify(body) });
 export const cerrarCompetenciaGrupo = (id, compId) => apiFetch(`/grupos/${id}/competencias/${compId}/cerrar`, { method: 'POST' });
+export const borrarCompetenciaGrupo = (id, compId) => apiFetch(`/grupos/${id}/competencias/${compId}`, { method: 'DELETE' });
 
 export const getEquiposGrupo      = (id)              => apiFetch(`/grupos/${id}/equipos`);
 export const updateEquiposGrupo   = (id, equipos)      => apiFetch(`/grupos/${id}/equipos`, { method: 'PUT', body: JSON.stringify({ equipos }) });
