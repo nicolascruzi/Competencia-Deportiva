@@ -13,10 +13,10 @@ router.get('/users', async (req, res) => {
       SELECT u.id, u.email, COALESCE(u.apodo, u.nombre) AS nombre_display,
              u.nombre, u.apodo, u.role, u.created_at,
              COUNT(DISTINCT a.id) AS actividades,
-             COUNT(DISTINCT cp.competencia_id) AS competencias
+             COUNT(DISTINCT gp.grupo_id) AS grupos
       FROM users u
       LEFT JOIN actividades a ON a.user_id = u.id
-      LEFT JOIN competencia_participantes cp ON cp.user_id = u.id
+      LEFT JOIN grupo_participantes gp ON gp.user_id = u.id
       GROUP BY u.id
       ORDER BY u.created_at DESC
     `);
@@ -57,53 +57,55 @@ router.delete('/users/:id', async (req, res) => {
   }
 });
 
-// ─── COMPETENCIAS ─────────────────────────────────────────────────────────────
+// ─── GRUPOS ───────────────────────────────────────────────────────────────────
 
-router.get('/competencias', async (req, res) => {
+router.get('/grupos', async (req, res) => {
   try {
-    // Competencias con conteo de participantes
-    const { rows: comps } = await pool.query(`
-      SELECT c.id, c.nombre, c.pin, c.created_at,
+    // Grupos con conteo de participantes y su competencia en_curso (si hay)
+    const { rows: grupos } = await pool.query(`
+      SELECT g.id, g.nombre, g.pin, g.created_at,
              COALESCE(u.apodo, u.nombre) AS creador_display,
-             COUNT(DISTINCT cp.user_id) AS participantes
-      FROM competencias c
-      JOIN users u ON u.id = c.creador_id
-      LEFT JOIN competencia_participantes cp ON cp.competencia_id = c.id
-      GROUP BY c.id, u.id
-      ORDER BY c.created_at DESC
+             COUNT(DISTINCT gp.user_id) AS participantes,
+             comp.id AS competencia_actual_id, comp.nombre AS competencia_actual_nombre
+      FROM grupos g
+      JOIN users u ON u.id = g.creador_id
+      LEFT JOIN grupo_participantes gp ON gp.grupo_id = g.id
+      LEFT JOIN competencias comp ON comp.grupo_id = g.id AND comp.estado = 'en_curso'
+      GROUP BY g.id, u.id, comp.id
+      ORDER BY g.created_at DESC
     `);
 
-    // Participantes de todas las competencias en una sola query
+    // Participantes de todos los grupos en una sola query
     const { rows: parts } = await pool.query(`
-      SELECT cp.competencia_id,
+      SELECT gp.grupo_id,
              u.id, COALESCE(u.apodo, u.nombre) AS nombre_display,
              u.foto_perfil_url,
              COUNT(a.id) AS actividades,
              COALESCE(SUM(a.minutos), 0) AS minutos
-      FROM competencia_participantes cp
-      JOIN users u ON u.id = cp.user_id
+      FROM grupo_participantes gp
+      JOIN users u ON u.id = gp.user_id
       LEFT JOIN actividades a ON a.user_id = u.id
-      GROUP BY cp.competencia_id, u.id
+      GROUP BY gp.grupo_id, u.id
       ORDER BY minutos DESC
     `);
 
-    // Agrupar participantes por competencia
-    const partsByComp = {};
+    // Agrupar participantes por grupo
+    const partsByGrupo = {};
     parts.forEach(p => {
-      if (!partsByComp[p.competencia_id]) partsByComp[p.competencia_id] = [];
-      partsByComp[p.competencia_id].push(p);
+      if (!partsByGrupo[p.grupo_id]) partsByGrupo[p.grupo_id] = [];
+      partsByGrupo[p.grupo_id].push(p);
     });
 
-    res.json(comps.map(c => ({ ...c, jugadores: partsByComp[c.id] || [] })));
+    res.json(grupos.map(g => ({ ...g, jugadores: partsByGrupo[g.id] || [] })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno' });
   }
 });
 
-router.delete('/competencias/:id', async (req, res) => {
+router.delete('/grupos/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM competencias WHERE id = $1', [req.params.id]);
+    await pool.query('DELETE FROM grupos WHERE id = $1', [req.params.id]);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -194,15 +196,15 @@ router.delete('/deportes/:id', async (req, res) => {
 
 router.get('/stats', async (req, res) => {
   try {
-    const [users, comps, acts, deps] = await Promise.all([
+    const [users, grupos, acts, deps] = await Promise.all([
       pool.query('SELECT COUNT(*) FROM users'),
-      pool.query('SELECT COUNT(*) FROM competencias'),
+      pool.query('SELECT COUNT(*) FROM grupos'),
       pool.query('SELECT COUNT(*), SUM(minutos) FROM actividades'),
       pool.query('SELECT COUNT(*) FROM deportes'),
     ]);
     res.json({
       usuarios:     parseInt(users.rows[0].count),
-      competencias: parseInt(comps.rows[0].count),
+      grupos:       parseInt(grupos.rows[0].count),
       actividades:  parseInt(acts.rows[0].count),
       minutos:      Math.round(parseFloat(acts.rows[0].sum || 0)),
       deportes:     parseInt(deps.rows[0].count),

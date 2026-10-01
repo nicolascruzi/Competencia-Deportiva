@@ -6,17 +6,15 @@ const { sendPushToUser } = require('./push');
 const router = express.Router();
 router.use(authMiddleware);
 
-// "En curso" = sin fechas definidas (competencias viejas, tratadas como siempre vigentes) o CURRENT_DATE dentro del rango.
-const COMPETENCIA_EN_CURSO_SQL = `(c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR CURRENT_DATE BETWEEN c.fecha_inicio AND c.fecha_fin)`;
-
-// Vincula una actividad a todas las competencias en curso del usuario (el bonus por compañía
-// ya no depende de esta vinculación con detalle de personas — vive directo en actividades.cantidad_companeros).
+// Vincula una actividad a la competencia en_curso de cada grupo al que pertenece el usuario (el
+// bonus por compañía ya no depende de esta vinculación con detalle de personas — vive directo en
+// actividades.cantidad_companeros).
 async function vincularCompetencias(actividadId, userId) {
   const { rows: participaciones } = await pool.query(
-    `SELECT cp.competencia_id
-     FROM competencia_participantes cp
-     JOIN competencias c ON c.id = cp.competencia_id
-     WHERE cp.user_id = $1 AND ${COMPETENCIA_EN_CURSO_SQL}`,
+    `SELECT c.id AS competencia_id
+     FROM grupo_participantes gp
+     JOIN competencias c ON c.grupo_id = gp.grupo_id AND c.estado = 'en_curso'
+     WHERE gp.user_id = $1`,
     [userId]
   );
 
@@ -125,12 +123,12 @@ router.post('/', async (req, res) => {
 });
 
 async function notifyCompaneros(actorId, actividad, actorNombre) {
-  // Buscar todos los compañeros en competencias donde el actor participa
+  // Buscar todos los compañeros en grupos donde el actor participa
   const { rows: companeros } = await pool.query(
-    `SELECT DISTINCT cp2.user_id
-     FROM competencia_participantes cp1
-     JOIN competencia_participantes cp2 ON cp2.competencia_id = cp1.competencia_id
-     WHERE cp1.user_id = $1 AND cp2.user_id != $1`,
+    `SELECT DISTINCT gp2.user_id
+     FROM grupo_participantes gp1
+     JOIN grupo_participantes gp2 ON gp2.grupo_id = gp1.grupo_id
+     WHERE gp1.user_id = $1 AND gp2.user_id != $1`,
     [actorId]
   );
   const pts = Math.round(parseFloat(actividad.minutos) * parseFloat(actividad.ponderador));

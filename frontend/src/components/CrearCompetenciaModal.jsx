@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getDeportes, createDeporte } from '../api/actividades';
-import { createCompetencia, joinCompetencia } from '../api/competencias';
+import { createGrupo, joinGrupo } from '../api/grupos';
 import { useLoading } from '../context/LoadingContext';
 
 // ─── Pantalla de PIN tras crear ───────────────────────────────────────────────
@@ -198,7 +198,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
       const challenges = challengesData
         .filter(c => c.texto?.trim())
         .map(c => ({ texto: c.texto.trim(), puntos: parseFloat(c.puntos) || 0, numero_semana: c.numero_semana ?? null }));
-      const comp = await withLoading(() => createCompetencia({
+      const grupo = await withLoading(() => createGrupo({
         nombre: nombre.trim(),
         ponderadores,
         fecha_inicio: fechaInicio || undefined,
@@ -210,9 +210,9 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
         bonus_2_companeros_pts: parseFloat(bonus2) || 0,
         bonus_3mas_companeros_pts: parseFloat(bonus3mas) || 0,
       }));
-      setPinData({ nombre: comp.nombre, pin: comp.pin, id: comp.id });
+      setPinData({ nombre: grupo.nombre, pin: grupo.pin, id: grupo.id });
       setPaso('pin');
-      onCreated?.();
+      onCreated?.(grupo);
     } catch (err) {
       setError(err.message);
     } finally {

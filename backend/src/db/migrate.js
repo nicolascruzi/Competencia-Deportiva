@@ -163,16 +163,21 @@ ALTER TABLE competencias ADD COLUMN IF NOT EXISTS bonus_companeros_pts NUMERIC(6
 ALTER TABLE actividades ADD COLUMN IF NOT EXISTS competencia_id INTEGER REFERENCES competencias(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_actividades_competencia ON actividades(competencia_id);
 
--- Equipos de una competencia
+-- Equipos de un grupo (competencia_id es el nombre histórico de la columna; se migra a grupo_id
+-- más abajo, junto con el resto del modelo Grupos→Competencias).
 CREATE TABLE IF NOT EXISTS equipos (
   id             SERIAL PRIMARY KEY,
-  competencia_id INTEGER NOT NULL REFERENCES competencias(id) ON DELETE CASCADE,
+  competencia_id INTEGER REFERENCES competencias(id) ON DELETE CASCADE,
   nombre         TEXT NOT NULL,
   color          TEXT,
-  created_at     TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE (competencia_id, nombre)
+  created_at     TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_equipos_competencia ON equipos(competencia_id);
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='equipos' AND column_name='competencia_id') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_equipos_competencia ON equipos(competencia_id)';
+  END IF;
+END $$;
 
 -- Asignación de cada participante a un equipo (nullable = sin asignar)
 ALTER TABLE competencia_participantes ADD COLUMN IF NOT EXISTS equipo_id INTEGER REFERENCES equipos(id) ON DELETE SET NULL;
@@ -318,6 +323,162 @@ CREATE TABLE IF NOT EXISTS votos_deporte_semana (
   UNIQUE (competencia_semana_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_votos_semana ON votos_deporte_semana(competencia_semana_id);
+
+-- ── GRUPOS: competencias pasa a ser hija de un grupo con participantes/equipos/PIN compartidos ──
+
+-- Grupo de competidores: unión permanente. El PIN, los participantes y los equipos viven acá;
+-- cada competencia dentro del grupo solo aporta fechas/bonus/ranking de una temporada.
+CREATE TABLE IF NOT EXISTS grupos (
+  id         SERIAL PRIMARY KEY,
+  nombre     TEXT NOT NULL,
+  pin        CHAR(6) UNIQUE NOT NULL,
+  creador_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Participantes de un grupo (reemplaza competencia_participantes). equipo_id vive acá porque
+-- el equipo es del grupo, no de una competencia puntual.
+CREATE TABLE IF NOT EXISTS grupo_participantes (
+  grupo_id  INTEGER NOT NULL REFERENCES grupos(id) ON DELETE CASCADE,
+  user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  equipo_id INTEGER,
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (grupo_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_grupo_participantes_user   ON grupo_participantes(user_id);
+CREATE INDEX IF NOT EXISTS idx_grupo_participantes_equipo ON grupo_participantes(equipo_id);
+
+-- Admins de un grupo (puede haber varios; cualquier admin puede nombrar a otro). La FK compuesta
+-- a grupo_participantes garantiza que nadie puede ser admin sin antes ser participante del grupo.
+CREATE TABLE IF NOT EXISTS grupo_admins (
+  grupo_id     INTEGER NOT NULL,
+  user_id      INTEGER NOT NULL,
+  promovido_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (grupo_id, user_id)
+);
+
+-- equipos pasa de colgar de competencia_id a colgar de grupo_id (el equipo es permanente, no por temporada).
+ALTER TABLE equipos ADD COLUMN IF NOT EXISTS grupo_id INTEGER REFERENCES grupos(id) ON DELETE CASCADE;
+
+-- competencias pasa a ser hija de un grupo, con un estado explícito en vez de inferir "vigente" por fechas.
+ALTER TABLE competencias ADD COLUMN IF NOT EXISTS grupo_id INTEGER REFERENCES grupos(id) ON DELETE CASCADE;
+ALTER TABLE competencias ADD COLUMN IF NOT EXISTS estado TEXT NOT NULL DEFAULT 'en_curso';
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'competencias_estado_check') THEN
+    ALTER TABLE competencias ADD CONSTRAINT competencias_estado_check CHECK (estado IN ('en_curso', 'finalizada'));
+  END IF;
+END $$;
+
+-- Migración de datos: cada competencia existente (con PIN propio hoy) se convierte en un grupo,
+-- usando el MISMO id (grupos.id = competencias.id) para no necesitar tabla de mapeo. Solo corre
+-- si competencias.pin todavía existe (una sola vez).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='competencias' AND column_name='pin') THEN
+    INSERT INTO grupos (id, nombre, pin, creador_id, created_at)
+    SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at
+    FROM competencias c
+    WHERE NOT EXISTS (SELECT 1 FROM grupos g WHERE g.id = c.id);
+
+    PERFORM setval(pg_get_serial_sequence('grupos', 'id'), GREATEST((SELECT COALESCE(MAX(id), 1) FROM grupos), 1));
+  END IF;
+END $$;
+
+-- Cada competencia apunta a su grupo recién creado (mismo id) y hereda un estado inicial según
+-- la misma heurística que ya usaba el código para "competencia en curso" (sin fechas, o fecha_fin
+-- no pasada todavía, cuenta como en_curso; si ya terminó, queda finalizada).
+UPDATE competencias
+SET grupo_id = id,
+    estado = CASE WHEN fecha_fin IS NOT NULL AND fecha_fin < CURRENT_DATE THEN 'finalizada' ELSE 'en_curso' END
+WHERE grupo_id IS NULL;
+
+-- Salvaguarda defensiva antes de crear el índice único: no debería haber nunca dos competencias
+-- en_curso del mismo grupo en este punto (hoy es 1:1 competencia-grupo), pero si la hubiera, mejor
+-- frenar acá con un error claro que fallar a mitad de la creación del índice único.
+DO $$
+DECLARE dup_count INT;
+BEGIN
+  SELECT COUNT(*) INTO dup_count FROM (
+    SELECT grupo_id FROM competencias WHERE estado = 'en_curso' GROUP BY grupo_id HAVING COUNT(*) > 1
+  ) t;
+  IF dup_count > 0 THEN
+    RAISE EXCEPTION 'Hay % grupo(s) con más de una competencia en_curso antes de crear el índice único', dup_count;
+  END IF;
+END $$;
+
+-- La base de datos (no la lógica de aplicación) garantiza que un grupo tenga a lo sumo una
+-- competencia en_curso a la vez.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_competencias_una_en_curso_por_grupo
+  ON competencias(grupo_id) WHERE estado = 'en_curso';
+
+-- Migra participantes+equipo de competencia_participantes a grupo_participantes (mismo id competencia=grupo).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='competencia_participantes') THEN
+    INSERT INTO grupo_participantes (grupo_id, user_id, equipo_id, joined_at)
+    SELECT cp.competencia_id, cp.user_id, cp.equipo_id, cp.joined_at
+    FROM competencia_participantes cp
+    ON CONFLICT (grupo_id, user_id) DO NOTHING;
+  END IF;
+END $$;
+
+-- Migra equipos.competencia_id -> equipos.grupo_id (mismo id, los equipos no se remapean).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='equipos' AND column_name='competencia_id') THEN
+    UPDATE equipos SET grupo_id = competencia_id WHERE grupo_id IS NULL;
+  END IF;
+END $$;
+
+-- El creador original de cada competencia queda como primer admin de su grupo nuevo.
+INSERT INTO grupo_admins (grupo_id, user_id)
+SELECT g.id, g.creador_id FROM grupos g
+ON CONFLICT (grupo_id, user_id) DO NOTHING;
+
+-- Endurecer constraints ahora que los datos ya migraron.
+ALTER TABLE competencias ALTER COLUMN grupo_id SET NOT NULL;
+ALTER TABLE equipos ALTER COLUMN grupo_id SET NOT NULL;
+
+ALTER TABLE equipos DROP CONSTRAINT IF EXISTS equipos_competencia_id_nombre_key;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'equipos_grupo_id_nombre_key') THEN
+    ALTER TABLE equipos ADD CONSTRAINT equipos_grupo_id_nombre_key UNIQUE (grupo_id, nombre);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_equipos_grupo ON equipos(grupo_id);
+
+-- grupo_admins solo puede tener como admin a alguien que ya es participante del grupo.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'grupo_admins_participante_fkey') THEN
+    ALTER TABLE grupo_admins ADD CONSTRAINT grupo_admins_participante_fkey
+      FOREIGN KEY (grupo_id, user_id) REFERENCES grupo_participantes(grupo_id, user_id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+-- grupo_participantes.equipo_id ahora sí puede referenciar equipos (creada después para evitar
+-- el ciclo de dependencia equipos->grupos->grupo_participantes->equipos durante la creación inicial).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'grupo_participantes_equipo_id_fkey') THEN
+    ALTER TABLE grupo_participantes ADD CONSTRAINT grupo_participantes_equipo_id_fkey
+      FOREIGN KEY (equipo_id) REFERENCES equipos(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+-- Columnas/tablas viejas, ya no necesarias: el PIN y el creador viven en grupos; equipos ya no
+-- cuelga de competencia_id; competencia_participantes fue reemplazada por grupo_participantes.
+ALTER TABLE equipos DROP COLUMN IF EXISTS competencia_id;
+ALTER TABLE competencias DROP COLUMN IF EXISTS pin;
+ALTER TABLE competencias DROP COLUMN IF EXISTS creador_id;
+DROP TABLE IF EXISTS competencia_participantes;
+
+-- Columna vestigial: nunca se lee ni se escribe en el backend (el vínculo real es actividad_competencias).
+ALTER TABLE actividades DROP COLUMN IF EXISTS competencia_id;
 `;
 
 async function migrate() {

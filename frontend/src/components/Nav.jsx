@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { getCompetencias } from '../api/competencias';
+import { getGrupos } from '../api/grupos';
 import { useNotifications } from '../context/NotificationContext';
 
 const PALETTE_ORDER = ['tierra', 'ciruela', 'noche'];
@@ -50,14 +50,14 @@ const IconBell = () => (
   </svg>
 );
 
-export default function Nav({ onNewActivity, competenciaActiva, onSelectCompetencia, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
+export default function Nav({ onNewActivity, competenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
   const { themeId, setTheme, palettes } = useTheme();
   const { notifs, unread, markRead, markAll } = useNotifications() || { notifs: [], unread: 0, markRead: () => {}, markAll: () => {} };
   const [selectorOpen, setSelectorOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen]   = useState(false);
   const [settingsView, setSettingsView]   = useState('root'); // 'root' | 'paleta' | 'competencia'
   const [notifOpen, setNotifOpen]         = useState(false);
-  const [competencias, setCompetencias]   = useState([]);
+  const [grupos, setGrupos]               = useState([]);
   const [loadingComps, setLoadingComps]   = useState(false);
   const [pinCopied, setPinCopied]         = useState(false);
 
@@ -107,8 +107,8 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
   function openSelector() {
     setLoadingComps(true);
     setSelectorOpen(true);
-    getCompetencias()
-      .then(setCompetencias)
+    getGrupos()
+      .then(setGrupos)
       .finally(() => setLoadingComps(false));
   }
 
@@ -232,7 +232,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
       }}>
         <div style={{ padding:'10px 0 6px' }}>
           <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-muted)', padding:'0 18px 8px' }}>
-            Mis competencias
+            Mis grupos
           </div>
 
           {loadingComps ? (
@@ -241,23 +241,24 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
               Cargando…
               <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
             </div>
-          ) : competencias.length === 0 ? (
+          ) : grupos.length === 0 ? (
             <div style={{ padding:'14px 18px', fontSize:13, color:'var(--t-muted)' }}>
-              No tenés competencias todavía.
+              No tenés grupos todavía.
             </div>
           ) : (
-            competencias.map(c => {
-              const isActive = competenciaActiva?.id === c.id;
+            grupos.map(g => {
+              const isActive = grupoActivo?.id === g.id;
               return (
-                <button key={c.id}
-                  onClick={() => { onSelectCompetencia(c); setSelectorOpen(false); }}
+                <button key={g.id}
+                  onClick={() => { onSelectGrupo(g); setSelectorOpen(false); }}
                   style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'11px 18px', background: isActive ? 'rgba(var(--t-accent-r),0.07)' : 'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.03em', color: isActive ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                      {c.nombre}
+                      {g.nombre}
                     </div>
                     <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>
-                      {c.participantes} participante{c.participantes !== 1 ? 's' : ''}
+                      {g.participantes} participante{g.participantes !== 1 ? 's' : ''}
+                      {!g.competencia_actual && ' · sin competencia activa'}
                     </div>
                   </div>
                   {isActive && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
@@ -454,10 +455,10 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
                 </button>
               </>
             )}
-            {competenciaActiva?.pin && (
+            {grupoActivo?.pin && (
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(competenciaActiva.pin).then(() => {
+                  navigator.clipboard.writeText(grupoActivo.pin).then(() => {
                     setPinCopied(true);
                     setTimeout(() => setPinCopied(false), 2000);
                   });
@@ -473,7 +474,7 @@ export default function Nav({ onNewActivity, competenciaActiva, onSelectCompeten
                 </span>
                 <span style={{ display:'flex', alignItems:'center', gap:6 }}>
                   <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:15, fontWeight:700, color:'var(--t-accent)', letterSpacing:'0.12em' }}>
-                    {competenciaActiva.pin}
+                    {grupoActivo.pin}
                   </span>
                   <span style={{ fontSize:10, fontWeight:700, color: pinCopied ? 'var(--t-accent)' : 'var(--t-muted)' }}>
                     {pinCopied ? '✓' : 'Copiar'}

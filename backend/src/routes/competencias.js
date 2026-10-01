@@ -2,21 +2,13 @@ const express = require('express');
 const pool    = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
 const { getPuntosPorPersona } = require('../lib/competenciaScoring');
+const { esAdminDeCompetencia, esParticipanteDeCompetencia } = require('../lib/permisos');
 
 const router = express.Router();
 
-// Genera un PIN de 6 dígitos único
-async function generarPin() {
-  for (let i = 0; i < 20; i++) {
-    const pin = String(Math.floor(100000 + Math.random() * 900000));
-    const { rows } = await pool.query('SELECT 1 FROM competencias WHERE pin=$1', [pin]);
-    if (!rows.length) return pin;
-  }
-  throw new Error('No se pudo generar un PIN único');
-}
-
 // Calcula las semanas (bloques de 7 días exactos) entre fecha_inicio y fecha_fin (inclusive).
 // Devuelve [{ numero_semana, fecha_inicio, fecha_fin }], la última puede ser más corta que 7 días.
+// (Usada también por grupos.js al crear una competencia nueva.)
 function calcularSemanas(fechaInicio, fechaFin) {
   const semanas = [];
   const start = new Date(fechaInicio + 'T00:00:00Z');
@@ -39,180 +31,19 @@ function calcularSemanas(fechaInicio, fechaFin) {
   return semanas;
 }
 
-// GET /competencias — mis competencias (donde soy participante)
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      `SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at,
-              c.bonus_1_companero_pts, c.bonus_2_companeros_pts, c.bonus_3mas_companeros_pts, c.bonus_deporte_semana_extra,
-              TO_CHAR(c.fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
-              TO_CHAR(c.fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
-              (c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR CURRENT_DATE BETWEEN c.fecha_inicio AND c.fecha_fin) AS en_curso,
-              u.nombre AS creador_nombre,
-              cp.equipo_id AS mi_equipo_id,
-              (SELECT COUNT(*) FROM competencia_participantes cp2 WHERE cp2.competencia_id = c.id) AS participantes
-       FROM competencias c
-       JOIN competencia_participantes cp ON cp.competencia_id = c.id AND cp.user_id = $1
-       JOIN users u ON u.id = c.creador_id
-       ORDER BY c.created_at DESC`,
-      [req.user.id]
-    );
-
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al listar competencias' });
-  }
-});
-
-// POST /competencias — crear competencia
-router.post('/', authMiddleware, async (req, res) => {
-  const {
-    nombre, ponderadores,
-    fecha_inicio, fecha_fin,
-    bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts,
-    equipos_nombres, semanas, challenges,
-  } = req.body;
-  // ponderadores: [{ deporte_nombre, ponderador }]
-  // semanas (opcional): [{ numero_semana, deporte_semana_nombre?, deporte_semana_ponderador_extra? }]
-  // challenges (opcional): [{ texto, puntos, numero_semana? }] — numero_semana solo tiene efecto si hay fecha_inicio/fecha_fin
-  if (!nombre?.trim()) return res.status(400).json({ error: 'El nombre es obligatorio' });
-
-  if ((fecha_inicio && !fecha_fin) || (!fecha_inicio && fecha_fin))
-    return res.status(400).json({ error: 'Definí fecha de inicio y fin, o ninguna de las dos' });
-  if (fecha_inicio && fecha_fin && fecha_fin < fecha_inicio)
-    return res.status(400).json({ error: 'La fecha de fin no puede ser anterior a la de inicio' });
-
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    const pin = await generarPin();
-
-    const { rows: [comp] } = await client.query(
-      `INSERT INTO competencias (nombre, pin, creador_id, fecha_inicio, fecha_fin, bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [nombre.trim(), pin, req.user.id, fecha_inicio || null, fecha_fin || null,
-        parseFloat(bonus_1_companero_pts) || 0, parseFloat(bonus_2_companeros_pts) || 0, parseFloat(bonus_3mas_companeros_pts) || 0]
-    );
-
-    // Creador es participante automáticamente
-    await client.query(
-      `INSERT INTO competencia_participantes (competencia_id, user_id) VALUES ($1,$2)`,
-      [comp.id, req.user.id]
-    );
-
-    // Ponderadores por deporte
-    if (Array.isArray(ponderadores) && ponderadores.length) {
-      for (const { deporte_nombre, ponderador } of ponderadores) {
-        if (!deporte_nombre || ponderador == null) continue;
-        await client.query(
-          `INSERT INTO competencia_deportes (competencia_id, deporte_nombre, ponderador)
-           VALUES ($1,$2,$3) ON CONFLICT (competencia_id, deporte_nombre) DO UPDATE SET ponderador=EXCLUDED.ponderador`,
-          [comp.id, deporte_nombre, ponderador]
-        );
-      }
-    }
-
-    // Equipos (solo nombres — la asignación de participantes se hace después, cuando haya gente unida)
-    if (Array.isArray(equipos_nombres)) {
-      for (const nombreEquipo of equipos_nombres) {
-        if (!nombreEquipo?.trim()) continue;
-        await client.query(
-          `INSERT INTO equipos (competencia_id, nombre) VALUES ($1,$2) ON CONFLICT (competencia_id, nombre) DO NOTHING`,
-          [comp.id, nombreEquipo.trim()]
-        );
-      }
-    }
-
-    // Semanas: se calculan automáticamente a partir del rango de fechas; se completan con
-    // lo que el frontend haya mandado (deporte de la semana), el resto queda en NULL.
-    const semanaIdPorNumero = new Map();
-    if (fecha_inicio && fecha_fin) {
-      const semanasCalculadas = calcularSemanas(fecha_inicio, fecha_fin);
-      const semanasInput = new Map((Array.isArray(semanas) ? semanas : []).map(s => [s.numero_semana, s]));
-      for (const s of semanasCalculadas) {
-        const input = semanasInput.get(s.numero_semana) || {};
-        const { rows: [semanaRow] } = await client.query(
-          `INSERT INTO competencia_semanas
-             (competencia_id, numero_semana, fecha_inicio, fecha_fin,
-              deporte_semana_nombre, deporte_semana_ponderador_extra)
-           VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-          [
-            comp.id, s.numero_semana, s.fecha_inicio, s.fecha_fin,
-            input.deporte_semana_nombre || null,
-            input.deporte_semana_ponderador_extra != null ? parseFloat(input.deporte_semana_ponderador_extra) : null,
-          ]
-        );
-        semanaIdPorNumero.set(s.numero_semana, semanaRow.id);
-      }
-    }
-
-    // Challenges: entidad propia de la competencia, opcionalmente asociados a una semana si hay fechas.
-    if (Array.isArray(challenges)) {
-      for (const c of challenges) {
-        if (!c.texto?.trim()) continue;
-        const semanaId = c.numero_semana != null ? (semanaIdPorNumero.get(parseInt(c.numero_semana)) ?? null) : null;
-        await client.query(
-          `INSERT INTO challenges (competencia_id, semana_id, texto, puntos) VALUES ($1,$2,$3,$4)`,
-          [comp.id, semanaId, c.texto.trim(), parseFloat(c.puntos) || 0]
-        );
-      }
-    }
-
-    await client.query('COMMIT');
-    res.status(201).json({ ...comp, pin });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error(err);
-    res.status(500).json({ error: 'Error al crear competencia' });
-  } finally {
-    client.release();
-  }
-});
-
-// POST /competencias/join — unirse por PIN
-router.post('/join', authMiddleware, async (req, res) => {
-  const { pin } = req.body;
-  if (!pin) return res.status(400).json({ error: 'PIN requerido' });
-
-  try {
-    const { rows: [comp] } = await pool.query(
-      'SELECT * FROM competencias WHERE pin=$1', [String(pin).trim()]
-    );
-    if (!comp) return res.status(404).json({ error: 'PIN inválido, competencia no encontrada' });
-
-    await pool.query(
-      `INSERT INTO competencia_participantes (competencia_id, user_id) VALUES ($1,$2)
-       ON CONFLICT DO NOTHING`,
-      [comp.id, req.user.id]
-    );
-
-    res.json({ competencia_id: comp.id, nombre: comp.nombre });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al unirse a competencia' });
-  }
-});
-
 // GET /competencias/:id — detalle de una competencia
 router.get('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
   try {
-    // Verificar que el usuario es participante
-    const { rows: [part] } = await pool.query(
-      'SELECT equipo_id FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-      [id, req.user.id]
-    );
+    const part = await esParticipanteDeCompetencia(id, req.user.id);
     if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
     const { rows: [comp] } = await pool.query(
-      `SELECT c.id, c.nombre, c.pin, c.creador_id, c.created_at,
+      `SELECT c.id, c.nombre, c.grupo_id, c.estado, c.created_at,
               c.bonus_1_companero_pts, c.bonus_2_companeros_pts, c.bonus_3mas_companeros_pts, c.bonus_deporte_semana_extra,
               TO_CHAR(c.fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
-              TO_CHAR(c.fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
-              u.nombre AS creador_nombre
-       FROM competencias c JOIN users u ON u.id=c.creador_id WHERE c.id=$1`,
+              TO_CHAR(c.fecha_fin, 'YYYY-MM-DD') AS fecha_fin
+       FROM competencias c WHERE c.id=$1`,
       [id]
     );
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
@@ -223,15 +54,18 @@ router.get('/:id', authMiddleware, async (req, res) => {
     );
 
     const { rows: participantesRaw } = await pool.query(
-      `SELECT u.id, u.nombre, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url, cp.equipo_id
-       FROM competencia_participantes cp JOIN users u ON u.id=cp.user_id WHERE cp.competencia_id=$1`,
+      `SELECT u.id, u.nombre, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url, gp.equipo_id
+       FROM competencias c
+       JOIN grupo_participantes gp ON gp.grupo_id = c.grupo_id
+       JOIN users u ON u.id = gp.user_id
+       WHERE c.id=$1`,
       [id]
     );
     const participantes = participantesRaw.map(({ equipo_id, ...rest }) => rest);
 
     const { rows: equiposRaw } = await pool.query(
-      'SELECT id, nombre, color FROM equipos WHERE competencia_id=$1 ORDER BY id',
-      [id]
+      'SELECT id, nombre, color FROM equipos WHERE grupo_id=$1 ORDER BY id',
+      [comp.grupo_id]
     );
     const equipos = equiposRaw.map(e => ({
       ...e,
@@ -307,19 +141,19 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /competencias/:id/configuracion — editar fechas y bonus por compañía (solo creador)
+// PUT /competencias/:id/configuracion — editar fechas y bonus (admin del grupo)
 router.put('/:id/configuracion', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { fecha_inicio, fecha_fin, bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts, bonus_deporte_semana_extra } = req.body;
 
   try {
     const { rows: [comp] } = await pool.query(
-      `SELECT id, creador_id, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
+      `SELECT id, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
        FROM competencias WHERE id=$1`,
       [id]
     );
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
-    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede editar la configuración' });
+    if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede editar la configuración' });
 
     const { rows: [{ count: numSemanas }] } = await pool.query(
       'SELECT COUNT(*)::int AS count FROM competencia_semanas WHERE competencia_id=$1',
@@ -390,15 +224,15 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /competencias/:id/deportes — actualizar ponderadores (solo creador)
+// PUT /competencias/:id/deportes — actualizar ponderadores (admin del grupo)
 router.put('/:id/deportes', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { ponderadores } = req.body;
 
   try {
-    const { rows: [comp] } = await pool.query('SELECT * FROM competencias WHERE id=$1', [id]);
+    const { rows: [comp] } = await pool.query('SELECT id FROM competencias WHERE id=$1', [id]);
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
-    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede modificar ponderadores' });
+    if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede modificar ponderadores' });
 
     for (const { deporte_nombre, ponderador } of ponderadores) {
       await pool.query(
@@ -414,132 +248,17 @@ router.put('/:id/deportes', authMiddleware, async (req, res) => {
   }
 });
 
-// ── EQUIPOS ────────────────────────────────────────────────────────────────
-
-// GET /competencias/:id/equipos — lista equipos con sus miembros
-router.get('/:id/equipos', authMiddleware, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const { rows: [part] } = await pool.query(
-      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-      [id, req.user.id]
-    );
-    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
-
-    const { rows: equipos } = await pool.query(
-      'SELECT id, nombre, color FROM equipos WHERE competencia_id=$1 ORDER BY id',
-      [id]
-    );
-    const { rows: miembros } = await pool.query(
-      `SELECT u.id, u.nombre, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url, cp.equipo_id
-       FROM competencia_participantes cp JOIN users u ON u.id=cp.user_id WHERE cp.competencia_id=$1`,
-      [id]
-    );
-
-    res.json(equipos.map(e => ({
-      ...e,
-      miembros: miembros.filter(m => m.equipo_id === e.id).map(({ equipo_id, ...rest }) => rest),
-    })));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al obtener equipos' });
-  }
-});
-
-// PUT /competencias/:id/equipos — reemplaza el set de equipos (solo creador)
-router.put('/:id/equipos', authMiddleware, async (req, res) => {
-  const { id } = req.params;
-  const { equipos } = req.body; // [{ id?, nombre, color? }]
-
-  try {
-    const { rows: [comp] } = await pool.query('SELECT creador_id FROM competencias WHERE id=$1', [id]);
-    if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
-    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede modificar equipos' });
-
-    if (!Array.isArray(equipos)) return res.status(400).json({ error: 'equipos debe ser un array' });
-
-    const idsEnviados = equipos.filter(e => e.id != null).map(e => parseInt(e.id));
-
-    // Borra los equipos existentes que no vinieron en la lista (sus miembros quedan sin equipo por ON DELETE SET NULL)
-    if (idsEnviados.length) {
-      await pool.query(
-        `DELETE FROM equipos WHERE competencia_id=$1 AND id != ALL($2::int[])`,
-        [id, idsEnviados]
-      );
-    } else {
-      await pool.query('DELETE FROM equipos WHERE competencia_id=$1', [id]);
-    }
-
-    for (const e of equipos) {
-      if (!e.nombre?.trim()) continue;
-      if (e.id != null) {
-        await pool.query(
-          'UPDATE equipos SET nombre=$1, color=$2 WHERE id=$3 AND competencia_id=$4',
-          [e.nombre.trim(), e.color || null, parseInt(e.id), id]
-        );
-      } else {
-        await pool.query(
-          'INSERT INTO equipos (competencia_id, nombre, color) VALUES ($1,$2,$3)',
-          [id, e.nombre.trim(), e.color || null]
-        );
-      }
-    }
-
-    res.json({ ok: true });
-  } catch (err) {
-    if (err.code === '23505') return res.status(400).json({ error: 'Nombre de equipo duplicado' });
-    console.error(err);
-    res.status(500).json({ error: 'Error al actualizar equipos' });
-  }
-});
-
-// PUT /competencias/:id/equipos/asignaciones — asigna participantes a equipos (solo creador)
-router.put('/:id/equipos/asignaciones', authMiddleware, async (req, res) => {
-  const { id } = req.params;
-  const { asignaciones } = req.body; // [{ user_id, equipo_id }] — equipo_id puede ser null
-
-  try {
-    const { rows: [comp] } = await pool.query('SELECT creador_id FROM competencias WHERE id=$1', [id]);
-    if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
-    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede asignar equipos' });
-
-    if (!Array.isArray(asignaciones)) return res.status(400).json({ error: 'asignaciones debe ser un array' });
-
-    for (const { user_id, equipo_id } of asignaciones) {
-      if (user_id == null) continue;
-      const { rows: [part] } = await pool.query(
-        'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-        [id, user_id]
-      );
-      if (!part) continue; // ignora usuarios que no son participantes
-      if (equipo_id != null) {
-        const { rows: [eq] } = await pool.query('SELECT 1 FROM equipos WHERE id=$1 AND competencia_id=$2', [equipo_id, id]);
-        if (!eq) continue; // ignora equipo que no pertenece a esta competencia
-      }
-      await pool.query(
-        'UPDATE competencia_participantes SET equipo_id=$1 WHERE competencia_id=$2 AND user_id=$3',
-        [equipo_id ?? null, id, user_id]
-      );
-    }
-
-    res.json({ ok: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al asignar equipos' });
-  }
-});
-
 // ── SEMANAS: CHALLENGES Y DEPORTE DE LA SEMANA ──────────────────────────────
 
-// PUT /competencias/:id/semanas — editar deporte de la semana (solo creador)
+// PUT /competencias/:id/semanas — editar deporte de la semana 1 (admin del grupo)
 router.put('/:id/semanas', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { semanas } = req.body; // [{ id, deporte_semana_nombre, deporte_semana_ponderador_extra }]
 
   try {
-    const { rows: [comp] } = await pool.query('SELECT creador_id FROM competencias WHERE id=$1', [id]);
+    const { rows: [comp] } = await pool.query('SELECT id FROM competencias WHERE id=$1', [id]);
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
-    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede editar las semanas' });
+    if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede editar las semanas' });
 
     if (!Array.isArray(semanas)) return res.status(400).json({ error: 'semanas debe ser un array' });
 
@@ -574,11 +293,7 @@ router.put('/:id/semanas', authMiddleware, async (req, res) => {
 router.get('/:id/semanas/:semanaId/votacion', authMiddleware, async (req, res) => {
   const { id, semanaId } = req.params;
   try {
-    const { rows: [part] } = await pool.query(
-      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-      [id, req.user.id]
-    );
-    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+    if (!(await esParticipanteDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
     const { rows: [semana] } = await pool.query(
       `SELECT id, numero_semana, deporte_semana_nombre,
@@ -642,11 +357,7 @@ router.post('/:id/semanas/:semanaId/votar', authMiddleware, async (req, res) => 
   const { deporte_id } = req.body;
 
   try {
-    const { rows: [part] } = await pool.query(
-      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-      [id, req.user.id]
-    );
-    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+    if (!(await esParticipanteDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de esta competencia' });
     if (!deporte_id) return res.status(400).json({ error: 'deporte_id es obligatorio' });
 
     const { rows: [semana] } = await pool.query(
@@ -686,7 +397,7 @@ router.post('/:id/semanas/:semanaId/votar', authMiddleware, async (req, res) => 
 
 // ── CHALLENGES ───────────────────────────────────────────────────────────────
 
-// POST /competencias/:id/challenges — agregar un challenge nuevo (solo creador), en cualquier momento
+// POST /competencias/:id/challenges — agregar un challenge nuevo (admin del grupo), en cualquier momento
 router.post('/:id/challenges', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { texto, puntos, numero_semana } = req.body;
@@ -694,9 +405,9 @@ router.post('/:id/challenges', authMiddleware, async (req, res) => {
   if (!texto?.trim()) return res.status(400).json({ error: 'El texto del challenge es obligatorio' });
 
   try {
-    const { rows: [comp] } = await pool.query('SELECT creador_id FROM competencias WHERE id=$1', [id]);
+    const { rows: [comp] } = await pool.query('SELECT id FROM competencias WHERE id=$1', [id]);
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
-    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede agregar challenges' });
+    if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede agregar challenges' });
 
     let semanaId = null;
     if (numero_semana != null) {
@@ -719,7 +430,7 @@ router.post('/:id/challenges', authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /competencias/:id/challenges/:challengeId — editar un challenge (solo creador)
+// PUT /competencias/:id/challenges/:challengeId — editar un challenge (admin del grupo)
 router.put('/:id/challenges/:challengeId', authMiddleware, async (req, res) => {
   const { id, challengeId } = req.params;
   const { texto, puntos, numero_semana } = req.body;
@@ -727,9 +438,9 @@ router.put('/:id/challenges/:challengeId', authMiddleware, async (req, res) => {
   if (!texto?.trim()) return res.status(400).json({ error: 'El texto del challenge es obligatorio' });
 
   try {
-    const { rows: [comp] } = await pool.query('SELECT creador_id FROM competencias WHERE id=$1', [id]);
+    const { rows: [comp] } = await pool.query('SELECT id FROM competencias WHERE id=$1', [id]);
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
-    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede editar challenges' });
+    if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede editar challenges' });
 
     let semanaId = null;
     if (numero_semana != null) {
@@ -754,13 +465,13 @@ router.put('/:id/challenges/:challengeId', authMiddleware, async (req, res) => {
   }
 });
 
-// DELETE /competencias/:id/challenges/:challengeId — eliminar un challenge (solo creador)
+// DELETE /competencias/:id/challenges/:challengeId — eliminar un challenge (admin del grupo)
 router.delete('/:id/challenges/:challengeId', authMiddleware, async (req, res) => {
   const { id, challengeId } = req.params;
   try {
-    const { rows: [comp] } = await pool.query('SELECT creador_id FROM competencias WHERE id=$1', [id]);
+    const { rows: [comp] } = await pool.query('SELECT id FROM competencias WHERE id=$1', [id]);
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
-    if (comp.creador_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede eliminar challenges' });
+    if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede eliminar challenges' });
 
     await pool.query('DELETE FROM challenges WHERE id=$1 AND competencia_id=$2', [challengeId, id]);
     res.json({ ok: true });
@@ -775,11 +486,7 @@ router.post('/:id/challenges/:challengeId/completar', authMiddleware, async (req
   const { id, challengeId } = req.params;
 
   try {
-    const { rows: [part] } = await pool.query(
-      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-      [id, req.user.id]
-    );
-    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+    if (!(await esParticipanteDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
     const { rows: [challenge] } = await pool.query(
       `SELECT ch.id, TO_CHAR(s.fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(s.fecha_fin,'YYYY-MM-DD') AS fecha_fin
@@ -816,11 +523,7 @@ router.delete('/:id/challenges/:challengeId/completar', authMiddleware, async (r
   const { id, challengeId } = req.params;
 
   try {
-    const { rows: [part] } = await pool.query(
-      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-      [id, req.user.id]
-    );
-    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+    if (!(await esParticipanteDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
     await pool.query(
       `DELETE FROM challenge_completados WHERE challenge_id=$1 AND user_id=$2`,
@@ -838,11 +541,7 @@ router.delete('/:id/challenges/:challengeId/completar', authMiddleware, async (r
 router.get('/:id/challenges/:challengeId/completados', authMiddleware, async (req, res) => {
   const { id, challengeId } = req.params;
   try {
-    const { rows: [part] } = await pool.query(
-      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-      [id, req.user.id]
-    );
-    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+    if (!(await esParticipanteDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
     const { rows } = await pool.query(
       `SELECT u.id AS user_id, u.nombre, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url, cc.completed_at
@@ -861,23 +560,21 @@ router.get('/:id/challenges/:challengeId/completados', authMiddleware, async (re
 });
 
 // GET /competencias/:id/ranking — ranking individual de la competencia
-// Solo cuentan actividades con competencia_id = esta competencia (no todas las del usuario).
+// Solo cuentan actividades vinculadas a esta competencia (no todas las del usuario).
 router.get('/:id/ranking', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { mes } = req.query; // YYYY-MM opcional
 
   try {
-    const { rows: [part] } = await pool.query(
-      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-      [id, req.user.id]
-    );
-    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+    if (!(await esParticipanteDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
     const { rows: participantes } = await pool.query(
       `SELECT u.id, u.nombre, u.apellido, u.apodo, COALESCE(u.apodo, u.nombre) AS nombre_display,
-              u.foto_perfil_url, cp.equipo_id
-       FROM competencia_participantes cp JOIN users u ON u.id = cp.user_id
-       WHERE cp.competencia_id = $1`,
+              u.foto_perfil_url, gp.equipo_id
+       FROM competencias c
+       JOIN grupo_participantes gp ON gp.grupo_id = c.grupo_id
+       JOIN users u ON u.id = gp.user_id
+       WHERE c.id = $1`,
       [id]
     );
 
@@ -901,19 +598,17 @@ router.get('/:id/ranking-equipos', authMiddleware, async (req, res) => {
   const { mes } = req.query; // YYYY-MM opcional
 
   try {
-    const { rows: [part] } = await pool.query(
-      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-      [id, req.user.id]
-    );
-    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+    if (!(await esParticipanteDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+
+    const { rows: [comp] } = await pool.query('SELECT grupo_id FROM competencias WHERE id=$1', [id]);
 
     const { rows: equipos } = await pool.query(
-      'SELECT id, nombre, color FROM equipos WHERE competencia_id=$1',
-      [id]
+      'SELECT id, nombre, color FROM equipos WHERE grupo_id=$1',
+      [comp.grupo_id]
     );
     const { rows: participantes } = await pool.query(
-      'SELECT user_id, equipo_id FROM competencia_participantes WHERE competencia_id=$1 AND equipo_id IS NOT NULL',
-      [id]
+      'SELECT user_id, equipo_id FROM grupo_participantes WHERE grupo_id=$1 AND equipo_id IS NOT NULL',
+      [comp.grupo_id]
     );
 
     const puntosMap = await getPuntosPorPersona(parseInt(id), mes || null);
@@ -950,18 +645,11 @@ router.get('/:id/meses', authMiddleware, async (req, res) => {
 });
 
 // GET /competencias/:id/actividades — actividades registradas EN esta competencia (para gráficos/feed)
-// Cambio de comportamiento: antes traía TODAS las actividades de cualquier participante (sin filtrar por
-// competencia); ahora solo las vinculadas a esta competencia vía actividad_competencias (una actividad puede
-// estar vinculada a varias competencias en curso a la vez).
 router.get('/:id/actividades', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { mes } = req.query; // YYYY-MM opcional
   try {
-    const { rows: [part] } = await pool.query(
-      'SELECT 1 FROM competencia_participantes WHERE competencia_id=$1 AND user_id=$2',
-      [id, req.user.id]
-    );
-    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+    if (!(await esParticipanteDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
     // Ponderadores y deporte-de-la-semana de la competencia
     const { rows: ponders } = await pool.query(
@@ -1013,3 +701,4 @@ router.get('/:id/actividades', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.calcularSemanas = calcularSemanas;

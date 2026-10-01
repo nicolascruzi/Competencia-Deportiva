@@ -20,7 +20,7 @@ import CrearCompetenciaModal from './components/CrearCompetenciaModal';
 import OnboardingModal from './components/OnboardingModal';
 import PullToRefreshIndicator from './components/PullToRefreshIndicator';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
-import { getCompetencia } from './api/competencias';
+import { getGrupo } from './api/grupos';
 import { getActividades } from './api/actividades';
 import { useLoading } from './context/LoadingContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -33,7 +33,7 @@ class ErrorBoundary extends Component {
       <div style={{ padding:32, color:'#ff6b6b', fontFamily:'monospace', fontSize:13 }}>
         <b>Error:</b> {this.state.err.message}
         <br/><br/>
-        <button onClick={() => { localStorage.removeItem('lastCompetenciaId'); window.location.reload(); }}
+        <button onClick={() => { localStorage.removeItem('lastGrupoId'); window.location.reload(); }}
           style={{ background:'#333', color:'#fff', border:'none', padding:'8px 16px', borderRadius:8, cursor:'pointer' }}>
           Limpiar y recargar
         </button>
@@ -112,7 +112,8 @@ function AppShell() {
   const [actModalOpen, setActModalOpen]       = useState(false);
   const [crearOpen, setCrearOpen]             = useState(false);
   const [refreshKey, setRefreshKey]           = useState(0);
-  const [competenciaActiva, setCompetenciaActiva] = useState(null);
+  const [grupoActivo, setGrupoActivo] = useState(null);
+  const competenciaActiva = grupoActivo?.competencia_actual ?? null;
   const [mainTab, setMainTab]                 = useState('ranking');
   const [compTab, setCompTab]                 = useState('ranking');
   const [forceOpenSelector, setForceOpenSelector] = useState(0);
@@ -156,16 +157,16 @@ function AppShell() {
     }
   }, [user?.id]);
 
-  // Restaurar última competencia cuando el usuario está listo
+  // Restaurar último grupo cuando el usuario está listo
   useEffect(() => {
     if (loading) return;
     if (!user) { setRestoringComp(false); return; }
-    const savedId = localStorage.getItem('lastCompetenciaId');
+    const savedId = localStorage.getItem('lastGrupoId');
     if (!savedId) { setRestoringComp(false); return; }
     withLoading(() =>
-      getCompetencia(savedId)
-        .then(detalle => setCompetenciaActiva(detalle))
-        .catch(() => localStorage.removeItem('lastCompetenciaId'))
+      getGrupo(savedId)
+        .then(detalle => setGrupoActivo(detalle))
+        .catch(() => localStorage.removeItem('lastGrupoId'))
     ).finally(() => setRestoringComp(false));
   }, [loading, user?.id]);
 
@@ -195,14 +196,14 @@ function AppShell() {
 
   if (!user) return <Login />;
 
-  async function handleSelectCompetencia(c) {
-    localStorage.setItem('lastCompetenciaId', c.id);
-    setCompetenciaActiva(c);
+  async function handleSelectGrupo(g) {
+    localStorage.setItem('lastGrupoId', g.id);
+    setGrupoActivo(g);
     setCompTab('ranking');
     try {
-      const detalle = await withLoading(() => getCompetencia(c.id));
-      setCompetenciaActiva(detalle);
-    } catch { /* si falla, queda sin deportes — ponderador libre */ }
+      const detalle = await withLoading(() => getGrupo(g.id));
+      setGrupoActivo(detalle);
+    } catch { /* si falla, queda con los datos parciales del selector */ }
   }
 
   function handleMainTab(id) {
@@ -217,28 +218,28 @@ function AppShell() {
   function handleCreated() {
     setRefreshKey(k => k + 1);
     setCrearOpen(false);
-    setUnirseOpen(false);
   }
 
   function handleCreateCompetencia() {
     setCrearOpen(true);
   }
 
-  const isAdmin = user && competenciaActiva && user.id === competenciaActiva.creador_id;
+  const isAdmin = !!(user && grupoActivo?.soy_admin);
 
   const tabContent = {
     ranking: competenciaActiva
       ? <CompetenciaDetalle
           key={competenciaActiva.id + compTab + '_' + refreshKey}
           competencia={competenciaActiva}
+          isAdmin={isAdmin}
           tab={compTab}
           onTab={setCompTab}
-          onBack={() => { localStorage.removeItem('lastCompetenciaId'); setCompetenciaActiva(null); }}
+          onBack={() => { localStorage.removeItem('lastGrupoId'); setGrupoActivo(null); }}
           onNewActivity={() => setActModalOpen(true)}
           adminSheetOpen={adminSheetOpen}
           onAdminSheetClose={() => setAdminSheetOpen(false)}
           onAdminSaved={deps => {
-            setCompetenciaActiva(prev => ({ ...prev, deportes: deps }));
+            setGrupoActivo(prev => ({ ...prev, competencia_actual: { ...prev.competencia_actual, deportes: deps } }));
             setAdminSheetOpen(false);
           }}
           equiposSheetOpen={equiposSheetOpen}
@@ -275,7 +276,8 @@ function AppShell() {
       <Nav
         onNewActivity={() => setActModalOpen(true)}
         competenciaActiva={competenciaActiva}
-        onSelectCompetencia={handleSelectCompetencia}
+        grupoActivo={grupoActivo}
+        onSelectGrupo={handleSelectGrupo}
         onCreateCompetencia={handleCreateCompetencia}
         forceOpenSelector={forceOpenSelector}
         isAdmin={isAdmin}
@@ -376,15 +378,15 @@ function AppShell() {
       <CrearCompetenciaModal
         open={crearOpen}
         onClose={() => setCrearOpen(false)}
-        onCreated={async comp => {
+        onCreated={async resultado => {
           handleCreated();
-          localStorage.setItem('lastCompetenciaId', comp.id);
-          setCompetenciaActiva(comp);
+          const grupoId = resultado.id ?? resultado.grupo_id;
+          localStorage.setItem('lastGrupoId', grupoId);
           setCompTab('ranking');
           try {
-            const detalle = await withLoading(() => getCompetencia(comp.id));
-            setCompetenciaActiva(detalle);
-          } catch { /* si falla, queda con los datos parciales de la creación */ }
+            const detalle = await withLoading(() => getGrupo(grupoId));
+            setGrupoActivo(detalle);
+          } catch { /* si falla, el usuario puede seleccionarlo de nuevo desde el selector */ }
         }}
       />
 

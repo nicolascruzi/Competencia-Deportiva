@@ -2,9 +2,10 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   getRankingComp, getActividadesComp, updatePonderadores,
-  getRankingEquiposComp, updateEquipos, updateAsignaciones, updateSemanas,
+  getRankingEquiposComp, updateSemanas,
   crearChallenge, updateChallenge, deleteChallenge, updateConfiguracion,
 } from '../api/competencias';
+import { updateEquiposGrupo, updateAsignacionesGrupo } from '../api/grupos';
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
 import { getDeportes as getAllDeportes, createDeporte, getActividades } from '../api/actividades';
@@ -2472,9 +2473,9 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false }) 
   async function handleSave() {
     setSaving(true); setError('');
     try {
-      await updateEquipos(competencia.id, equipos.map(e => ({ id: e.id, nombre: e.nombre, color: e.color })));
+      await updateEquiposGrupo(competencia.grupo_id, equipos.map(e => ({ id: e.id, nombre: e.nombre, color: e.color })));
       const asigArray = Object.entries(asignaciones).map(([user_id, equipo_id]) => ({ user_id: parseInt(user_id), equipo_id }));
-      if (asigArray.length) await updateAsignaciones(competencia.id, asigArray);
+      if (asigArray.length) await updateAsignacionesGrupo(competencia.grupo_id, asigArray);
 
       const updated = equipos.map(e => ({
         ...e,
@@ -2774,7 +2775,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
   );
 }
 
-export default function CompetenciaDetalle({ competencia, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, configSheetOpen, onConfigSheetClose, navYear, navMonth, onNavYear, onNavMonth }) {
+export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, configSheetOpen, onConfigSheetClose, navYear, navMonth, onNavYear, onNavMonth }) {
   const { user } = useAuth();
   const { withLoading } = useLoading();
   const now = new Date();
@@ -2803,7 +2804,6 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
   const [rankingSubTab, setRankingSubTab] = useState('general'); // 'general' | 'equipos'
   const [equipoSeleccionadoId, setEquipoSeleccionadoId] = useState(null);
 
-  const isAdmin = user?.id === competencia.creador_id;
   const tieneEquipos = (compConDeportes.equipos?.length ?? 0) > 0;
 
   // Por defecto, el equipo del usuario; si no tiene, el primero de la lista.
@@ -2940,7 +2940,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       {adminSheetOpen && createPortal(
         <AdminPonderadoresSheet
           competencia={compConDeportes}
-          readOnly={user?.id !== competencia.creador_id}
+          readOnly={!isAdmin}
           onClose={onAdminSheetClose}
           onSaved={ponderadores => {
             setCompConDeportes(prev => ({
@@ -2957,7 +2957,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       {equiposSheetOpen && createPortal(
         <AdminEquiposSheet
           competencia={compConDeportes}
-          readOnly={user?.id !== competencia.creador_id}
+          readOnly={!isAdmin}
           onClose={onEquiposSheetClose}
           onSaved={updated => {
             setCompConDeportes(prev => ({ ...prev, equipos: updated }));
@@ -2970,7 +2970,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       {semanasSheetOpen && createPortal(
         <AdminSemanasSheet
           competencia={compConDeportes}
-          readOnly={user?.id !== competencia.creador_id}
+          readOnly={!isAdmin}
           onClose={onSemanasSheetClose}
           onSaved={(updatedSemanas, updatedChallenges) => {
             setCompConDeportes(prev => ({ ...prev, semanas: updatedSemanas, challenges: updatedChallenges }));
@@ -2983,7 +2983,7 @@ export default function CompetenciaDetalle({ competencia, onBack, onNewActivity,
       {configSheetOpen && createPortal(
         <AdminConfigSheet
           competencia={compConDeportes}
-          readOnly={user?.id !== competencia.creador_id}
+          readOnly={!isAdmin}
           onClose={onConfigSheetClose}
           onSaved={actualizada => {
             setCompConDeportes(prev => ({ ...prev, ...actualizada }));

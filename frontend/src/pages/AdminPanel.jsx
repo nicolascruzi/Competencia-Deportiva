@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   getAdminStats, getAdminUsers, updateAdminUser, deleteAdminUser,
-  getAdminCompetencias, deleteAdminCompetencia,
+  getAdminGrupos, deleteAdminGrupo,
   getAdminActividades, deleteAdminActividad,
   getAdminDeportes, updateAdminDeporte, deleteAdminDeporte,
 } from '../api/admin';
@@ -66,7 +66,7 @@ function StatsBanner({ stats }) {
   if (!stats) return null;
   const items = [
     { label:'Usuarios',     val: fmt(stats.usuarios) },
-    { label:'Competencias', val: fmt(stats.competencias) },
+    { label:'Grupos',       val: fmt(stats.grupos) },
     { label:'Actividades',  val: fmt(stats.actividades) },
     { label:'Horas',        val: fmt(Math.round(stats.minutos / 60)) },
   ];
@@ -132,7 +132,7 @@ function TabUsuarios() {
                 </div>
                 <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{u.email}</div>
                 <div style={{ fontSize:10, color:'var(--t-dim2)', marginTop:1 }}>
-                  {u.actividades} acts · {u.competencias} comp · {fmtDate(u.created_at)}
+                  {u.actividades} acts · {u.grupos} grupos · {fmtDate(u.created_at)}
                 </div>
               </div>
               {/* Acciones */}
@@ -260,37 +260,37 @@ function CompRow({ c, onDelete }) {
 }
 
 function TabCompetencias() {
-  const [comps, setComps]     = useState([]);
+  const [grupos, setGrupos]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
   function load() {
     setLoading(true);
     setError(null);
-    getAdminCompetencias()
-      .then(data => setComps(Array.isArray(data) ? data : []))
+    getAdminGrupos()
+      .then(data => setGrupos(Array.isArray(data) ? data : []))
       .catch(e => setError(e.message || 'Error al cargar'))
       .finally(() => setLoading(false));
   }
   useEffect(load, []);
 
   async function handleDelete(id) {
-    await deleteAdminCompetencia(id);
-    setComps(c => c.filter(x => x.id !== id));
+    await deleteAdminGrupo(id);
+    setGrupos(g => g.filter(x => x.id !== id));
   }
 
   return (
     <div>
-      <SectionHeader title="Competencias" count={comps.length} onRefresh={load} loading={loading} />
+      <SectionHeader title="Grupos" count={grupos.length} onRefresh={load} loading={loading} />
       {loading ? <Spinner /> : error ? (
         <div style={{ margin:'16px', padding:'14px', background:'rgba(248,113,113,0.1)', border:'1px solid rgba(248,113,113,0.3)', borderRadius:12, color:'#F87171', fontSize:13 }}>
           Error: {error}
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-          {comps.map(c => <CompRow key={c.id} c={c} onDelete={handleDelete} />)}
-          {comps.length === 0 && (
-            <div style={{ textAlign:'center', padding:'40px 24px', color:'var(--t-muted)', fontSize:13 }}>Sin competencias</div>
+          {grupos.map(c => <CompRow key={c.id} c={c} onDelete={handleDelete} />)}
+          {grupos.length === 0 && (
+            <div style={{ textAlign:'center', padding:'40px 24px', color:'var(--t-muted)', fontSize:13 }}>Sin grupos</div>
           )}
         </div>
       )}
@@ -532,7 +532,7 @@ function TabDeportes() {
 // ─── AdminPanel principal ─────────────────────────────────────────────────────
 
 const TAB_LABELS = {
-  usuarios: 'Usuarios', competencias: 'Competencias',
+  usuarios: 'Usuarios', competencias: 'Grupos',
   actividades: 'Actividades', deportes: 'Deportes',
 };
 

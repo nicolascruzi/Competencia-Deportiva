@@ -1,17 +1,11 @@
 import { apiFetch } from './client';
 
-export const getCompetencias      = ()       => apiFetch('/competencias');
 export const getCompetencia       = (id)     => apiFetch(`/competencias/${id}`);
-export const createCompetencia    = (body)   => apiFetch('/competencias',          { method: 'POST', body: JSON.stringify(body) });
-export const joinCompetencia      = (pin)    => apiFetch('/competencias/join',      { method: 'POST', body: JSON.stringify({ pin }) });
 export const getRankingComp       = (id, mes) => apiFetch(`/competencias/${id}/ranking${mes ? `?mes=${mes}` : ''}`);
 export const getMesesComp         = (id)     => apiFetch(`/competencias/${id}/meses`);
 export const updatePonderadores   = (id, ponderadores) => apiFetch(`/competencias/${id}/deportes`, { method: 'PUT', body: JSON.stringify({ ponderadores }) });
 export const getActividadesComp   = (id, mes) => apiFetch(`/competencias/${id}/actividades${mes ? `?mes=${mes}` : ''}`);
 
-export const getEquiposComp        = (id)              => apiFetch(`/competencias/${id}/equipos`);
-export const updateEquipos         = (id, equipos)      => apiFetch(`/competencias/${id}/equipos`, { method: 'PUT', body: JSON.stringify({ equipos }) });
-export const updateAsignaciones    = (id, asignaciones) => apiFetch(`/competencias/${id}/equipos/asignaciones`, { method: 'PUT', body: JSON.stringify({ asignaciones }) });
 export const getRankingEquiposComp = (id, mes)          => apiFetch(`/competencias/${id}/ranking-equipos${mes ? `?mes=${mes}` : ''}`);
 export const updateSemanas         = (id, semanas)      => apiFetch(`/competencias/${id}/semanas`, { method: 'PUT', body: JSON.stringify({ semanas }) });
 export const updateConfiguracion   = (id, data)         => apiFetch(`/competencias/${id}/configuracion`, { method: 'PUT', body: JSON.stringify(data) });

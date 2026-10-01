@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getDeportes, createActividad } from '../api/actividades';
-import { getCompetencias } from '../api/competencias';
+import { getGrupos } from '../api/grupos';
 import { uploadFoto } from '../api/fotos';
 import { useLoading } from '../context/LoadingContext';
 import { useAuth } from '../context/AuthContext';
@@ -51,7 +51,7 @@ const IconCamera = () => (
   </svg>
 );
 
-// competenciaActiva: { id, nombre, creador_id, deportes: [{deporte_nombre, ponderador}], ... } | null
+// competenciaActiva: { id, nombre, deportes: [{deporte_nombre, ponderador}], ... } | null
 export default function ActivityModal({ open, onClose, onCreated, competenciaActiva }) {
   const { user } = useAuth();
   const [deportes, setDeportes]     = useState([]);
@@ -65,14 +65,15 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   const fileInputRef                = useRef(null);
   const { withLoading } = useLoading();
 
-  // Se muestra el selector si al menos una competencia en curso tiene el bonus activado en algún tramo
-  const mostrarSelectorCompaneros = misCompetencias.some(c =>
-    c.en_curso && (
+  // Se muestra el selector si la competencia en curso de algún grupo tiene el bonus activado en algún tramo
+  const mostrarSelectorCompaneros = misCompetencias.some(g => {
+    const c = g.competencia_actual;
+    return c && (
       parseFloat(c.bonus_1_companero_pts) > 0 ||
       parseFloat(c.bonus_2_companeros_pts) > 0 ||
       parseFloat(c.bonus_3mas_companeros_pts) > 0
-    )
-  );
+    );
+  });
 
   // Mapa de ponderadores de la competencia activa: { deporte_nombre → ponderador }
   // Solo se considera "activo" si la competencia tiene deportes configurados con al menos un valor
@@ -102,7 +103,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
       setFoto(null);
       setFotoPreview(null);
       setCantidadCompaneros(0);
-      getCompetencias().then(setMisCompetencias).catch(() => setMisCompetencias([]));
+      getGrupos().then(setMisCompetencias).catch(() => setMisCompetencias([]));
     }
   }, [open]);
 
