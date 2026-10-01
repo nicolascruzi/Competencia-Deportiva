@@ -50,7 +50,7 @@ const IconBell = () => (
   </svg>
 );
 
-export default function Nav({ onNewActivity, competenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
+export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCurso, onSelectCompetenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
   const { themeId, setTheme, palettes } = useTheme();
   const { notifs, unread, markRead, markAll } = useNotifications() || { notifs: [], unread: 0, markRead: () => {}, markAll: () => {} };
   const [selectorOpen, setSelectorOpen]   = useState(false);
@@ -258,13 +258,34 @@ export default function Nav({ onNewActivity, competenciaActiva, grupoActivo, onS
                     </div>
                     <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>
                       {g.participantes} participante{g.participantes !== 1 ? 's' : ''}
-                      {!g.competencia_actual && ' · sin competencia activa'}
+                      {!g.competencias_en_curso?.length && ' · sin competencia activa'}
                     </div>
                   </div>
                   {isActive && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
                 </button>
               );
             })
+          )}
+
+          {competenciasEnCurso?.length > 1 && (
+            <div style={{ borderTop:'1px solid var(--t-dim)', padding:'10px 0 6px' }}>
+              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-muted)', padding:'0 18px 8px' }}>
+                Viendo
+              </div>
+              {competenciasEnCurso.map(c => {
+                const isActive = competenciaActiva?.id === c.id;
+                return (
+                  <button key={c.id}
+                    onClick={() => { onSelectCompetenciaActiva(c.id); setSelectorOpen(false); }}
+                    style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'9px 18px', background: isActive ? 'rgba(var(--t-accent-r),0.07)' : 'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                    <span style={{ flex:1, fontSize:14, fontWeight:600, color: isActive ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {c.nombre}
+                    </span>
+                    {isActive && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
+                  </button>
+                );
+              })}
+            </div>
           )}
 
           <div style={{ borderTop:'1px solid var(--t-dim)', margin:'6px 0 0', padding:'6px 0' }}>

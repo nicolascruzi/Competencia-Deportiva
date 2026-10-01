@@ -69,12 +69,12 @@ function RankingCongelado({ competencia, onBack }) {
   );
 }
 
-export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, onCompetenciaActualCambio }) {
+export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, onCompetenciasEnCursoCambio }) {
   const [competencias, setCompetencias] = useState(null);
   const [error, setError] = useState('');
   const [verRanking, setVerRanking] = useState(null); // competencia seleccionada, o null
   const [nuevaOpen, setNuevaOpen] = useState(false);
-  const [cerrando, setCerrando] = useState(false);
+  const [cerrandoId, setCerrandoId] = useState(null);
   const startY = useRef(null);
 
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
@@ -85,25 +85,26 @@ export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, 
 
   function reload() {
     return getCompetenciasGrupo(grupoId)
-      .then(setCompetencias)
+      .then(rows => {
+        setCompetencias(rows);
+        onCompetenciasEnCursoCambio?.(rows.filter(c => c.estado === 'en_curso'));
+        return rows;
+      })
       .catch(err => setError(err.message));
   }
 
   useEffect(() => { reload(); }, [grupoId]);
 
-  const enCurso = competencias?.find(c => c.estado === 'en_curso') ?? null;
-
-  async function handleCerrar() {
-    if (!enCurso || !confirm(`¿Cerrar "${enCurso.nombre}"? El ranking quedará congelado como histórico.`)) return;
-    setCerrando(true); setError('');
+  async function handleCerrar(comp) {
+    if (!confirm(`¿Cerrar "${comp.nombre}"? El ranking quedará congelado como histórico.`)) return;
+    setCerrandoId(comp.id); setError('');
     try {
-      await cerrarCompetenciaGrupo(grupoId, enCurso.id);
+      await cerrarCompetenciaGrupo(grupoId, comp.id);
       await reload();
-      onCompetenciaActualCambio?.(null);
     } catch (err) {
       setError(err.message);
     } finally {
-      setCerrando(false);
+      setCerrandoId(null);
     }
   }
 
@@ -137,40 +138,42 @@ export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, 
           ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {isAdmin && (
-                enCurso ? (
-                  <button onClick={handleCerrar} disabled={cerrando}
-                    style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid rgba(248,113,113,0.3)', background:'rgba(248,113,113,0.08)', color:'#F87171', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor: cerrando ? 'default' : 'pointer', opacity: cerrando ? 0.6 : 1, marginBottom:4 }}>
-                    {cerrando ? 'Cerrando…' : `Cerrar "${enCurso.nombre}"`}
-                  </button>
-                ) : (
-                  <button onClick={() => setNuevaOpen(true)}
-                    style={{ width:'100%', padding:'12px', borderRadius:12, border:'1.5px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.08)', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', marginBottom:4 }}>
-                    + Crear nueva competencia
-                  </button>
-                )
+                <button onClick={() => setNuevaOpen(true)}
+                  style={{ width:'100%', padding:'12px', borderRadius:12, border:'1.5px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.08)', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', marginBottom:4 }}>
+                  + Crear nueva competencia
+                </button>
               )}
               {competencias.map(c => (
-                <button key={c.id} onClick={() => setVerRanking(c)}
-                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 14px', borderRadius:12, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:14, fontWeight:700, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                      {c.nombre}
+                <div key={c.id}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 14px', borderRadius:12, background:'var(--t-surface2)', border:'1px solid var(--t-dim)' }}>
+                  <button onClick={() => setVerRanking(c)}
+                    style={{ flex:1, minWidth:0, display:'flex', alignItems:'center', gap:10, background:'transparent', border:'none', cursor:'pointer', textAlign:'left', padding:0, WebkitTapHighlightColor:'transparent' }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:14, fontWeight:700, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                        {c.nombre}
+                      </div>
+                      <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
+                        {c.fecha_inicio ? `${fmtFecha(c.fecha_inicio)} al ${fmtFecha(c.fecha_fin)}` : 'Sin fechas configuradas'}
+                      </div>
                     </div>
-                    <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
-                      {c.fecha_inicio ? `${fmtFecha(c.fecha_inicio)} al ${fmtFecha(c.fecha_fin)}` : 'Sin fechas configuradas'}
-                    </div>
-                  </div>
-                  <span style={{
-                    fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', padding:'3px 8px', borderRadius:20, flexShrink:0,
-                    color: c.estado === 'en_curso' ? 'var(--t-accent)' : 'var(--t-muted)',
-                    background: c.estado === 'en_curso' ? 'rgba(var(--t-accent-r),0.12)' : 'var(--t-dim)',
-                  }}>
-                    {c.estado === 'en_curso' ? 'En curso' : 'Finalizada'}
-                  </span>
-                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                  </span>
-                </button>
+                    <span style={{
+                      fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', padding:'3px 8px', borderRadius:20, flexShrink:0,
+                      color: c.estado === 'en_curso' ? 'var(--t-accent)' : 'var(--t-muted)',
+                      background: c.estado === 'en_curso' ? 'rgba(var(--t-accent-r),0.12)' : 'var(--t-dim)',
+                    }}>
+                      {c.estado === 'en_curso' ? 'En curso' : 'Finalizada'}
+                    </span>
+                    <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    </span>
+                  </button>
+                  {isAdmin && c.estado === 'en_curso' && (
+                    <button onClick={() => handleCerrar(c)} disabled={cerrandoId === c.id}
+                      style={{ flexShrink:0, padding:'6px 10px', borderRadius:8, border:'1px solid rgba(248,113,113,0.3)', background:'rgba(248,113,113,0.08)', color:'#F87171', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.03em', cursor: cerrandoId === c.id ? 'default' : 'pointer', opacity: cerrandoId === c.id ? 0.6 : 1, WebkitTapHighlightColor:'transparent' }}>
+                      {cerrandoId === c.id ? '…' : 'Cerrar'}
+                    </button>
+                  )}
+                </div>
               ))}
               {competencias.length === 0 && (
                 <div style={{ textAlign:'center', padding:'20px 0', color:'var(--t-muted)', fontSize:13 }}>Todavía no hay competencias en este grupo.</div>
@@ -185,10 +188,7 @@ export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, 
         <NuevaCompetenciaSheet
           grupoId={grupoId}
           onClose={() => setNuevaOpen(false)}
-          onCreated={competencia => {
-            reload();
-            onCompetenciaActualCambio?.(competencia);
-          }}
+          onCreated={() => reload()}
         />
       )}
     </>

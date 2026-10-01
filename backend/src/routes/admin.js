@@ -61,17 +61,14 @@ router.delete('/users/:id', async (req, res) => {
 
 router.get('/grupos', async (req, res) => {
   try {
-    // Grupos con conteo de participantes y su competencia en_curso (si hay)
+    // Grupos con conteo de participantes y sus competencias en_curso (puede haber varias)
     const { rows: grupos } = await pool.query(`
       SELECT g.id, g.nombre, g.pin, g.created_at,
              COALESCE(u.apodo, u.nombre) AS creador_display,
-             COUNT(DISTINCT gp.user_id) AS participantes,
-             comp.id AS competencia_actual_id, comp.nombre AS competencia_actual_nombre
+             (SELECT COUNT(DISTINCT gp.user_id) FROM grupo_participantes gp WHERE gp.grupo_id = g.id) AS participantes,
+             (SELECT COUNT(*) FROM competencias c WHERE c.grupo_id = g.id AND c.estado = 'en_curso') AS competencias_en_curso
       FROM grupos g
       JOIN users u ON u.id = g.creador_id
-      LEFT JOIN grupo_participantes gp ON gp.grupo_id = g.id
-      LEFT JOIN competencias comp ON comp.grupo_id = g.id AND comp.estado = 'en_curso'
-      GROUP BY g.id, u.id, comp.id
       ORDER BY g.created_at DESC
     `);
 

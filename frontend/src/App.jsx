@@ -114,7 +114,18 @@ function AppShell() {
   const [crearOpen, setCrearOpen]             = useState(false);
   const [refreshKey, setRefreshKey]           = useState(0);
   const [grupoActivo, setGrupoActivo] = useState(null);
-  const competenciaActiva = grupoActivo?.competencia_actual ?? null;
+  const [competenciaSeleccionadaId, setCompetenciaSeleccionadaId] = useState(() => {
+    const saved = localStorage.getItem('lastCompetenciaId');
+    return saved ? parseInt(saved) : null;
+  });
+  const competenciasEnCurso = grupoActivo?.competencias_en_curso ?? [];
+  const competenciaActiva = competenciasEnCurso.find(c => c.id === competenciaSeleccionadaId) ?? competenciasEnCurso[0] ?? null;
+
+  function selectCompetencia(id) {
+    setCompetenciaSeleccionadaId(id);
+    if (id == null) localStorage.removeItem('lastCompetenciaId');
+    else localStorage.setItem('lastCompetenciaId', id);
+  }
   const [mainTab, setMainTab]                 = useState('ranking');
   const [compTab, setCompTab]                 = useState('ranking');
   const [forceOpenSelector, setForceOpenSelector] = useState(0);
@@ -201,10 +212,12 @@ function AppShell() {
   async function handleSelectGrupo(g) {
     localStorage.setItem('lastGrupoId', g.id);
     setGrupoActivo(g);
+    selectCompetencia(g.competencias_en_curso?.[0]?.id ?? null);
     setCompTab('ranking');
     try {
       const detalle = await withLoading(() => getGrupo(g.id));
       setGrupoActivo(detalle);
+      selectCompetencia(detalle.competencias_en_curso?.[0]?.id ?? null);
     } catch { /* si falla, queda con los datos parciales del selector */ }
   }
 
@@ -236,12 +249,17 @@ function AppShell() {
           isAdmin={isAdmin}
           tab={compTab}
           onTab={setCompTab}
-          onBack={() => { localStorage.removeItem('lastGrupoId'); setGrupoActivo(null); }}
+          onBack={() => { localStorage.removeItem('lastGrupoId'); setGrupoActivo(null); selectCompetencia(null); }}
           onNewActivity={() => setActModalOpen(true)}
           adminSheetOpen={adminSheetOpen}
           onAdminSheetClose={() => setAdminSheetOpen(false)}
           onAdminSaved={deps => {
-            setGrupoActivo(prev => ({ ...prev, competencia_actual: { ...prev.competencia_actual, deportes: deps } }));
+            setGrupoActivo(prev => ({
+              ...prev,
+              competencias_en_curso: prev.competencias_en_curso.map(c =>
+                c.id === competenciaActiva.id ? { ...c, deportes: deps } : c
+              ),
+            }));
             setAdminSheetOpen(false);
           }}
           equiposSheetOpen={equiposSheetOpen}
@@ -278,6 +296,8 @@ function AppShell() {
       <Nav
         onNewActivity={() => setActModalOpen(true)}
         competenciaActiva={competenciaActiva}
+        competenciasEnCurso={competenciasEnCurso}
+        onSelectCompetenciaActiva={selectCompetencia}
         grupoActivo={grupoActivo}
         onSelectGrupo={handleSelectGrupo}
         onCreateCompetencia={handleCreateCompetencia}
@@ -389,6 +409,7 @@ function AppShell() {
           try {
             const detalle = await withLoading(() => getGrupo(grupoId));
             setGrupoActivo(detalle);
+            selectCompetencia(detalle.competencias_en_curso?.[0]?.id ?? null);
           } catch { /* si falla, el usuario puede seleccionarlo de nuevo desde el selector */ }
         }}
       />
@@ -398,8 +419,12 @@ function AppShell() {
           grupoId={grupoActivo.id}
           isAdmin={isAdmin}
           onClose={() => setHistorialSheetOpen(false)}
-          onCompetenciaActualCambio={competenciaActual => {
-            setGrupoActivo(prev => ({ ...prev, competencia_actual: competenciaActual }));
+          onCompetenciasEnCursoCambio={competenciasEnCurso => {
+            setGrupoActivo(prev => ({ ...prev, competencias_en_curso: competenciasEnCurso }));
+            // Si la competencia seleccionada ya no está en curso (se cerró), caer a la primera disponible.
+            if (!competenciasEnCurso.some(c => c.id === competenciaSeleccionadaId)) {
+              selectCompetencia(competenciasEnCurso[0]?.id ?? null);
+            }
             setRefreshKey(k => k + 1);
           }}
         />

@@ -479,6 +479,10 @@ DROP TABLE IF EXISTS competencia_participantes;
 
 -- Columna vestigial: nunca se lee ni se escribe en el backend (el vínculo real es actividad_competencias).
 ALTER TABLE actividades DROP COLUMN IF EXISTS competencia_id;
+
+-- Un grupo ya puede tener varias competencias en_curso a la vez (el admin ya no tiene que cerrar
+-- la actual para abrir una nueva); se saca la restricción de "una sola por grupo" a nivel de BD.
+DROP INDEX IF EXISTS idx_competencias_una_en_curso_por_grupo;
 `;
 
 async function migrate() {

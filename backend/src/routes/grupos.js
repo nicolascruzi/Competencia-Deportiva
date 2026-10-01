@@ -93,12 +93,16 @@ router.get('/', authMiddleware, async (req, res) => {
     );
 
     const { rows: competenciasEnCurso } = await pool.query(
-      `SELECT c.* FROM competencias c WHERE c.grupo_id = ANY($1::int[]) AND c.estado = 'en_curso'`,
+      `SELECT c.* FROM competencias c WHERE c.grupo_id = ANY($1::int[]) AND c.estado = 'en_curso' ORDER BY c.created_at DESC`,
       [grupos.map(g => g.id)]
     );
-    const porGrupo = new Map(competenciasEnCurso.map(c => [c.grupo_id, c]));
+    const porGrupo = new Map();
+    for (const c of competenciasEnCurso) {
+      if (!porGrupo.has(c.grupo_id)) porGrupo.set(c.grupo_id, []);
+      porGrupo.get(c.grupo_id).push(c);
+    }
 
-    res.json(grupos.map(g => ({ ...g, competencia_actual: porGrupo.get(g.id) ?? null })));
+    res.json(grupos.map(g => ({ ...g, competencias_en_curso: porGrupo.get(g.id) ?? [] })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al listar grupos' });
@@ -149,7 +153,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const competencia = await creaCompetenciaEnTransaccion(client, grupo.id, req.body);
 
     await client.query('COMMIT');
-    res.status(201).json({ ...grupo, competencia_actual: competencia });
+    res.status(201).json({ ...grupo, competencias_en_curso: [competencia] });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
@@ -202,8 +206,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
       [id]
     );
 
-    const { rows: [competenciaActual] } = await pool.query(
-      `SELECT id, nombre, fecha_inicio, fecha_fin FROM competencias WHERE grupo_id=$1 AND estado='en_curso'`,
+    const { rows: competenciasEnCurso } = await pool.query(
+      `SELECT id, nombre, fecha_inicio, fecha_fin FROM competencias WHERE grupo_id=$1 AND estado='en_curso' ORDER BY created_at DESC`,
       [id]
     );
 
@@ -213,7 +217,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       equipos,
       mi_equipo_id: part.equipo_id,
       soy_admin: await esAdminDeGrupo(id, req.user.id),
-      competencia_actual: competenciaActual ?? null,
+      competencias_en_curso: competenciasEnCurso,
     });
   } catch (err) {
     console.error(err);
@@ -257,8 +261,6 @@ router.post('/:id/competencias', authMiddleware, async (req, res) => {
     res.status(201).json(competencia);
   } catch (err) {
     await client.query('ROLLBACK');
-    // El índice único parcial impide dos competencias en_curso del mismo grupo a la vez.
-    if (err.code === '23505') return res.status(409).json({ error: 'Ya hay una competencia en curso en este grupo, cerrala primero' });
     console.error(err);
     res.status(500).json({ error: 'Error al crear la competencia' });
   } finally {
@@ -266,7 +268,7 @@ router.post('/:id/competencias', authMiddleware, async (req, res) => {
   }
 });
 
-// POST /grupos/:id/competencias/:compId/cerrar — cierra la competencia en curso (admin)
+// POST /grupos/:id/competencias/:compId/cerrar — cierra una competencia en curso puntual (admin)
 router.post('/:id/competencias/:compId/cerrar', authMiddleware, async (req, res) => {
   const { id, compId } = req.params;
   try {

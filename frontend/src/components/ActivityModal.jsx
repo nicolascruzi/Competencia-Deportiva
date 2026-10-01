@@ -65,15 +65,14 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   const fileInputRef                = useRef(null);
   const { withLoading } = useLoading();
 
-  // Se muestra el selector si la competencia en curso de algún grupo tiene el bonus activado en algún tramo
-  const mostrarSelectorCompaneros = misCompetencias.some(g => {
-    const c = g.competencia_actual;
-    return c && (
+  // Se muestra el selector si alguna competencia en curso de algún grupo tiene el bonus activado en algún tramo
+  const mostrarSelectorCompaneros = misCompetencias.some(g =>
+    (g.competencias_en_curso ?? []).some(c =>
       parseFloat(c.bonus_1_companero_pts) > 0 ||
       parseFloat(c.bonus_2_companeros_pts) > 0 ||
       parseFloat(c.bonus_3mas_companeros_pts) > 0
-    );
-  });
+    )
+  );
 
   // Mapa de ponderadores de la competencia activa: { deporte_nombre → ponderador }
   // Solo se considera "activo" si la competencia tiene deportes configurados con al menos un valor
