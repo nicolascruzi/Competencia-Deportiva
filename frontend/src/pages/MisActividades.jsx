@@ -373,7 +373,7 @@ function ActividadRow({ a, onClick }) {
           {a.deporte_nombre}
         </div>
         <div style={{ fontSize:12, color:'var(--t-muted2)', marginTop:1, textTransform:'capitalize', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-          {fechaLabel}{a.notas ? ` · ${a.notas}` : ''}
+          {fechaLabel}
         </div>
       </div>
       <div style={{ textAlign:'right', flexShrink:0 }}>
