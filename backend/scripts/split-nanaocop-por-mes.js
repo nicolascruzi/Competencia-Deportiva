@@ -38,6 +38,13 @@ async function main() {
 
     console.log(`Original: #${original.id} "${original.nombre}" — ${ponderadores.length} ponderadores, ${challengesSinSemana.length} challenge(s) libre(s)`);
 
+    // Las 57 semanas viejas de la #3 (numero_semana 1..57, fechas de septiembre en adelante) se
+    // borran ANTES de generar las semanas nuevas del período Junio-Julio que reutiliza este mismo
+    // id — si no, el ON CONFLICT (competencia_id, numero_semana) de la generación de abajo pisaría
+    // silenciosamente contra esos números viejos y las semanas 1..9 de Junio-Julio no se crearían.
+    // Los challenges con semana_id apuntando a esas semanas quedan con semana_id NULL (ON DELETE SET NULL).
+    await client.query('DELETE FROM competencia_semanas WHERE competencia_id=$1', [COMPETENCIA_ORIGINAL_ID]);
+
     // id de competencia por período (la de "esOriginal" reutiliza el id existente #3)
     const idPorPeriodo = {};
 
@@ -128,17 +135,6 @@ async function main() {
       conteoPorPeriodo[periodo.nombre] = (conteoPorPeriodo[periodo.nombre] || 0) + 1;
     }
     console.log('Actividades por período:', JSON.stringify(conteoPorPeriodo, null, 2));
-
-    // Dropear las semanas/challenges viejos de la competencia original que quedaron huérfanos del
-    // período septiembre (los únicos 57 que existían, todos con numero_semana >= rango septiembre
-    // original) — se reemplazan por las semanas recién generadas de junio-julio para el id #3.
-    // Nota: no se tocan — calcularSemanas usa ON CONFLICT DO NOTHING, así que las semanas 1..N viejas
-    // (si colisionan en número con las nuevas de junio-julio) ya fueron preservadas tal cual estaban;
-    // se eliminan explícitamente las que quedaron fuera del rango nuevo de fechas de la competencia #3.
-    await client.query(
-      `DELETE FROM competencia_semanas WHERE competencia_id=$1 AND (fecha_inicio < $2 OR fecha_fin > $3)`,
-      [COMPETENCIA_ORIGINAL_ID, PERIODOS[0].fecha_inicio, PERIODOS[0].fecha_fin]
-    );
 
     await client.query('COMMIT');
     console.log('✓ Migración completada');
