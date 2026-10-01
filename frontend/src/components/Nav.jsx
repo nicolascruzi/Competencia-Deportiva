@@ -50,7 +50,7 @@ const IconBell = () => (
   </svg>
 );
 
-export default function Nav({ onNewActivity, competenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
+export default function Nav({ onNewActivity, competenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
   const { themeId, setTheme, palettes } = useTheme();
   const { notifs, unread, markRead, markAll } = useNotifications() || { notifs: [], unread: 0, markRead: () => {}, markAll: () => {} };
   const [selectorOpen, setSelectorOpen]   = useState(false);
@@ -454,6 +454,19 @@ export default function Nav({ onNewActivity, competenciaActiva, grupoActivo, onS
                   <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
                 </button>
               </>
+            )}
+            {grupoActivo && (
+              <button
+                onClick={() => { setSettingsOpen(false); setSettingsView('root'); onHistorial?.(); }}
+                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l4 2"/>
+                  </svg>
+                </span>
+                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Historial</span>
+                <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
+              </button>
             )}
             {grupoActivo?.pin && (
               <button

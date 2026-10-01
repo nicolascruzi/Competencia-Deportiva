@@ -17,6 +17,7 @@ import BottomTabBar from './components/BottomTabBar';
 import ActivityModal from './components/ActivityModal';
 import ActivityToast from './components/ActivityToast';
 import CrearCompetenciaModal from './components/CrearCompetenciaModal';
+import HistorialCompetenciasSheet from './components/HistorialCompetenciasSheet';
 import OnboardingModal from './components/OnboardingModal';
 import PullToRefreshIndicator from './components/PullToRefreshIndicator';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
@@ -121,6 +122,7 @@ function AppShell() {
   const [equiposSheetOpen, setEquiposSheetOpen] = useState(false);
   const [semanasSheetOpen, setSemanasSheetOpen] = useState(false);
   const [configSheetOpen, setConfigSheetOpen] = useState(false);
+  const [historialSheetOpen, setHistorialSheetOpen] = useState(false);
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
   const [restoringComp, setRestoringComp]     = useState(true);
   const [toast, setToast]                     = useState(null); // { actividad, ptsAntes, ptsDespues }
@@ -285,6 +287,7 @@ function AppShell() {
         onAdminEquipos={() => setEquiposSheetOpen(true)}
         onAdminSemanas={() => setSemanasSheetOpen(true)}
         onAdminConfig={() => setConfigSheetOpen(true)}
+        onHistorial={() => setHistorialSheetOpen(true)}
         onOpenPerfil={() => setProfileSettingsOpen(true)}
         isGlobalAdmin={isGlobalAdmin}
         onNotifClick={(actividadId) => {
@@ -389,6 +392,10 @@ function AppShell() {
           } catch { /* si falla, el usuario puede seleccionarlo de nuevo desde el selector */ }
         }}
       />
+
+      {historialSheetOpen && grupoActivo && (
+        <HistorialCompetenciasSheet grupoId={grupoActivo.id} onClose={() => setHistorialSheetOpen(false)} />
+      )}
 
       {showOnboarding && (
         <OnboardingModal onClose={() => {
