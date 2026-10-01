@@ -882,8 +882,8 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector 
 
                 {/* Racha */}
                 {racha > 0 && (
-                  <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:3, fontSize:12, fontWeight:700, color:'#FB923C' }}>
-                    🔥 {racha}d
+                  <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:3, fontSize:11, fontWeight:600, color:'var(--t-muted)' }}>
+                    <span style={{ fontSize:10, opacity:0.75 }}>🔥</span> {racha}d
                   </div>
                 )}
 
