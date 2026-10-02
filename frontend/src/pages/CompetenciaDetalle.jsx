@@ -3038,6 +3038,31 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
     }
   }
 
+  // Ver el perfil de un participante reemplaza esta pantalla entera (en vez de abrirse como un
+  // modal/sheet encima) — mismo patrón que ya usa el tab "Perfil" para el perfil propio.
+  if (profile) {
+    return (
+      <>
+        <div style={{ padding:'12px 16px 0' }}>
+          <button onClick={() => setProfile(null)}
+            style={{ display:'flex', alignItems:'center', gap:6, background:'transparent', border:'none', color:'var(--t-muted)', fontSize:13, fontWeight:600, cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Volver al ranking
+          </button>
+        </div>
+        <ProfilePanel
+          nombre={profile.nombre ?? profile}
+          userId={profile.id ?? null}
+          competenciaId={competencia.id}
+          acts={acts}
+          rankingData={rankingAcumulado}
+          nombres={nombres}
+          asPage
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -3055,20 +3080,7 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
         {renderTab()}
       </div>
 
-      {/* Profile panel y admin sheet via portal para escapar del stacking context del transform */}
-      {profile && createPortal(
-        <ProfilePanel
-          nombre={profile.nombre ?? profile}
-          userId={profile.id ?? null}
-          competenciaId={competencia.id}
-          acts={acts}
-          rankingData={rankingData}
-          nombres={nombres}
-          onClose={() => setProfile(null)}
-        />,
-        document.body
-      )}
-
+      {/* Admin sheets via portal para escapar del stacking context del transform */}
       {adminSheetOpen && createPortal(
         detalleListo ? (
           <AdminPonderadoresSheet
