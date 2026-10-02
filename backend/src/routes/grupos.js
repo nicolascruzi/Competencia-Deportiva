@@ -235,7 +235,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     );
 
     const { rows: competenciasEnCurso } = await pool.query(
-      `SELECT id, nombre, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
+      `SELECT id, grupo_id, nombre, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
        FROM competencias WHERE grupo_id=$1 AND estado='en_curso' ORDER BY created_at DESC`,
       [id]
     );

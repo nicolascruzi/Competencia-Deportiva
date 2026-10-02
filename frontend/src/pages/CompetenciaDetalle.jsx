@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  getRankingComp, getActividadesComp, updatePonderadores,
+  getCompetencia, getRankingComp, getActividadesComp, updatePonderadores,
   getRankingEquiposComp, updateSemanas,
   crearChallenge, updateChallenge, deleteChallenge, updateConfiguracion,
 } from '../api/competencias';
@@ -2145,6 +2145,23 @@ function EmptyState({ icon, title, text }) {
   );
 }
 
+// Placeholder de un sheet admin mientras se completa el detalle de la competencia (deportes,
+// equipos, semanas, challenges) — evita montar el sheet real con esos campos todavía vacíos, lo que
+// haría que guardar sin querer borre lo que ya existía.
+function AdminSheetLoading({ onClose }) {
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, padding:'48px 20px' }}>
+          <div style={{ width:28, height:28, borderRadius:'50%', border:'3px solid var(--t-dim)', borderTopColor:'var(--t-accent)', animation:'spin 0.8s linear infinite' }} />
+          <div style={{ fontSize:13, color:'var(--t-muted)' }}>Cargando…</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 
 // ─── SHEET ADMIN: editar ponderadores ────────────────────────────────────────
@@ -2848,8 +2865,31 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
   const [compConDeportes, setCompConDeportes] = useState(competencia);
 
   // La prop `competencia` puede llegar parcial al inicio (recién creada/seleccionada) y completarse
-  // después con un refetch en App.jsx sin que cambie el `key` del componente — sincronizar cuando eso pase.
-  useEffect(() => { setCompConDeportes(competencia); }, [competencia]);
+  // después con un refetch en App.jsx sin que cambie el `key` del componente — sincronizar cuando eso
+  // pase, pero fusionando (no reemplazando) para no pisar los campos ya completados por el fetch de
+  // abajo si todavía se trata de la misma competencia.
+  useEffect(() => {
+    setCompConDeportes(prev => prev.id === competencia.id ? { ...competencia, ...prev } : competencia);
+  }, [competencia]);
+
+  // La prop `competencia` viene del listado de grupos (GET /grupos/:id), que solo trae id/nombre/fechas
+  // — le faltan deportes, participantes, equipos, semanas y challenges, que los sheets admin necesitan.
+  // Se completa acá con el detalle completo (GET /competencias/:id) apenas se monta o cambia de
+  // competencia. `detalleCompletoId` guarda para qué competencia ya se completó, para poder esperar
+  // ese fetch antes de abrir un sheet admin (que de otro modo inicializaría su estado con arrays
+  // vacíos y nunca se actualizaría, al leer la prop solo una vez con useState).
+  const [detalleCompletoId, setDetalleCompletoId] = useState(null);
+  useEffect(() => {
+    let cancelado = false;
+    setDetalleCompletoId(null);
+    getCompetencia(competencia.id).then(full => {
+      if (cancelado) return;
+      setCompConDeportes(prev => ({ ...prev, ...full }));
+      setDetalleCompletoId(competencia.id);
+    }).catch(() => {});
+    return () => { cancelado = true; };
+  }, [competencia.id]);
+  const detalleListo = detalleCompletoId === competencia.id;
   const [rankingRefreshKey, setRankingRefreshKey] = useState(0);
   const [rankingSubTab, setRankingSubTab] = useState('general'); // 'general' | 'equipos'
   const [equipoSeleccionadoId, setEquipoSeleccionadoId] = useState(null);
@@ -2989,58 +3029,66 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
       )}
 
       {adminSheetOpen && createPortal(
-        <AdminPonderadoresSheet
-          competencia={compConDeportes}
-          readOnly={!isAdmin}
-          onClose={onAdminSheetClose}
-          onSaved={ponderadores => {
-            setCompConDeportes(prev => ({
-              ...prev,
-              deportes: ponderadores.map(p => ({ deporte_nombre: p.deporte_nombre, ponderador: p.ponderador })),
-            }));
-            setRankingRefreshKey(k => k + 1);
-            onAdminSaved?.(ponderadores.map(p => ({ deporte_nombre: p.deporte_nombre, ponderador: p.ponderador })));
-          }}
-        />,
+        detalleListo ? (
+          <AdminPonderadoresSheet
+            competencia={compConDeportes}
+            readOnly={!isAdmin}
+            onClose={onAdminSheetClose}
+            onSaved={ponderadores => {
+              setCompConDeportes(prev => ({
+                ...prev,
+                deportes: ponderadores.map(p => ({ deporte_nombre: p.deporte_nombre, ponderador: p.ponderador })),
+              }));
+              setRankingRefreshKey(k => k + 1);
+              onAdminSaved?.(ponderadores.map(p => ({ deporte_nombre: p.deporte_nombre, ponderador: p.ponderador })));
+            }}
+          />
+        ) : <AdminSheetLoading onClose={onAdminSheetClose} />,
         document.body
       )}
 
       {equiposSheetOpen && createPortal(
-        <AdminEquiposSheet
-          competencia={compConDeportes}
-          readOnly={!isAdmin}
-          onClose={onEquiposSheetClose}
-          onSaved={updated => {
-            setCompConDeportes(prev => ({ ...prev, equipos: updated }));
-            setRankingRefreshKey(k => k + 1);
-          }}
-        />,
+        detalleListo ? (
+          <AdminEquiposSheet
+            competencia={compConDeportes}
+            readOnly={!isAdmin}
+            onClose={onEquiposSheetClose}
+            onSaved={updated => {
+              setCompConDeportes(prev => ({ ...prev, equipos: updated }));
+              setRankingRefreshKey(k => k + 1);
+            }}
+          />
+        ) : <AdminSheetLoading onClose={onEquiposSheetClose} />,
         document.body
       )}
 
       {semanasSheetOpen && createPortal(
-        <AdminSemanasSheet
-          competencia={compConDeportes}
-          readOnly={!isAdmin}
-          onClose={onSemanasSheetClose}
-          onSaved={(updatedSemanas, updatedChallenges) => {
-            setCompConDeportes(prev => ({ ...prev, semanas: updatedSemanas, challenges: updatedChallenges }));
-            setRankingRefreshKey(k => k + 1);
-          }}
-        />,
+        detalleListo ? (
+          <AdminSemanasSheet
+            competencia={compConDeportes}
+            readOnly={!isAdmin}
+            onClose={onSemanasSheetClose}
+            onSaved={(updatedSemanas, updatedChallenges) => {
+              setCompConDeportes(prev => ({ ...prev, semanas: updatedSemanas, challenges: updatedChallenges }));
+              setRankingRefreshKey(k => k + 1);
+            }}
+          />
+        ) : <AdminSheetLoading onClose={onSemanasSheetClose} />,
         document.body
       )}
 
       {configSheetOpen && createPortal(
-        <AdminConfigSheet
-          competencia={compConDeportes}
-          readOnly={!isAdmin}
-          onClose={onConfigSheetClose}
-          onSaved={actualizada => {
-            setCompConDeportes(prev => ({ ...prev, ...actualizada }));
-            setRankingRefreshKey(k => k + 1);
-          }}
-        />,
+        detalleListo ? (
+          <AdminConfigSheet
+            competencia={compConDeportes}
+            readOnly={!isAdmin}
+            onClose={onConfigSheetClose}
+            onSaved={actualizada => {
+              setCompConDeportes(prev => ({ ...prev, ...actualizada }));
+              setRankingRefreshKey(k => k + 1);
+            }}
+          />
+        ) : <AdminSheetLoading onClose={onConfigSheetClose} />,
         document.body
       )}
     </>
