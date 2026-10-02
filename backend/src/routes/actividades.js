@@ -6,16 +6,20 @@ const { sendPushToUser } = require('./push');
 const router = express.Router();
 router.use(authMiddleware);
 
-// Vincula una actividad a la competencia en_curso de cada grupo al que pertenece el usuario (el
-// bonus por compañía ya no depende de esta vinculación con detalle de personas — vive directo en
-// actividades.cantidad_companeros).
+// Vincula una actividad a la competencia en_curso de cada grupo al que pertenece el usuario, siempre
+// que la fecha de la actividad caiga dentro del rango fecha_inicio..fecha_fin de esa competencia (si
+// la competencia no tiene fechas definidas, se vincula igual, sin restricción). El bonus por compañía
+// ya no depende de esta vinculación con detalle de personas — vive directo en
+// actividades.cantidad_companeros.
 async function vincularCompetencias(actividadId, userId) {
   const { rows: participaciones } = await pool.query(
     `SELECT c.id AS competencia_id
-     FROM grupo_participantes gp
+     FROM actividades a
+     JOIN grupo_participantes gp ON gp.user_id = a.user_id
      JOIN competencias c ON c.grupo_id = gp.grupo_id AND c.estado = 'en_curso'
-     WHERE gp.user_id = $1`,
-    [userId]
+     WHERE a.id = $1 AND gp.user_id = $2
+       AND (c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR a.fecha BETWEEN c.fecha_inicio AND c.fecha_fin)`,
+    [actividadId, userId]
   );
 
   if (!participaciones.length) return;
