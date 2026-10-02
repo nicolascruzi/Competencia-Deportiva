@@ -596,21 +596,19 @@ function EquiposResumen({ data, equipoSeleccionadoId, onSelect }) {
               flexShrink: cabenEnFila ? undefined : 0,
               minWidth: cabenEnFila ? 0 : 100,
               width: cabenEnFila ? '100%' : undefined,
-              padding:'10px 12px', borderRadius:14, textAlign:'left', cursor:'pointer', WebkitTapHighlightColor:'transparent',
+              padding:'7px 10px', borderRadius:12, textAlign:'left', cursor:'pointer', WebkitTapHighlightColor:'transparent',
               border: selected ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)',
               background: selected ? 'rgba(var(--t-accent-r),0.1)' : 'var(--t-surface)',
               boxSizing:'border-box', overflow:'hidden',
+              display:'flex', flexDirection:'column', gap:2,
             }}>
-            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-              <span style={{ width:20, height:20, borderRadius:6, flexShrink:0, background: eq.color || 'var(--t-accent)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:11, color:'#fff' }}>{eq.nombre?.charAt(0).toUpperCase()}</span>
-              </span>
-              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color: selected ? 'var(--t-accent)' : 'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0 }}>
-                {eq.nombre}
-              </span>
-            </div>
-            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{Math.round(eq.puntos)}</div>
-            <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>pts</div>
+            <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:12, lineHeight:1.15, color: selected ? 'var(--t-accent)' : 'var(--t-text)', whiteSpace:'normal', wordBreak:'break-word' }}>
+              {eq.nombre}
+            </span>
+            <span>
+              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-text)' }}>{Math.round(eq.puntos)}</span>
+              <span style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}> pts</span>
+            </span>
           </button>
         );
       })}
