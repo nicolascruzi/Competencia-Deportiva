@@ -99,10 +99,43 @@ router.get('/', authMiddleware, async (req, res) => {
        FROM competencias c WHERE c.grupo_id = ANY($1::int[]) AND c.estado = 'en_curso' ORDER BY c.created_at DESC`,
       [grupos.map(g => g.id)]
     );
+    // Deportes configurados y "deporte de la semana" vigente hoy, para cada competencia en curso —
+    // el formulario de nueva actividad los necesita para mostrar el ponderador real (base + extra de
+    // semana) sin que el usuario tenga que entrar a la competencia primero.
+    const idsCompetenciasEnCurso = competenciasEnCurso.map(c => c.id);
+    const { rows: deportesPorComp } = idsCompetenciasEnCurso.length
+      ? await pool.query(
+          `SELECT competencia_id, deporte_nombre, ponderador FROM competencia_deportes WHERE competencia_id = ANY($1::int[])`,
+          [idsCompetenciasEnCurso]
+        )
+      : { rows: [] };
+    const deportesMap = new Map();
+    for (const d of deportesPorComp) {
+      if (!deportesMap.has(d.competencia_id)) deportesMap.set(d.competencia_id, []);
+      deportesMap.get(d.competencia_id).push({ deporte_nombre: d.deporte_nombre, ponderador: d.ponderador });
+    }
+
+    const { rows: semanaActualPorComp } = idsCompetenciasEnCurso.length
+      ? await pool.query(
+          `SELECT DISTINCT ON (competencia_id) competencia_id, deporte_semana_nombre, deporte_semana_ponderador_extra
+           FROM competencia_semanas
+           WHERE competencia_id = ANY($1::int[]) AND fecha_inicio <= CURRENT_DATE AND fecha_fin >= CURRENT_DATE`,
+          [idsCompetenciasEnCurso]
+        )
+      : { rows: [] };
+    const semanaActualMap = new Map(semanaActualPorComp.map(s => [s.competencia_id, s]));
+
     const enCursoPorGrupo = new Map();
     for (const c of competenciasEnCurso) {
+      const semanaActual = semanaActualMap.get(c.id);
+      const conExtra = {
+        ...c,
+        deportes: deportesMap.get(c.id) ?? [],
+        deporte_semana_actual_nombre: semanaActual?.deporte_semana_nombre ?? null,
+        deporte_semana_actual_ponderador_extra: semanaActual?.deporte_semana_ponderador_extra ?? null,
+      };
       if (!enCursoPorGrupo.has(c.grupo_id)) enCursoPorGrupo.set(c.grupo_id, []);
-      enCursoPorGrupo.get(c.grupo_id).push(c);
+      enCursoPorGrupo.get(c.grupo_id).push(conExtra);
     }
 
     // Últimas 5 finalizadas por grupo (para mostrar un resumen corto en el selector sin traer todo el historial).
@@ -235,10 +268,43 @@ router.get('/:id', authMiddleware, async (req, res) => {
     );
 
     const { rows: competenciasEnCurso } = await pool.query(
-      `SELECT id, grupo_id, nombre, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
-       FROM competencias WHERE grupo_id=$1 AND estado='en_curso' ORDER BY created_at DESC`,
+      `SELECT c.*, TO_CHAR(c.fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(c.fecha_fin,'YYYY-MM-DD') AS fecha_fin
+       FROM competencias c WHERE c.grupo_id=$1 AND c.estado='en_curso' ORDER BY c.created_at DESC`,
       [id]
     );
+
+    const idsCompetenciasEnCurso = competenciasEnCurso.map(c => c.id);
+    const { rows: deportesPorComp } = idsCompetenciasEnCurso.length
+      ? await pool.query(
+          `SELECT competencia_id, deporte_nombre, ponderador FROM competencia_deportes WHERE competencia_id = ANY($1::int[])`,
+          [idsCompetenciasEnCurso]
+        )
+      : { rows: [] };
+    const deportesMap = new Map();
+    for (const d of deportesPorComp) {
+      if (!deportesMap.has(d.competencia_id)) deportesMap.set(d.competencia_id, []);
+      deportesMap.get(d.competencia_id).push({ deporte_nombre: d.deporte_nombre, ponderador: d.ponderador });
+    }
+
+    const { rows: semanaActualPorComp } = idsCompetenciasEnCurso.length
+      ? await pool.query(
+          `SELECT DISTINCT ON (competencia_id) competencia_id, deporte_semana_nombre, deporte_semana_ponderador_extra
+           FROM competencia_semanas
+           WHERE competencia_id = ANY($1::int[]) AND fecha_inicio <= CURRENT_DATE AND fecha_fin >= CURRENT_DATE`,
+          [idsCompetenciasEnCurso]
+        )
+      : { rows: [] };
+    const semanaActualMap = new Map(semanaActualPorComp.map(s => [s.competencia_id, s]));
+
+    const competenciasEnCursoConExtra = competenciasEnCurso.map(c => {
+      const semanaActual = semanaActualMap.get(c.id);
+      return {
+        ...c,
+        deportes: deportesMap.get(c.id) ?? [],
+        deporte_semana_actual_nombre: semanaActual?.deporte_semana_nombre ?? null,
+        deporte_semana_actual_ponderador_extra: semanaActual?.deporte_semana_ponderador_extra ?? null,
+      };
+    });
 
     res.json({
       ...grupo,
@@ -246,7 +312,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       equipos,
       mi_equipo_id: part.equipo_id,
       soy_admin: await esAdminDeGrupo(id, req.user.id),
-      competencias_en_curso: competenciasEnCurso,
+      competencias_en_curso: competenciasEnCursoConExtra,
     });
   } catch (err) {
     console.error(err);

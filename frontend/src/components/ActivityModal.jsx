@@ -92,6 +92,23 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   // Ponderador bloqueado solo si el deporte actual tiene un valor configurado en la competencia
   const pondBloqueado = compPondMap && form.deporte_nombre && compPondMap[form.deporte_nombre] != null && !isNaN(compPondMap[form.deporte_nombre]);
 
+  // Si el deporte elegido es el "deporte de la semana" vigente en la competencia activa, se suma un
+  // extra — se muestra desglosado ("1.10 +0.30") para que quede explícito de dónde sale el total.
+  const extraSemana = (() => {
+    if (!competenciaActiva || !form.deporte_nombre) return 0;
+    if (competenciaActiva.deporte_semana_actual_nombre !== form.deporte_nombre) return 0;
+    const v = parseFloat(competenciaActiva.deporte_semana_actual_ponderador_extra);
+    return !isNaN(v) ? v : 0;
+  })();
+  const ponderadorTotal = (parseFloat(form.ponderador) || 0) + extraSemana;
+
+  // Puntos de bonus por compañía configurados en la competencia activa, por tramo.
+  const bonusCompaneros = {
+    1: parseFloat(competenciaActiva?.bonus_1_companero_pts) || 0,
+    2: parseFloat(competenciaActiva?.bonus_2_companeros_pts) || 0,
+    3: parseFloat(competenciaActiva?.bonus_3mas_companeros_pts) || 0,
+  };
+
   useEffect(() => { getDeportes().then(setDeportes).catch(() => {}); }, []);
 
   useEffect(() => {
@@ -221,6 +238,9 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
               <div style={{ ...S.input, display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'default', opacity:0.7 }}>
                 <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}>
                   {form.ponderador}
+                  {extraSemana > 0 && (
+                    <span style={{ color:'#FB923C' }}> +{extraSemana}</span>
+                  )}
                 </span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
@@ -229,7 +249,9 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
             </Field>
           </div>
           <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:-6 }}>
-            {pondBloqueado
+            {extraSemana > 0
+              ? <>Incluye <span style={{ color:'#FB923C', fontWeight:600 }}>+{extraSemana}</span> por ser el deporte de la semana (total {ponderadorTotal.toFixed(2)}).</>
+              : pondBloqueado
               ? <>Ponderador fijado por <span style={{ color:'var(--t-accent)', fontWeight:600 }}>{competenciaActiva.nombre}</span>. Solo el admin puede modificarlo.</>
               : 'Se calcula automáticamente según el deporte. Solo el admin de tu competencia puede configurarlo.'}
           </div>
@@ -257,10 +279,10 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
             <Field label="¿Con cuántos compañeros lo hiciste?">
               <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                 {[
-                  { value: 0, label: 'Solo yo' },
-                  { value: 1, label: '1' },
-                  { value: 2, label: '2' },
-                  { value: 3, label: '3 o más' },
+                  { value: 0, label: 'Solo yo', bonus: 0 },
+                  { value: 1, label: '1', bonus: bonusCompaneros[1] },
+                  { value: 2, label: '2', bonus: bonusCompaneros[2] },
+                  { value: 3, label: '3 o más', bonus: bonusCompaneros[3] },
                 ].map(opt => {
                   const selected = cantidadCompaneros === opt.value;
                   return (
@@ -271,8 +293,14 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
                         background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
                         color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
                         cursor:'pointer', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent',
+                        display:'flex', flexDirection:'column', alignItems:'center', gap:1,
                       }}>
-                      {opt.label}
+                      <span>{opt.label}</span>
+                      {opt.bonus > 0 && (
+                        <span style={{ fontSize:10, fontWeight:700, color: selected ? 'var(--t-accent)' : '#FB923C' }}>
+                          +{opt.bonus} pts
+                        </span>
+                      )}
                     </button>
                   );
                 })}
