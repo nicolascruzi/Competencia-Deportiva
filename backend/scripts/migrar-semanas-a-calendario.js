@@ -69,6 +69,17 @@ async function main() {
 
       let fusionadas = 0, nuevasVacias = 0, huerfanas = 0;
 
+      // Fase 1: mover cada fila elegida a una fecha_inicio temporal única (derivada de su propio id,
+      // garantizada fuera de cualquier rango real), para que la fase 2 nunca choque con el UNIQUE
+      // (competencia_id, fecha_inicio) por pisar la fecha vieja de otra fila que todavía no se movió.
+      for (const [, elegida] of asignadaA) {
+        await client.query(
+          `UPDATE competencia_semanas SET fecha_inicio = fecha_inicio - (100000 + id) WHERE id=$1`,
+          [elegida.id]
+        );
+      }
+
+      // Fase 2: aplicar las fechas de calendario definitivas.
       for (let i = 0; i < nuevas.length; i++) {
         const n = nuevas[i];
         const elegida = asignadaA.get(i);
