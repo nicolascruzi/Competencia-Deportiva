@@ -2382,17 +2382,17 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Duración</div>
             {tieneSemanas && (
               <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>
-                Esta competencia ya tiene semanas generadas: la fecha de inicio no se puede cambiar, y la de fin solo se puede extender hacia adelante.
+                Las semanas que ya tenían deporte o challenges configurados se conservan mientras sus días sigan dentro del nuevo rango; las que queden afuera se eliminan.
               </div>
             )}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               <input
-                type="date" value={fechaInicio} disabled={readOnly || tieneSemanas}
+                type="date" value={fechaInicio} disabled={readOnly}
                 onChange={e => setFechaInicio(e.target.value)}
-                style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', opacity: tieneSemanas ? 0.6 : 1 }}
+                style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
               />
               <input
-                type="date" value={fechaFin} min={tieneSemanas ? competencia.fecha_fin : (fechaInicio || undefined)} disabled={readOnly}
+                type="date" value={fechaFin} min={fechaInicio || undefined} disabled={readOnly}
                 onChange={e => setFechaFin(e.target.value)}
                 style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
               />

@@ -6,9 +6,13 @@ const { esAdminDeCompetencia, esParticipanteDeCompetencia } = require('../lib/pe
 
 const router = express.Router();
 
-// Calcula las semanas (bloques de 7 días exactos) entre fecha_inicio y fecha_fin (inclusive).
-// Devuelve [{ numero_semana, fecha_inicio, fecha_fin }], la última puede ser más corta que 7 días.
-// (Usada también por grupos.js al crear una competencia nueva.)
+// Calcula las semanas de CALENDARIO (lunes a domingo) que caen dentro de fecha_inicio..fecha_fin
+// (inclusive). La primera y la última pueden ser parciales (menos de 7 días) si fecha_inicio no cae
+// en lunes o fecha_fin no cae en domingo; las intermedias son siempre semanas completas. Así una
+// semana queda identificada por sus días reales de calendario, sin importar qué fecha_inicio tenga
+// la competencia — mover fecha_inicio nunca corre de posición a una semana que ya existía.
+// Devuelve [{ numero_semana, fecha_inicio, fecha_fin }]. (Usada también por grupos.js al crear una
+// competencia nueva.)
 function calcularSemanas(fechaInicio, fechaFin) {
   const semanas = [];
   const start = new Date(fechaInicio + 'T00:00:00Z');
@@ -16,8 +20,10 @@ function calcularSemanas(fechaInicio, fechaFin) {
   let cursor = new Date(start);
   let numero = 1;
   while (cursor <= end) {
+    // getUTCDay(): domingo=0 ... sábado=6. Días hasta el domingo que cierra esta semana calendario.
+    const diasHastaDomingo = (7 - cursor.getUTCDay()) % 7;
     const semanaFin = new Date(cursor);
-    semanaFin.setUTCDate(semanaFin.getUTCDate() + 6);
+    semanaFin.setUTCDate(semanaFin.getUTCDate() + diasHastaDomingo);
     if (semanaFin > end) semanaFin.setTime(end.getTime());
     semanas.push({
       numero_semana: numero,
@@ -155,12 +161,6 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
     if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede editar la configuración' });
 
-    const { rows: [{ count: numSemanas }] } = await pool.query(
-      'SELECT COUNT(*)::int AS count FROM competencia_semanas WHERE competencia_id=$1',
-      [id]
-    );
-    const tieneSemanas = numSemanas > 0;
-
     const nuevaFechaInicio = fecha_inicio !== undefined ? (fecha_inicio || null) : comp.fecha_inicio;
     const nuevaFechaFin    = fecha_fin    !== undefined ? (fecha_fin    || null) : comp.fecha_fin;
 
@@ -168,13 +168,6 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Definí fecha de inicio y fin, o ninguna de las dos' });
     if (nuevaFechaInicio && nuevaFechaFin && nuevaFechaFin < nuevaFechaInicio)
       return res.status(400).json({ error: 'La fecha de fin no puede ser anterior a la de inicio' });
-
-    if (tieneSemanas) {
-      if (fecha_inicio !== undefined && fecha_inicio !== comp.fecha_inicio)
-        return res.status(400).json({ error: 'No se puede cambiar la fecha de inicio de una competencia que ya tiene semanas generadas' });
-      if (fecha_fin !== undefined && comp.fecha_fin && fecha_fin < comp.fecha_fin)
-        return res.status(400).json({ error: 'No se puede acortar la fecha de fin por debajo de las semanas ya generadas' });
-    }
 
     const sets = [];
     const params = [];
@@ -190,16 +183,28 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
       await pool.query(`UPDATE competencias SET ${sets.join(', ')} WHERE id=$${params.length}`, params);
     }
 
-    // Si quedó un rango de fechas válido, generar las semanas que falten (no duplica las existentes).
+    // Recalcular semanas para el nuevo rango. Una semana existente se identifica por su
+    // fecha_inicio real (no por numero_semana, que puede correrse de posición si cambian las
+    // fechas) — así conserva su deporte-de-la-semana/challenges/votos mientras sus días no cambien.
+    // Las que quedan fuera del nuevo rango se borran (con lo que tenían configurado); las nuevas
+    // nacen vacías.
     if (nuevaFechaInicio && nuevaFechaFin) {
       const semanasCalculadas = calcularSemanas(nuevaFechaInicio, nuevaFechaFin);
+      await pool.query(
+        `DELETE FROM competencia_semanas WHERE competencia_id=$1 AND fecha_inicio != ALL($2::date[])`,
+        [id, semanasCalculadas.map(s => s.fecha_inicio)]
+      );
       for (const s of semanasCalculadas) {
         await pool.query(
           `INSERT INTO competencia_semanas (competencia_id, numero_semana, fecha_inicio, fecha_fin)
-           VALUES ($1,$2,$3,$4) ON CONFLICT (competencia_id, numero_semana) DO NOTHING`,
+           VALUES ($1,$2,$3,$4)
+           ON CONFLICT (competencia_id, fecha_inicio) DO UPDATE SET numero_semana=EXCLUDED.numero_semana, fecha_fin=EXCLUDED.fecha_fin`,
           [id, s.numero_semana, s.fecha_inicio, s.fecha_fin]
         );
       }
+    } else {
+      // Sin rango de fechas: no quedan semanas vigentes.
+      await pool.query('DELETE FROM competencia_semanas WHERE competencia_id=$1', [id]);
     }
 
     const { rows: [actualizada] } = await pool.query(

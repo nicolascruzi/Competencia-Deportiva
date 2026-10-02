@@ -88,7 +88,8 @@ const inputStyle = {
   fontSize:'15px', outline:'none', boxSizing:'border-box',
 };
 
-// Calcula bloques de 7 días exactos entre fecha_inicio y fecha_fin (última semana puede ser corta)
+// Calcula semanas de CALENDARIO (lunes a domingo) entre fecha_inicio y fecha_fin (la primera y la
+// última pueden ser parciales). Debe coincidir exactamente con calcularSemanas de competencias.js.
 function calcularSemanas(fechaInicio, fechaFin) {
   if (!fechaInicio || !fechaFin || fechaFin < fechaInicio) return [];
   const semanas = [];
@@ -96,8 +97,9 @@ function calcularSemanas(fechaInicio, fechaFin) {
   const end  = new Date(fechaFin    + 'T00:00:00Z');
   let numero = 1;
   while (cursor <= end) {
+    const diasHastaDomingo = (7 - cursor.getUTCDay()) % 7;
     const semanaFin = new Date(cursor);
-    semanaFin.setUTCDate(semanaFin.getUTCDate() + 6);
+    semanaFin.setUTCDate(semanaFin.getUTCDate() + diasHastaDomingo);
     if (semanaFin > end) semanaFin.setTime(end.getTime());
     semanas.push({ numero_semana: numero, fecha_inicio: cursor.toISOString().slice(0, 10), fecha_fin: semanaFin.toISOString().slice(0, 10) });
     cursor = new Date(semanaFin);

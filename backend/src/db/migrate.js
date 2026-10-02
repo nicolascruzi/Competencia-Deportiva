@@ -483,6 +483,22 @@ ALTER TABLE actividades DROP COLUMN IF EXISTS competencia_id;
 -- Un grupo ya puede tener varias competencias en_curso a la vez (el admin ya no tiene que cerrar
 -- la actual para abrir una nueva); se saca la restricción de "una sola por grupo" a nivel de BD.
 DROP INDEX IF EXISTS idx_competencias_una_en_curso_por_grupo;
+
+-- Las fechas de una competencia ahora se pueden editar libremente en cualquier momento, incluso
+-- con semanas ya generadas. La identidad de una semana pasa de "su número de orden" (que cambiaría
+-- de posición si se mueve fecha_inicio) a "su fecha_inicio real" — así una semana que ya tenía
+-- deporte-de-la-semana/challenges/votos configurados los conserva mientras sus días no cambien,
+-- sin importar si ahora le toca ser la semana 2 en vez de la 1. Las semanas en sí pasan a ser
+-- bloques de CALENDARIO (lunes-domingo, ver calcularSemanas en competencias.js), no bloques
+-- relativos a fecha_inicio — así su fecha_inicio real nunca se corre de posición al cambiar
+-- fecha_inicio de la competencia, y esta garantía de conservación es efectiva en la práctica.
+ALTER TABLE competencia_semanas DROP CONSTRAINT IF EXISTS competencia_semanas_competencia_id_numero_semana_key;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'competencia_semanas_competencia_id_fecha_inicio_key') THEN
+    ALTER TABLE competencia_semanas ADD CONSTRAINT competencia_semanas_competencia_id_fecha_inicio_key UNIQUE (competencia_id, fecha_inicio);
+  END IF;
+END $$;
 `;
 
 async function migrate() {
