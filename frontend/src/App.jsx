@@ -275,6 +275,14 @@ function AppShell() {
           onEquiposSheetClose={() => setEquiposSheetOpen(false)}
           semanasSheetOpen={semanasSheetOpen}
           onSemanasSheetClose={() => setSemanasSheetOpen(false)}
+          onSemanasSaved={(semanas, challenges) => {
+            setGrupoActivo(prev => ({
+              ...prev,
+              competencias_en_curso: prev.competencias_en_curso.map(c =>
+                c.id === competenciaActiva.id ? { ...c, semanas, challenges } : c
+              ),
+            }));
+          }}
           configSheetOpen={configSheetOpen}
           onConfigSheetClose={() => setConfigSheetOpen(false)}
           navYear={navYear}

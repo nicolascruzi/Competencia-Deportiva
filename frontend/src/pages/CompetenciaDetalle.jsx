@@ -2867,7 +2867,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
   );
 }
 
-export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, configSheetOpen, onConfigSheetClose, navYear, navMonth, onNavYear, onNavMonth }) {
+export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, onSemanasSaved, configSheetOpen, onConfigSheetClose, navYear, navMonth, onNavYear, onNavMonth }) {
   const { user } = useAuth();
   const { withLoading } = useLoading();
   const now = new Date();
@@ -3112,6 +3112,7 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
             onSaved={(updatedSemanas, updatedChallenges) => {
               setCompConDeportes(prev => ({ ...prev, semanas: updatedSemanas, challenges: updatedChallenges }));
               setRankingRefreshKey(k => k + 1);
+              onSemanasSaved?.(updatedSemanas, updatedChallenges);
             }}
           />
         ) : <AdminSheetLoading onClose={onSemanasSheetClose} />,
