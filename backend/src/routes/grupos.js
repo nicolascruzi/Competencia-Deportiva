@@ -462,4 +462,29 @@ router.delete('/:id/admins/:userId', authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /grupos/:id/participantes/me — el usuario se sale del grupo por su cuenta. El grupo en sí no
+// se borra; sus actividades ya cargadas y su aporte al ranking histórico de las competencias de este
+// grupo no se tocan (mismo criterio que borrar una competencia: el historial queda, solo deja de ser
+// participante activo). Bloqueado si es el único admin, para que el grupo no quede sin nadie que lo
+// administre — debe promover a otro admin primero.
+router.delete('/:id/participantes/me', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!(await esParticipanteDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de este grupo' });
+
+    const { rows: [{ count: totalAdmins }] } = await pool.query(
+      'SELECT COUNT(*)::int AS count FROM grupo_admins WHERE grupo_id=$1', [id]
+    );
+    const esAdmin = await esAdminDeGrupo(id, req.user.id);
+    if (esAdmin && totalAdmins <= 1)
+      return res.status(400).json({ error: 'Sos el único admin del grupo. Promové a otro participante como admin antes de salir.' });
+
+    await pool.query('DELETE FROM grupo_participantes WHERE grupo_id=$1 AND user_id=$2', [id, req.user.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al salir del grupo' });
+  }
+});
+
 module.exports = router;

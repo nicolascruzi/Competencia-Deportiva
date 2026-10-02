@@ -56,7 +56,7 @@ const IconBell = () => (
   </svg>
 );
 
-export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCurso, onSelectCompetenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
+export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCurso, onSelectCompetenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onSalirGrupo, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
   const { themeId, setTheme, palettes } = useTheme();
   const { notifs, unread, markRead, markAll } = useNotifications() || { notifs: [], unread: 0, markRead: () => {}, markAll: () => {} };
   const [selectorOpen, setSelectorOpen]   = useState(false);
@@ -66,6 +66,8 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
   const [grupos, setGrupos]               = useState([]);
   const [loadingComps, setLoadingComps]   = useState(false);
   const [pinCopied, setPinCopied]         = useState(false);
+  const [salirLoading, setSalirLoading]   = useState(false);
+  const [salirError, setSalirError]       = useState('');
 
   const selectorRef = useRef(null);
   const settingsRef = useRef(null);
@@ -553,6 +555,35 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
                   </span>
                 </span>
               </button>
+            )}
+            {grupoActivo && (
+              <button
+                disabled={salirLoading}
+                onClick={async () => {
+                  if (!confirm(`¿Salir de "${grupoActivo.nombre}"? Dejás de ser participante del grupo. Tus actividades y puntos ya registrados no se borran.`)) return;
+                  setSalirLoading(true); setSalirError('');
+                  try {
+                    await onSalirGrupo?.(grupoActivo.id);
+                    setSettingsOpen(false); setSettingsView('root');
+                  } catch (err) {
+                    setSalirError(err.message);
+                  } finally {
+                    setSalirLoading(false);
+                  }
+                }}
+                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor: salirLoading ? 'default' : 'pointer', opacity: salirLoading ? 0.6 : 1, WebkitTapHighlightColor:'transparent' }}>
+                <span style={{ color:'var(--t-danger)', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                </span>
+                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-danger)', textAlign:'left' }}>
+                  {salirLoading ? 'Saliendo…' : 'Salir del grupo'}
+                </span>
+              </button>
+            )}
+            {salirError && (
+              <div style={{ padding:'8px 16px', fontSize:12, color:'var(--t-danger)' }}>{salirError}</div>
             )}
           </div>
         </div>

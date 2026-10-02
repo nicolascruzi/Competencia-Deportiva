@@ -21,7 +21,7 @@ import HistorialCompetenciasSheet from './components/HistorialCompetenciasSheet'
 import OnboardingModal from './components/OnboardingModal';
 import PullToRefreshIndicator from './components/PullToRefreshIndicator';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
-import { getGrupo } from './api/grupos';
+import { getGrupo, salirDeGrupo } from './api/grupos';
 import { getActividades } from './api/actividades';
 import { useLoading } from './context/LoadingContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -221,6 +221,15 @@ function AppShell() {
     } catch { /* si falla, queda con los datos parciales del selector */ }
   }
 
+  async function handleSalirGrupo(grupoId) {
+    await salirDeGrupo(grupoId);
+    if (grupoActivo?.id === grupoId) {
+      localStorage.removeItem('lastGrupoId');
+      setGrupoActivo(null);
+      selectCompetencia(null);
+    }
+  }
+
   function handleMainTab(id) {
     if (id === mainTab) {
       // Ya estamos en este tab — scroll al top
@@ -308,6 +317,7 @@ function AppShell() {
         onAdminSemanas={() => setSemanasSheetOpen(true)}
         onAdminConfig={() => setConfigSheetOpen(true)}
         onHistorial={grupo => setHistorialGrupo(grupo)}
+        onSalirGrupo={handleSalirGrupo}
         onOpenPerfil={() => setProfileSettingsOpen(true)}
         isGlobalAdmin={isGlobalAdmin}
         onNotifClick={(actividadId) => {
