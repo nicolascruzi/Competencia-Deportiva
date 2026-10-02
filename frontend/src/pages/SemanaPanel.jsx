@@ -126,6 +126,9 @@ function VotacionDeporte({ competenciaId, semanaId }) {
 
   const ordenados = [...data.deportes].sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre));
   const totalVotos = data.deportes.reduce((sum, d) => sum + d.votos, 0);
+  // Líder actual: solo tiene sentido mostrarlo si hay al menos un voto, y solo si no hay empate en
+  // primer lugar (un empate no tiene "el más votado" todavía).
+  const lider = totalVotos > 0 && ordenados[0].votos > (ordenados[1]?.votos ?? -1) ? ordenados[0] : null;
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -135,6 +138,16 @@ function VotacionDeporte({ competenciaId, semanaId }) {
         </div>
         <div style={{ fontSize:11, color:'var(--t-muted)' }}>{totalVotos} voto{totalVotos === 1 ? '' : 's'}</div>
       </div>
+      {lider && !data.cerrada && (
+        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderRadius:12, background:'rgba(var(--t-accent-r),0.1)', border:'1px solid rgba(var(--t-accent-r),0.3)' }}>
+          <span style={{ fontSize:20 }}>{lider.icono}</span>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--t-accent)' }}>Va ganando</div>
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--t-text)' }}>{lider.nombre}</div>
+          </div>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--t-accent)' }}>{lider.votos} voto{lider.votos === 1 ? '' : 's'}</div>
+        </div>
+      )}
       {data.cerrada && (
         <div style={{ fontSize:12, color:'var(--t-muted)' }}>La votación ya cerró y nadie votó — el admin puede asignarlo manualmente.</div>
       )}
