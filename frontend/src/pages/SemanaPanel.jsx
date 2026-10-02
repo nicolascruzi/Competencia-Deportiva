@@ -188,6 +188,43 @@ function VotacionDeporte({ competenciaId, semanaId }) {
   );
 }
 
+// CTA que abre el sheet de votación — se entera de antemano si el usuario ya votó, para mostrarlo
+// ("Ya votaste por X") sin que haga falta abrir el sheet primero.
+function VotacionCTA({ competenciaId, semanaId, onOpen }) {
+  const [miVoto, setMiVoto] = useState(undefined); // undefined = cargando, null = sin voto, {nombre} = votó
+
+  useEffect(() => {
+    let cancelado = false;
+    setMiVoto(undefined);
+    getVotacionSemana(competenciaId, semanaId)
+      .then(res => {
+        if (cancelado) return;
+        const dep = res.mi_voto_deporte_id != null ? res.deportes.find(d => d.id === res.mi_voto_deporte_id) : null;
+        setMiVoto(dep ?? null);
+      })
+      .catch(() => { if (!cancelado) setMiVoto(null); });
+    return () => { cancelado = true; };
+  }, [competenciaId, semanaId]);
+
+  return (
+    <button onClick={onOpen}
+      style={{
+        display:'flex', alignItems:'center', gap:10, padding:'12px 16px', borderRadius:14, textAlign:'left',
+        border:'1.5px dashed rgba(var(--t-accent-r),0.45)', background:'rgba(var(--t-accent-r),0.08)',
+        cursor:'pointer', WebkitTapHighlightColor:'transparent', width:'100%',
+      }}>
+      <div style={{ fontSize:20, lineHeight:1, flexShrink:0 }}>{miVoto ? '✓' : '🗳️'}</div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
+          {miVoto ? <>Ya votaste por {miVoto.nombre}</> : 'Votá por el deporte de la semana'}
+        </div>
+        {miVoto && <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Tocá para cambiar tu voto</div>}
+      </div>
+      <div style={{ fontSize:18, color:'var(--t-accent)', flexShrink:0 }}>›</div>
+    </button>
+  );
+}
+
 // Bottom sheet que aparece parcialmente desde abajo con el listado de votación — en vez de
 // desplegar la lista completa de deportes inline en la página (empujaba todo el resto del contenido).
 function VotacionSheet({ competenciaId, semanaId, onClose }) {
@@ -251,6 +288,7 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
   const [challenges, setChallenges] = useState(competencia?.challenges || []);
   const [viewingSemanaId, setViewingSemanaId] = useState(competencia?.semana_actual_id ?? null);
   const [votacionSheetOpen, setVotacionSheetOpen] = useState(false);
+  const [votacionRefreshKey, setVotacionRefreshKey] = useState(0);
 
   useEffect(() => {
     setChallenges(competencia?.challenges || []);
@@ -336,21 +374,15 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
           />
         )}
 
-        {/* Votación del deporte de la semana (semana 2+, hasta que cierre): el CTA abre un sheet con
-            el listado completo, en vez de desplegarlo inline en la página. */}
+        {/* Votación del deporte de la semana (semana 2+, hasta que cierre): el CTA ya indica si el
+            usuario votó o no, y abre un sheet con el listado completo en vez de desplegarlo inline. */}
         {seVota && (
-          <button onClick={() => setVotacionSheetOpen(true)}
-            style={{
-              display:'flex', alignItems:'center', gap:10, padding:'12px 16px', borderRadius:14, textAlign:'left',
-              border:'1.5px dashed rgba(var(--t-accent-r),0.45)', background:'rgba(var(--t-accent-r),0.08)',
-              cursor:'pointer', WebkitTapHighlightColor:'transparent', width:'100%',
-            }}>
-            <div style={{ fontSize:20, lineHeight:1, flexShrink:0 }}>🗳️</div>
-            <div style={{ flex:1, minWidth:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
-              Votá por el deporte de la semana
-            </div>
-            <div style={{ fontSize:18, color:'var(--t-accent)', flexShrink:0 }}>›</div>
-          </button>
+          <VotacionCTA
+            key={votacionRefreshKey}
+            competenciaId={competencia.id}
+            semanaId={semanaVista.id}
+            onOpen={() => setVotacionSheetOpen(true)}
+          />
         )}
 
         {/* Challenges de esta semana */}
@@ -377,7 +409,11 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
       </div>
 
       {votacionSheetOpen && seVota && createPortal(
-        <VotacionSheet competenciaId={competencia.id} semanaId={semanaVista.id} onClose={() => setVotacionSheetOpen(false)} />,
+        <VotacionSheet
+          competenciaId={competencia.id}
+          semanaId={semanaVista.id}
+          onClose={() => { setVotacionSheetOpen(false); setVotacionRefreshKey(k => k + 1); }}
+        />,
         document.body
       )}
     </div>
