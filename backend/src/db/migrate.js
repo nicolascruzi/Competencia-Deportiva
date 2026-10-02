@@ -499,6 +499,21 @@ BEGIN
     ALTER TABLE competencia_semanas ADD CONSTRAINT competencia_semanas_competencia_id_fecha_inicio_key UNIQUE (competencia_id, fecha_inicio);
   END IF;
 END $$;
+
+-- Un challenge pasa a tener su propio rango de fechas en vez de depender de "a qué semana
+-- pertenece" (semana_id, vía numero_semana, era un contrato frágil: el número de orden de una
+-- semana puede correrse si se editan las fechas de la competencia, y el backend fallaba en
+-- silencio guardando semana_id=null cuando el número ya no matcheaba ninguna fila real). Un
+-- challenge sin fechas (ambas NULL) queda "siempre vigente", igual que antes con semana_id NULL.
+ALTER TABLE challenges ADD COLUMN IF NOT EXISTS fecha_inicio DATE;
+ALTER TABLE challenges ADD COLUMN IF NOT EXISTS fecha_fin DATE;
+
+-- Hereda fecha_inicio/fecha_fin de la semana que tenía asignada (si tenía) para los challenges
+-- creados antes de este cambio; se corre una sola vez por challenge (no pisa si ya tiene fechas).
+UPDATE challenges c
+SET fecha_inicio = cs.fecha_inicio, fecha_fin = cs.fecha_fin
+FROM competencia_semanas cs
+WHERE c.semana_id = cs.id AND c.fecha_inicio IS NULL AND c.fecha_fin IS NULL;
 `;
 
 async function migrate() {

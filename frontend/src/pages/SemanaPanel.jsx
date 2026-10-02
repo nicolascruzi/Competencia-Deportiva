@@ -217,7 +217,10 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
   function goPrev() { if (viewingIndex > 0) setViewingSemanaId(semanasOrdenadas[viewingIndex - 1].id); }
   function goNext() { if (viewingIndex < semanasOrdenadas.length - 1) setViewingSemanaId(semanasOrdenadas[viewingIndex + 1].id); }
 
-  const vigentes = challenges.filter(ch => ch.semana_id == null || ch.semana_id === viewingSemanaId);
+  const hoy = new Date().toISOString().slice(0, 10);
+  const vigentes = challenges.filter(ch =>
+    (!ch.fecha_inicio || !ch.fecha_fin) || (hoy >= ch.fecha_inicio && hoy <= ch.fecha_fin)
+  );
   const tieneDeporte = !!semanaVista?.deporte_semana_nombre;
   const seVota = !!semanaVista && semanaVista.numero_semana > 1 && !tieneDeporte;
 

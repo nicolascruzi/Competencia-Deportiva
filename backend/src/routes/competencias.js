@@ -130,7 +130,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const semanaActual = semanas.find(s => s.fecha_inicio <= hoy && hoy <= s.fecha_fin);
 
     const { rows: challenges } = await pool.query(
-      `SELECT ch.id, ch.competencia_id, ch.semana_id, ch.texto, ch.puntos,
+      `SELECT ch.id, ch.competencia_id, ch.texto, ch.puntos,
+              TO_CHAR(ch.fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(ch.fecha_fin,'YYYY-MM-DD') AS fecha_fin,
               EXISTS(SELECT 1 FROM challenge_completados cc WHERE cc.challenge_id=ch.id AND cc.user_id=$2) AS completado
        FROM challenges ch WHERE ch.competencia_id=$1 ORDER BY ch.created_at`,
       [id, req.user.id]
@@ -405,27 +406,25 @@ router.post('/:id/semanas/:semanaId/votar', authMiddleware, async (req, res) => 
 // POST /competencias/:id/challenges — agregar un challenge nuevo (admin del grupo), en cualquier momento
 router.post('/:id/challenges', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { texto, puntos, numero_semana } = req.body;
+  const { texto, puntos, fecha_inicio, fecha_fin } = req.body;
 
   if (!texto?.trim()) return res.status(400).json({ error: 'El texto del challenge es obligatorio' });
+  if ((fecha_inicio && !fecha_fin) || (!fecha_inicio && fecha_fin))
+    return res.status(400).json({ error: 'Definí fecha de inicio y fin, o ninguna de las dos (siempre vigente)' });
+  if (fecha_inicio && fecha_fin && fecha_fin < fecha_inicio)
+    return res.status(400).json({ error: 'La fecha de fin no puede ser anterior a la de inicio' });
 
   try {
     const { rows: [comp] } = await pool.query('SELECT id FROM competencias WHERE id=$1', [id]);
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
     if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede agregar challenges' });
 
-    let semanaId = null;
-    if (numero_semana != null) {
-      const { rows: [semana] } = await pool.query(
-        'SELECT id FROM competencia_semanas WHERE competencia_id=$1 AND numero_semana=$2',
-        [id, parseInt(numero_semana)]
-      );
-      semanaId = semana?.id ?? null;
-    }
-
     const { rows: [challenge] } = await pool.query(
-      `INSERT INTO challenges (competencia_id, semana_id, texto, puntos) VALUES ($1,$2,$3,$4) RETURNING *`,
-      [id, semanaId, texto.trim(), parseFloat(puntos) || 0]
+      `INSERT INTO challenges (competencia_id, texto, puntos, fecha_inicio, fecha_fin)
+       VALUES ($1,$2,$3,$4,$5)
+       RETURNING id, competencia_id, texto, puntos, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio,
+                 TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin, created_at, updated_at`,
+      [id, texto.trim(), parseFloat(puntos) || 0, fecha_inicio || null, fecha_fin || null]
     );
 
     res.status(201).json({ ...challenge, completado: false });
@@ -438,28 +437,25 @@ router.post('/:id/challenges', authMiddleware, async (req, res) => {
 // PUT /competencias/:id/challenges/:challengeId — editar un challenge (admin del grupo)
 router.put('/:id/challenges/:challengeId', authMiddleware, async (req, res) => {
   const { id, challengeId } = req.params;
-  const { texto, puntos, numero_semana } = req.body;
+  const { texto, puntos, fecha_inicio, fecha_fin } = req.body;
 
   if (!texto?.trim()) return res.status(400).json({ error: 'El texto del challenge es obligatorio' });
+  if ((fecha_inicio && !fecha_fin) || (!fecha_inicio && fecha_fin))
+    return res.status(400).json({ error: 'Definí fecha de inicio y fin, o ninguna de las dos (siempre vigente)' });
+  if (fecha_inicio && fecha_fin && fecha_fin < fecha_inicio)
+    return res.status(400).json({ error: 'La fecha de fin no puede ser anterior a la de inicio' });
 
   try {
     const { rows: [comp] } = await pool.query('SELECT id FROM competencias WHERE id=$1', [id]);
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
     if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede editar challenges' });
 
-    let semanaId = null;
-    if (numero_semana != null) {
-      const { rows: [semana] } = await pool.query(
-        'SELECT id FROM competencia_semanas WHERE competencia_id=$1 AND numero_semana=$2',
-        [id, parseInt(numero_semana)]
-      );
-      semanaId = semana?.id ?? null;
-    }
-
     const { rows: [challenge] } = await pool.query(
-      `UPDATE challenges SET texto=$1, puntos=$2, semana_id=$3, updated_at=NOW()
-       WHERE id=$4 AND competencia_id=$5 RETURNING *`,
-      [texto.trim(), parseFloat(puntos) || 0, semanaId, challengeId, id]
+      `UPDATE challenges SET texto=$1, puntos=$2, fecha_inicio=$3, fecha_fin=$4, updated_at=NOW()
+       WHERE id=$5 AND competencia_id=$6
+       RETURNING id, competencia_id, texto, puntos, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio,
+                 TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin, created_at, updated_at`,
+      [texto.trim(), parseFloat(puntos) || 0, fecha_inicio || null, fecha_fin || null, challengeId, id]
     );
     if (!challenge) return res.status(404).json({ error: 'Challenge no encontrado' });
 

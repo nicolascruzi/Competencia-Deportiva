@@ -2670,7 +2670,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
   }
 
   function addChallenge() {
-    setChallenges(prev => [...prev, { _key: `nuevo-${Date.now()}`, _isNew: true, texto: '', puntos: 0, semana_id: null }]);
+    setChallenges(prev => [...prev, { _key: `nuevo-${Date.now()}`, _isNew: true, texto: '', puntos: 0, fecha_inicio: '', fecha_fin: '' }]);
   }
 
   function removeChallengeLocal(key) {
@@ -2695,8 +2695,12 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
       const savedChallenges = [];
       for (const c of challenges) {
         if (!c.texto?.trim()) continue;
-        const numeroSemana = c.semana_id != null ? semanas.find(s => s.id === c.semana_id)?.numero_semana : null;
-        const payload = { texto: c.texto.trim(), puntos: parseFloat(c.puntos) || 0, numero_semana: numeroSemana ?? null };
+        const payload = {
+          texto: c.texto.trim(),
+          puntos: parseFloat(c.puntos) || 0,
+          fecha_inicio: c.fecha_inicio || null,
+          fecha_fin: c.fecha_fin || null,
+        };
         if (c._isNew) {
           savedChallenges.push(await crearChallenge(competencia.id, payload));
         } else {
@@ -2757,24 +2761,41 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
                         style={{ width:36, flexShrink:0, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer' }}>✕</button>
                     )}
                   </div>
-                  <div style={{ display:'flex', gap:8 }}>
-                    <input
-                      type="number" inputMode="decimal" min="0" step="1" placeholder="Puntos" disabled={readOnly}
-                      value={c.puntos ?? ''}
-                      onChange={e => updateChallengeLocal(key, { puntos: e.target.value })}
-                      style={{ width:80, flexShrink:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
-                    />
-                    {semanas.length > 0 && (
-                      <select
-                        value={c.semana_id ?? ''} disabled={readOnly}
-                        onChange={e => updateChallengeLocal(key, { semana_id: e.target.value ? parseInt(e.target.value) : null })}
-                        style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:13, outline:'none', appearance:'none' }}
-                      >
-                        <option value="">Sin semana (siempre vigente)</option>
-                        {semanas.map(s => <option key={s.id} value={s.id}>Semana {s.numero_semana}</option>)}
-                      </select>
-                    )}
-                  </div>
+                  <input
+                    type="number" inputMode="decimal" min="0" step="1" placeholder="Puntos" disabled={readOnly}
+                    value={c.puntos ?? ''}
+                    onChange={e => updateChallengeLocal(key, { puntos: e.target.value })}
+                    style={{ width:80, flexShrink:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                  />
+                  {c.fecha_inicio || c.fecha_fin ? (
+                    <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                      <input
+                        type="date" disabled={readOnly}
+                        value={c.fecha_inicio || ''}
+                        onChange={e => updateChallengeLocal(key, { fecha_inicio: e.target.value })}
+                        style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:13, outline:'none' }}
+                      />
+                      <span style={{ color:'var(--t-muted)', fontSize:12 }}>al</span>
+                      <input
+                        type="date" disabled={readOnly} min={c.fecha_inicio || undefined}
+                        value={c.fecha_fin || ''}
+                        onChange={e => updateChallengeLocal(key, { fecha_fin: e.target.value })}
+                        style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:13, outline:'none' }}
+                      />
+                      {!readOnly && (
+                        <button onClick={() => updateChallengeLocal(key, { fecha_inicio: '', fecha_fin: '' })}
+                          title="Quitar fechas (siempre vigente)"
+                          style={{ flexShrink:0, width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13 }}>✕</button>
+                      )}
+                    </div>
+                  ) : (
+                    !readOnly && (
+                      <button onClick={() => updateChallengeLocal(key, { fecha_inicio: competencia.fecha_inicio || '', fecha_fin: competencia.fecha_fin || '' })}
+                        style={{ alignSelf:'flex-start', padding:'6px 10px', borderRadius:8, border:'1px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:12 }}>
+                        + Acotar a un rango de fechas (hoy: siempre vigente)
+                      </button>
+                    )
+                  )}
                 </div>
               );
             })}
@@ -3025,7 +3046,7 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
       <PageHeader
         eyebrow={competencia.nombre}
         title={tab === 'ranking' ? 'Ranking' : tab === 'podio' ? 'Podio' : tab === 'calendar' ? 'Calendario' : tab === 'evolucion' ? 'Evolución' : tab === 'carrera' ? 'Carrera' : tab === 'deportes' ? 'Deportes' : tab === 'records' ? 'Récords' : tab === 'comparar' ? 'Comparar' : tab === 'insights' ? 'Insights' : 'Competencia'}
-        meta={`${mesLabel} ${mesSubLabel}`}
+        meta={tab === 'ranking' ? null : `${mesLabel} ${mesSubLabel}`}
         titleAction={tab === 'ranking' ? <ProgresoCompetenciaCompacto fechaInicio={compConDeportes.fecha_inicio} fechaFin={compConDeportes.fecha_fin} /> : null}
       />
 
