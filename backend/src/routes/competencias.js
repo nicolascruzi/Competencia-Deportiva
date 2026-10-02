@@ -327,7 +327,12 @@ router.get('/:id/semanas/:semanaId/votacion', authMiddleware, async (req, res) =
 
     const { rows: deportesRaw } = await pool.query(
       `SELECT d.id, d.nombre, d.icono,
-              (SELECT COUNT(*) FROM votos_deporte_semana v WHERE v.competencia_semana_id=$1 AND v.deporte_id=d.id)::int AS votos
+              (SELECT COUNT(*) FROM votos_deporte_semana v WHERE v.competencia_semana_id=$1 AND v.deporte_id=d.id)::int AS votos,
+              COALESCE((
+                SELECT json_agg(COALESCE(u.apodo, u.nombre) ORDER BY COALESCE(u.apodo, u.nombre))
+                FROM votos_deporte_semana v JOIN users u ON u.id = v.user_id
+                WHERE v.competencia_semana_id=$1 AND v.deporte_id=d.id
+              ), '[]') AS votantes
        FROM deportes d ORDER BY d.nombre`,
       [semanaId]
     );

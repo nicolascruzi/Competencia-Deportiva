@@ -179,11 +179,18 @@ function VotacionDeporte({ competenciaId, semanaId }) {
                 opacity: votando != null && votando !== d.id ? 0.6 : 1, WebkitTapHighlightColor:'transparent',
               }}>
               <div style={{ position:'absolute', inset:0, width:`${pct}%`, background:'rgba(var(--t-accent-r),0.12)', transition:'width 0.3s' }} />
-              <div style={{ position:'relative', display:'flex', alignItems:'center', gap:10 }}>
-                <span style={{ fontSize:20 }}>{d.icono}</span>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>{d.nombre}</span>
-                {esMiVoto && <span style={{ fontSize:11, color:'var(--t-accent)', fontWeight:700 }}>Tu voto</span>}
-                <span style={{ fontSize:13, fontWeight:700, color:'var(--t-muted)', minWidth:28, textAlign:'right' }}>{d.votos}</span>
+              <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:2 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:20 }}>{d.icono}</span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>{d.nombre}</span>
+                  {esMiVoto && <span style={{ fontSize:11, color:'var(--t-accent)', fontWeight:700 }}>Tu voto</span>}
+                  <span style={{ fontSize:13, fontWeight:700, color:'var(--t-muted)', minWidth:28, textAlign:'right' }}>{d.votos}</span>
+                </div>
+                {d.votantes?.length > 0 && (
+                  <div style={{ fontSize:11, color:'var(--t-muted)', paddingLeft:30, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {d.votantes.join(', ')}
+                  </div>
+                )}
               </div>
             </button>
           );
