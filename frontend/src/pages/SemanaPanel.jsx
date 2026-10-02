@@ -33,14 +33,19 @@ function ChallengeRow({ competenciaId, challenge, onCompletado, readOnly }) {
       {error && <div style={{ fontSize:12, color:'#F87171' }}>{error}</div>}
       <button onClick={handleToggle} disabled={readOnly || completando}
         style={{
-          alignSelf:'flex-start', padding:'8px 16px', borderRadius:10, border:'none', cursor: (readOnly || completando) ? 'default' : 'pointer',
+          alignSelf:'flex-start', display:'flex', alignItems:'center', gap:8, padding:'8px 16px', borderRadius:10,
+          cursor: (readOnly || completando) ? 'default' : 'pointer',
           fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em',
-          background: challenge.completado ? 'var(--t-surface2)' : (readOnly ? 'var(--t-dim)' : 'var(--t-accent)'),
-          color: challenge.completado ? 'var(--t-muted)' : (readOnly ? 'var(--t-muted)' : 'var(--t-ground)'),
+          border: challenge.completado ? '1.5px solid #34D399' : 'none',
+          background: challenge.completado ? 'rgba(52,211,153,0.12)' : (readOnly ? 'var(--t-dim)' : 'var(--t-accent)'),
+          color: challenge.completado ? '#34D399' : (readOnly ? 'var(--t-muted)' : 'var(--t-ground)'),
           opacity: (completando || readOnly) ? 0.6 : 1,
         }}>
+        {challenge.completado && (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        )}
         {challenge.completado
-          ? (readOnly ? '✓ Completado' : '✓ Completado · Tocá para desmarcar')
+          ? (readOnly ? 'Completado' : 'Completado · Tocá para desmarcar')
           : completando ? 'Guardando…' : `Marqué el challenge (+${challenge.puntos ?? 0} pts)`}
       </button>
     </div>
