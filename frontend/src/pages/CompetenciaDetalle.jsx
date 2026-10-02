@@ -784,6 +784,41 @@ function RankingEquipos({ data, rankingData }) {
   );
 }
 
+// Barra de progreso temporal de la competencia: cuánto del rango fecha_inicio..fecha_fin ya pasó.
+function ProgresoCompetencia({ fechaInicio, fechaFin }) {
+  if (!fechaInicio || !fechaFin) return null;
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  const totalDias = Math.round((new Date(fechaFin + 'T00:00:00Z') - new Date(fechaInicio + 'T00:00:00Z')) / 86400000) + 1;
+  const diasTranscurridos = Math.round((new Date(hoy + 'T00:00:00Z') - new Date(fechaInicio + 'T00:00:00Z')) / 86400000) + 1;
+  const diasRestantes = totalDias - diasTranscurridos;
+
+  if (totalDias <= 0) return null;
+
+  const pct = Math.max(0, Math.min(100, (diasTranscurridos / totalDias) * 100));
+
+  let label;
+  if (hoy < fechaInicio) label = 'Todavía no empieza';
+  else if (hoy > fechaFin) label = 'Terminada';
+  else if (diasRestantes <= 0) label = 'Último día';
+  else if (diasRestantes === 1) label = 'Queda 1 día';
+  else label = `Quedan ${diasRestantes} días`;
+
+  return (
+    <div style={{ padding:'12px 16px 4px' }}>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:6 }}>
+        <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>
+          Avance de la competencia
+        </div>
+        <div style={{ fontSize:12, fontWeight:700, color:'var(--t-text)' }}>{label}</div>
+      </div>
+      <div style={{ position:'relative', height:8, borderRadius:999, background:'var(--t-dim)', overflow:'hidden' }}>
+        <div style={{ position:'absolute', inset:0, width:`${pct}%`, borderRadius:999, background:'var(--t-accent)', transition:'width 0.3s' }} />
+      </div>
+    </div>
+  );
+}
+
 function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector }) {
   const [subtab, setSubtab]       = useState('tabla');
   const [lightboxFoto, setLightboxFoto] = useState(null); // url
@@ -2863,11 +2898,17 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
 
   function renderRankingTab() {
     if (!tieneEquipos) {
-      return <Ranking acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />;
+      return (
+        <>
+          <ProgresoCompetencia fechaInicio={compConDeportes.fecha_inicio} fechaFin={compConDeportes.fecha_fin} />
+          <Ranking acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />
+        </>
+      );
     }
 
     return (
       <>
+        <ProgresoCompetencia fechaInicio={compConDeportes.fecha_inicio} fechaFin={compConDeportes.fecha_fin} />
         <div style={{ marginBottom:12, marginLeft:-16, marginRight:-16 }}>
           <SubTabs tabs={[{ id:'general', label:'General' }, { id:'equipos', label:'Equipos' }]} active={rankingSubTab} onChange={setRankingSubTab} />
         </div>
