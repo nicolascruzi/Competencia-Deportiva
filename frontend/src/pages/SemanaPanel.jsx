@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { completarChallenge, descompletarChallenge, getVotacionSemana, votarDeporteSemana } from '../api/competencias';
 import { sportIcon } from '../lib/sportIcons';
 import SinCompetencia from '../components/SinCompetencia';
@@ -165,6 +166,32 @@ function VotacionDeporte({ competenciaId, semanaId }) {
   );
 }
 
+// Bottom sheet que aparece parcialmente desde abajo con el listado de votación — en vez de
+// desplegar la lista completa de deportes inline en la página (empujaba todo el resto del contenido).
+function VotacionSheet({ competenciaId, semanaId, onClose }) {
+  const startY = useRef(null);
+  function onTouchStart(e) { startY.current = e.touches[0].clientY; }
+  function onTouchEnd(e) {
+    if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 80) onClose();
+    startY.current = null;
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'78dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
+        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+          style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0, cursor:'grab' }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+        </div>
+        <div style={{ overflowY:'auto', padding:'0 18px 8px' }}>
+          <VotacionDeporte competenciaId={competenciaId} semanaId={semanaId} />
+        </div>
+      </div>
+    </>
+  );
+}
+
 function AvisoVotacionPendiente({ competenciaId, proximaSemana, onIrAVotar }) {
   const [mostrar, setMostrar] = useState(false);
 
@@ -201,6 +228,7 @@ function AvisoVotacionPendiente({ competenciaId, proximaSemana, onIrAVotar }) {
 export default function SemanaPanel({ competencia, onOpenSelector }) {
   const [challenges, setChallenges] = useState(competencia?.challenges || []);
   const [viewingSemanaId, setViewingSemanaId] = useState(competencia?.semana_actual_id ?? null);
+  const [votacionSheetOpen, setVotacionSheetOpen] = useState(false);
 
   useEffect(() => {
     setChallenges(competencia?.challenges || []);
@@ -214,8 +242,8 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
   const semanaVista = viewingIndex >= 0 ? semanasOrdenadas[viewingIndex] : null;
   const esSemanaActual = viewingSemanaId === competencia.semana_actual_id;
 
-  function goPrev() { if (viewingIndex > 0) setViewingSemanaId(semanasOrdenadas[viewingIndex - 1].id); }
-  function goNext() { if (viewingIndex < semanasOrdenadas.length - 1) setViewingSemanaId(semanasOrdenadas[viewingIndex + 1].id); }
+  function goPrev() { setVotacionSheetOpen(false); if (viewingIndex > 0) setViewingSemanaId(semanasOrdenadas[viewingIndex - 1].id); }
+  function goNext() { setVotacionSheetOpen(false); if (viewingIndex < semanasOrdenadas.length - 1) setViewingSemanaId(semanasOrdenadas[viewingIndex + 1].id); }
 
   // Un challenge se muestra si corresponde a la semana que se está viendo: sin fechas, es "siempre
   // vigente" (aparece en cualquier semana); con fechas, se muestra en toda semana con la que se
@@ -282,24 +310,25 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
           <AvisoVotacionPendiente
             competenciaId={competencia.id}
             proximaSemana={proximaSemana}
-            onIrAVotar={goNext}
+            onIrAVotar={() => { goNext(); setVotacionSheetOpen(true); }}
           />
         )}
 
-        {/* Votación del deporte de la semana (semana 2+, hasta que cierre) */}
+        {/* Votación del deporte de la semana (semana 2+, hasta que cierre): el CTA abre un sheet con
+            el listado completo, en vez de desplegarlo inline en la página. */}
         {seVota && (
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            <div style={{
-              display:'flex', alignItems:'center', gap:10, padding:'12px 16px', borderRadius:14,
+          <button onClick={() => setVotacionSheetOpen(true)}
+            style={{
+              display:'flex', alignItems:'center', gap:10, padding:'12px 16px', borderRadius:14, textAlign:'left',
               border:'1.5px dashed rgba(var(--t-accent-r),0.45)', background:'rgba(var(--t-accent-r),0.08)',
+              cursor:'pointer', WebkitTapHighlightColor:'transparent', width:'100%',
             }}>
-              <div style={{ fontSize:20, lineHeight:1, flexShrink:0 }}>🗳️</div>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
-                Votá por el deporte de la semana
-              </div>
+            <div style={{ fontSize:20, lineHeight:1, flexShrink:0 }}>🗳️</div>
+            <div style={{ flex:1, minWidth:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
+              Votá por el deporte de la semana
             </div>
-            <VotacionDeporte competenciaId={competencia.id} semanaId={semanaVista.id} />
-          </div>
+            <div style={{ fontSize:18, color:'var(--t-accent)', flexShrink:0 }}>›</div>
+          </button>
         )}
 
         {/* Challenges de esta semana */}
@@ -324,6 +353,11 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
           </div>
         )}
       </div>
+
+      {votacionSheetOpen && seVota && createPortal(
+        <VotacionSheet competenciaId={competencia.id} semanaId={semanaVista.id} onClose={() => setVotacionSheetOpen(false)} />,
+        document.body
+      )}
     </div>
   );
 }
