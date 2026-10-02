@@ -217,10 +217,16 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
   function goPrev() { if (viewingIndex > 0) setViewingSemanaId(semanasOrdenadas[viewingIndex - 1].id); }
   function goNext() { if (viewingIndex < semanasOrdenadas.length - 1) setViewingSemanaId(semanasOrdenadas[viewingIndex + 1].id); }
 
-  const hoy = new Date().toISOString().slice(0, 10);
-  const vigentes = challenges.filter(ch =>
-    (!ch.fecha_inicio || !ch.fecha_fin) || (hoy >= ch.fecha_inicio && hoy <= ch.fecha_fin)
-  );
+  // Un challenge se muestra si corresponde a la semana que se está viendo: sin fechas, es "siempre
+  // vigente" (aparece en cualquier semana); con fechas, se muestra en toda semana con la que se
+  // solape (no solo si "hoy" cae en su rango) — así lo que se ve siempre es coherente con la semana
+  // que el usuario tiene abierta, sin importar la fecha real de hoy.
+  const vigentes = semanaVista
+    ? challenges.filter(ch =>
+        (!ch.fecha_inicio || !ch.fecha_fin) ||
+        (ch.fecha_inicio <= semanaVista.fecha_fin && ch.fecha_fin >= semanaVista.fecha_inicio)
+      )
+    : challenges.filter(ch => !ch.fecha_inicio || !ch.fecha_fin);
   const tieneDeporte = !!semanaVista?.deporte_semana_nombre;
   const seVota = !!semanaVista && semanaVista.numero_semana > 1 && !tieneDeporte;
 
@@ -281,9 +287,22 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
         )}
 
         {/* Votación del deporte de la semana (semana 2+, hasta que cierre) */}
-        {seVota && <VotacionDeporte competenciaId={competencia.id} semanaId={semanaVista.id} />}
+        {seVota && (
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{
+              display:'flex', alignItems:'center', gap:10, padding:'12px 16px', borderRadius:14,
+              border:'1.5px dashed rgba(var(--t-accent-r),0.45)', background:'rgba(var(--t-accent-r),0.08)',
+            }}>
+              <div style={{ fontSize:20, lineHeight:1, flexShrink:0 }}>🗳️</div>
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
+                Votá por el deporte de la semana
+              </div>
+            </div>
+            <VotacionDeporte competenciaId={competencia.id} semanaId={semanaVista.id} />
+          </div>
+        )}
 
-        {/* Challenges */}
+        {/* Challenges de esta semana */}
         {vigentes.length > 0 ? (
           <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Challenges</div>
@@ -297,10 +316,10 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
           <div style={{ textAlign:'center', padding:'60px 24px', color:'var(--t-muted)' }}>
             <div style={{ fontSize:40, marginBottom:12 }}>🎯</div>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:18, textTransform:'uppercase', color:'var(--t-text)', marginBottom:6 }}>
-              Sin challenges todavía
+              Sin novedades esta semana
             </div>
             <div style={{ fontSize:13, lineHeight:1.6 }}>
-              Esta competencia no tiene challenges ni deporte de la semana configurado todavía.
+              No hay challenges ni deporte de la semana asignado para estos días.
             </div>
           </div>
         )}
