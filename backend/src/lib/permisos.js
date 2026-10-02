@@ -38,4 +38,16 @@ async function esParticipanteDeGrupo(grupoId, userId) {
   return rows[0] ?? null;
 }
 
-module.exports = { esAdminDeCompetencia, esAdminDeGrupo, esParticipanteDeCompetencia, esParticipanteDeGrupo };
+// Devuelve true si userIdA y userIdB comparten al menos un grupo (para ver el perfil/historial de
+// un compañero sin ser admin de nada en particular).
+async function comparteGrupoCon(userIdA, userIdB) {
+  const { rows } = await pool.query(
+    `SELECT 1 FROM grupo_participantes gp1
+     JOIN grupo_participantes gp2 ON gp2.grupo_id = gp1.grupo_id
+     WHERE gp1.user_id = $1 AND gp2.user_id = $2`,
+    [userIdA, userIdB]
+  );
+  return rows.length > 0;
+}
+
+module.exports = { esAdminDeCompetencia, esAdminDeGrupo, esParticipanteDeCompetencia, esParticipanteDeGrupo, comparteGrupoCon };

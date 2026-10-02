@@ -1,6 +1,7 @@
 const express = require('express');
 const pool    = require('../db/pool');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
+const { comparteGrupoCon } = require('../lib/permisos');
 const { sendPushToUser } = require('./push');
 
 const router = express.Router();
@@ -38,8 +39,9 @@ function normalizarCantidadCompaneros(value) {
   return Math.min(n, 3);
 }
 
-// GET /actividades — lista actividades
-// Admin ve todas; usuario normal ve solo las suyas
+// GET /actividades — lista actividades (historial completo, sin filtro de competencia/fechas)
+// Admin ve todas; usuario normal ve las suyas, o las de un compañero de algún grupo en común
+// (para ver su perfil/calendario completo, no solo lo vinculado a una competencia puntual).
 // Query params: ?mes=2025-06  ?user_id=3
 router.get('/', async (req, res) => {
   const { mes, user_id } = req.query;
@@ -49,7 +51,12 @@ router.get('/', async (req, res) => {
   const params     = [];
 
   // Filtro de usuario
-  if (!isAdmin) {
+  if (!isAdmin && user_id && parseInt(user_id) !== req.user.id) {
+    if (!(await comparteGrupoCon(req.user.id, parseInt(user_id))))
+      return res.status(403).json({ error: 'No compartís ningún grupo con ese usuario' });
+    params.push(parseInt(user_id));
+    conditions.push(`a.user_id = $${params.length}`);
+  } else if (!isAdmin) {
     params.push(req.user.id);
     conditions.push(`a.user_id = $${params.length}`);
   } else if (user_id) {

@@ -1814,19 +1814,16 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
 
   const displayNombre = isOwnProfile ? (user?.nombre_display || user?.apodo || user?.nombre || '') : nombre;
 
+  // allData: TODO el historial de la persona (todas sus competencias/períodos), sin filtrar por la
+  // competencia que se esté mirando — alimenta publicaciones, calendario y evolución.
   useEffect(() => {
     if (isOwnProfile) {
       getActividades().then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
       return;
     }
-    if (!competenciaId) { setAllData([]); return; }
-    getActividadesComp(competenciaId).then(rows => {
-      const filtered = (Array.isArray(rows) ? rows : []).filter(a =>
-        userId != null ? a.user_id == userId : (a.nombre_display || a.nombre) === nombre
-      );
-      setAllData(filtered);
-    }).catch(() => setAllData([]));
-  }, [isOwnProfile, competenciaId, userId, nombre]);
+    if (userId == null) { setAllData([]); return; }
+    getActividades({ user_id: userId }).then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
+  }, [isOwnProfile, userId]);
 
   // Filtrar acts del período visible (fallback mientras carga allData)
   const periodData = isOwnProfile ? acts : acts.filter(a =>
@@ -1835,6 +1832,9 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
   const data = allData ?? periodData;
 
   const pts = data.reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0);
+  // ptsCompetencia: puntos solo dentro de la competencia actualmente vista (lo que ya reflejaba el
+  // ranking) — distinto de `pts`, que ahora es el total histórico de `data`.
+  const ptsCompetencia = isOwnProfile ? pts : periodData.reduce((s, a) => s + (parseFloat(a.puntos) || 0), 0);
 
   const rankEntry = rankingData.find(r => userId != null ? r.id == userId : (r.nombre_display || r.nombre) === nombre);
   const fotoUrl = isOwnProfile
@@ -1951,9 +1951,14 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
             {/* Stats, minimalistas: solo texto, sin tarjetas */}
             <div style={{ flex:1, display:'flex', flexDirection:'column', gap:10 }}>
               {[
-                { label:'Posts',  value: data.length,        color:'var(--t-text)' },
-                { label:'Puntos', value: Math.round(pts),    color:'var(--t-accent)' },
-                { label:'Racha',  value: rachaActual,        color:'var(--t-text)' },
+                { label:'Posts', value: data.length, color:'var(--t-text)' },
+                ...(isOwnProfile
+                  ? [{ label:'Puntos', value: Math.round(pts), color:'var(--t-accent)' }]
+                  : [
+                      { label:'Pts. competencia', value: Math.round(ptsCompetencia), color:'var(--t-accent)' },
+                      { label:'Pts. históricos',  value: Math.round(pts),            color:'var(--t-text)' },
+                    ]),
+                { label:'Racha', value: rachaActual, color:'var(--t-text)' },
               ].map(s => (
                 <div key={s.label} style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between' }}>
                   <span style={{ fontSize:11, fontWeight:600, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{s.label}</span>
