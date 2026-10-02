@@ -148,6 +148,15 @@ function VotacionDeporte({ competenciaId, semanaId }) {
           <div style={{ fontSize:13, fontWeight:700, color:'var(--t-accent)' }}>{lider.votos} voto{lider.votos === 1 ? '' : 's'}</div>
         </div>
       )}
+      {!data.cerrada && data.mi_voto_deporte_id != null && (() => {
+        const miVoto = data.deportes.find(d => d.id === data.mi_voto_deporte_id);
+        return (
+          <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--t-muted)' }}>
+            <span style={{ color:'#34D399' }}>✓</span>
+            <span>Ya votaste por <span style={{ color:'var(--t-text)', fontWeight:600 }}>{miVoto?.nombre}</span> — tocá otra opción si querés cambiarlo.</span>
+          </div>
+        );
+      })()}
       {data.cerrada && (
         <div style={{ fontSize:12, color:'var(--t-muted)' }}>La votación ya cerró y nadie votó — el admin puede asignarlo manualmente.</div>
       )}
