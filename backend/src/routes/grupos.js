@@ -92,8 +92,11 @@ router.get('/', authMiddleware, async (req, res) => {
       [req.user.id]
     );
 
+    // fecha_inicio/fecha_fin se formatean explícitamente a 'YYYY-MM-DD': pg las devuelve como Date
+    // con hora y timezone, formato que un <input type="date"> del frontend no acepta (se ve vacío).
     const { rows: competenciasEnCurso } = await pool.query(
-      `SELECT c.* FROM competencias c WHERE c.grupo_id = ANY($1::int[]) AND c.estado = 'en_curso' ORDER BY c.created_at DESC`,
+      `SELECT c.*, TO_CHAR(c.fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(c.fecha_fin,'YYYY-MM-DD') AS fecha_fin
+       FROM competencias c WHERE c.grupo_id = ANY($1::int[]) AND c.estado = 'en_curso' ORDER BY c.created_at DESC`,
       [grupos.map(g => g.id)]
     );
     const enCursoPorGrupo = new Map();
@@ -105,7 +108,8 @@ router.get('/', authMiddleware, async (req, res) => {
     // Últimas 5 finalizadas por grupo (para mostrar un resumen corto en el selector sin traer todo el historial).
     const { rows: finalizadasRecientes } = await pool.query(
       `SELECT * FROM (
-         SELECT c.*, ROW_NUMBER() OVER (PARTITION BY c.grupo_id ORDER BY c.created_at DESC) AS rn
+         SELECT c.*, TO_CHAR(c.fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(c.fecha_fin,'YYYY-MM-DD') AS fecha_fin,
+                ROW_NUMBER() OVER (PARTITION BY c.grupo_id ORDER BY c.created_at DESC) AS rn
          FROM competencias c WHERE c.grupo_id = ANY($1::int[]) AND c.estado = 'finalizada'
        ) t WHERE rn <= 5 ORDER BY grupo_id, created_at DESC`,
       [grupos.map(g => g.id)]
@@ -231,7 +235,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
     );
 
     const { rows: competenciasEnCurso } = await pool.query(
-      `SELECT id, nombre, fecha_inicio, fecha_fin FROM competencias WHERE grupo_id=$1 AND estado='en_curso' ORDER BY created_at DESC`,
+      `SELECT id, nombre, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
+       FROM competencias WHERE grupo_id=$1 AND estado='en_curso' ORDER BY created_at DESC`,
       [id]
     );
 
