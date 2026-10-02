@@ -1806,7 +1806,7 @@ function PlayerCalendar({ acts }) {
   );
 }
 
-export function ProfilePanel({ nombre, userId, competenciaId, acts = [], rankingData = [], nombres, onClose, isOwnProfile = false, asPage = false }) {
+export function ProfilePanel({ nombre, userId, competenciaId, acts = [], rankingData = [], nombres, onClose, onBack, isOwnProfile = false, asPage = false }) {
   const { user } = useAuth();
   const [fotoLightbox, setFotoLightbox] = useState(false);
   const [lightbox, setLightbox] = useState(null);
@@ -1899,13 +1899,22 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
         document.body
       )}
 
-      {/* Botón flotante: cerrar (si no es página embebida) */}
-      <div style={{ position:'absolute', top:14, right:14, zIndex:20, display:'flex', gap:8 }}>
-        {!asPage && (
-          <button onClick={onClose}
-            style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
-        )}
-      </div>
+      {/* Botón flotante: volver (página embebida con historial propio) o cerrar (sheet/modal) */}
+      {onBack ? (
+        <div style={{ position:'absolute', top:14, left:14, zIndex:20 }}>
+          <button onClick={onBack} aria-label="Volver"
+            style={{ width:30, height:30, display:'flex', alignItems:'center', justifyContent:'center', background:'transparent', border:'none', color:'var(--t-muted)', cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+        </div>
+      ) : (
+        <div style={{ position:'absolute', top:14, right:14, zIndex:20, display:'flex', gap:8 }}>
+          {!asPage && (
+            <button onClick={onClose}
+              style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-muted)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>✕</button>
+          )}
+        </div>
+      )}
 
       {/* Contenido scrollable (header + tabs + contenido) */}
       <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
@@ -3042,23 +3051,16 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
   // modal/sheet encima) — mismo patrón que ya usa el tab "Perfil" para el perfil propio.
   if (profile) {
     return (
-      <>
-        <div style={{ padding:'8px 12px 0' }}>
-          <button onClick={() => setProfile(null)} aria-label="Volver"
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, background:'transparent', border:'none', color:'var(--t-muted)', cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-        </div>
-        <ProfilePanel
-          nombre={profile.nombre ?? profile}
-          userId={profile.id ?? null}
-          competenciaId={competencia.id}
-          acts={acts}
-          rankingData={rankingAcumulado}
-          nombres={nombres}
-          asPage
-        />
-      </>
+      <ProfilePanel
+        nombre={profile.nombre ?? profile}
+        userId={profile.id ?? null}
+        competenciaId={competencia.id}
+        acts={acts}
+        rankingData={rankingAcumulado}
+        nombres={nombres}
+        onBack={() => setProfile(null)}
+        asPage
+      />
     );
   }
 
