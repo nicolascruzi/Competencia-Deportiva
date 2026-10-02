@@ -816,23 +816,18 @@ function calcularProgresoCompetencia(fechaInicio, fechaFin) {
   return { pct, label, labelCorto, diasRestantes };
 }
 
-// Anillo compacto de avance temporal, pensado para el header junto al título (poco espacio vertical).
+// Barra compacta de avance temporal, pensada para el header junto al título (poco espacio vertical).
 function ProgresoCompetenciaCompacto({ fechaInicio, fechaFin }) {
   const p = calcularProgresoCompetencia(fechaInicio, fechaFin);
   if (!p) return null;
 
-  const size = 40, stroke = 4, r = (size - stroke) / 2, c = 2 * Math.PI * r;
-  const dash = (p.pct / 100) * c;
-
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, flexShrink:0 }}>
-      <svg width={size} height={size} style={{ transform:'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--t-dim)" strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--t-accent)" strokeWidth={stroke}
-          strokeDasharray={`${dash} ${c}`} strokeLinecap="round" style={{ transition:'stroke-dasharray 0.3s' }} />
-      </svg>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3, flexShrink:0, width:70 }}>
       <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-muted)', whiteSpace:'nowrap' }}>
         {p.labelCorto}
+      </div>
+      <div style={{ position:'relative', width:'100%', height:6, borderRadius:999, background:'var(--t-dim)', overflow:'hidden' }}>
+        <div style={{ position:'absolute', inset:0, width:`${p.pct}%`, borderRadius:999, background:'var(--t-accent)', transition:'width 0.3s' }} />
       </div>
     </div>
   );
@@ -2967,7 +2962,7 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
 
     return (
       <>
-        <div style={{ marginBottom:12, marginLeft:-16, marginRight:-16 }}>
+        <div style={{ marginBottom:4, marginLeft:-16, marginRight:-16 }}>
           <SubTabs tabs={[{ id:'general', label:'General' }, { id:'equipos', label:'Equipos' }]} active={rankingSubTab} onChange={setRankingSubTab} />
         </div>
         {rankingSubTab === 'equipos' ? (
@@ -3019,7 +3014,7 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
       />
 
       {/* Contenido */}
-      <div style={{ padding:'12px 16px 32px' }}>
+      <div style={{ padding: tab === 'ranking' ? '4px 16px 32px' : '12px 16px 32px' }}>
         {renderTab()}
       </div>
 
