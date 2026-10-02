@@ -39,6 +39,31 @@ function normalizarCantidadCompaneros(value) {
   return Math.min(n, 3);
 }
 
+// Calcula el ponderador real de un deporte para un usuario en una fecha dada — NUNCA se confía en el
+// ponderador que manda el cliente (un usuario podría mandar cualquier valor por la API directamente,
+// inflando sus puntos). Prioridad: el ponderador configurado en alguna competencia en_curso del
+// usuario cuyo rango de fechas incluya `fecha` (mismo criterio que vincularCompetencias); si el
+// deporte no está configurado en ninguna, el ponderador_default del catálogo de deportes; si el
+// deporte ni siquiera existe en el catálogo, 1.
+async function calcularPonderador(deporteNombre, userId, fecha) {
+  const { rows: [compConfig] } = await pool.query(
+    `SELECT cd.ponderador
+     FROM competencia_deportes cd
+     JOIN competencias c ON c.id = cd.competencia_id AND c.estado = 'en_curso'
+     JOIN grupo_participantes gp ON gp.grupo_id = c.grupo_id AND gp.user_id = $2
+     WHERE cd.deporte_nombre = $1
+       AND (c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR $3::date BETWEEN c.fecha_inicio AND c.fecha_fin)
+     LIMIT 1`,
+    [deporteNombre, userId, fecha]
+  );
+  if (compConfig) return parseFloat(compConfig.ponderador);
+
+  const { rows: [deporte] } = await pool.query(
+    'SELECT ponderador_default FROM deportes WHERE nombre = $1', [deporteNombre]
+  );
+  return deporte ? parseFloat(deporte.ponderador_default) : 1;
+}
+
 // GET /actividades — lista actividades (historial completo, sin filtro de competencia/fechas)
 // Admin ve todas; usuario normal ve las suyas, o las de un compañero de algún grupo en común
 // (para ver su perfil/calendario completo, no solo lo vinculado a una competencia puntual).
@@ -95,14 +120,14 @@ router.get('/', async (req, res) => {
 
 // POST /actividades — crear actividad
 router.post('/', async (req, res) => {
-  const { deporte_nombre, minutos, ponderador, fecha, notas, user_id, cantidad_companeros } = req.body;
+  const { deporte_nombre, minutos, fecha, notas, user_id, cantidad_companeros } = req.body;
   const isAdmin = req.user.role === 'admin';
 
   // Admin puede cargar en nombre de otro usuario
   const targetUserId = (isAdmin && user_id) ? parseInt(user_id) : req.user.id;
 
-  if (!deporte_nombre || !minutos || !ponderador || !fecha)
-    return res.status(400).json({ error: 'deporte_nombre, minutos, ponderador y fecha son requeridos' });
+  if (!deporte_nombre || !minutos || !fecha)
+    return res.status(400).json({ error: 'deporte_nombre, minutos y fecha son requeridos' });
 
   if (minutos <= 0)
     return res.status(400).json({ error: 'Los minutos deben ser mayor a 0' });
@@ -113,11 +138,14 @@ router.post('/', async (req, res) => {
     );
     const deporteId = deporte.rows[0]?.id || null;
 
+    // El ponderador siempre se calcula server-side — nunca se confía en lo que manda el cliente.
+    const ponderador = await calcularPonderador(deporte_nombre.trim(), targetUserId, fecha);
+
     const result = await pool.query(`
       INSERT INTO actividades (user_id, deporte_id, deporte_nombre, minutos, ponderador, fecha, notas, cantidad_companeros)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, fecha, notas, foto_url, created_at, cantidad_companeros
-    `, [targetUserId, deporteId, deporte_nombre.trim(), parseFloat(minutos), parseFloat(ponderador), fecha, notas || null, normalizarCantidadCompaneros(cantidad_companeros)]);
+    `, [targetUserId, deporteId, deporte_nombre.trim(), parseFloat(minutos), ponderador, fecha, notas || null, normalizarCantidadCompaneros(cantidad_companeros)]);
 
     const act = result.rows[0];
 
@@ -164,16 +192,19 @@ router.put('/:id', async (req, res) => {
     if (!isAdmin && act.user_id !== req.user.id)
       return res.status(403).json({ error: 'No tenés permiso para editar esta actividad' });
 
-    const { deporte_nombre, minutos, ponderador, fecha, notas, cantidad_companeros } = req.body;
+    const { deporte_nombre, minutos, fecha, notas, cantidad_companeros } = req.body;
     const newDeporte    = deporte_nombre ?? act.deporte_nombre;
     const newMinutos    = minutos        != null ? parseFloat(minutos)    : parseFloat(act.minutos);
-    const newPonderador = ponderador     != null ? parseFloat(ponderador) : parseFloat(act.ponderador);
     const newFecha      = fecha          ?? act.fecha;
     const newNotas      = notas          !== undefined ? notas : act.notas;
     const newCantidadCompaneros = cantidad_companeros !== undefined ? normalizarCantidadCompaneros(cantidad_companeros) : act.cantidad_companeros;
 
     const deporte = await pool.query('SELECT id FROM deportes WHERE nombre = $1', [newDeporte]);
     const deporteId = deporte.rows[0]?.id || null;
+
+    // El ponderador siempre se recalcula server-side (deporte y/o fecha pueden haber cambiado) —
+    // nunca se confía en lo que manda el cliente.
+    const newPonderador = await calcularPonderador(newDeporte, act.user_id, newFecha);
 
     const result = await pool.query(`
       UPDATE actividades

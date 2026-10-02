@@ -75,7 +75,6 @@ function EditModal({ actividad, deportes, onClose, onSaved, onFotoUploaded, onFo
       const updated = await withLoading(() => updateActividad(actividad.id, {
         deporte_nombre: form.deporte_nombre,
         minutos:        parseFloat(form.minutos),
-        ponderador:     parseFloat(form.ponderador),
         fecha:          form.fecha,
         notas:          form.notas || null,
       }));
@@ -126,7 +125,11 @@ function EditModal({ actividad, deportes, onClose, onSaved, onFotoUploaded, onFo
         <form onSubmit={handleSave} style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div>
             <label style={lStyle}>Deporte</label>
-            <select value={form.deporte_nombre} onChange={e => setForm(f => ({ ...f, deporte_nombre: e.target.value }))} style={{ ...iStyle, appearance:'none' }}>
+            <select value={form.deporte_nombre} onChange={e => {
+              const nombre = e.target.value;
+              const dep = deportes.find(d => d.nombre === nombre);
+              setForm(f => ({ ...f, deporte_nombre: nombre, ponderador: String(dep?.ponderador_default ?? 1) }));
+            }} style={{ ...iStyle, appearance:'none' }}>
               {deportes.map(d => <option key={d.id} value={d.nombre}>{d.nombre}</option>)}
             </select>
           </div>
@@ -137,7 +140,9 @@ function EditModal({ actividad, deportes, onClose, onSaved, onFotoUploaded, onFo
             </div>
             <div>
               <label style={lStyle}>Ponderador</label>
-              <input type="number" inputMode="decimal" min="0.1" step="0.1" required value={form.ponderador} onChange={e => setForm(f => ({ ...f, ponderador: e.target.value }))} style={{ ...iStyle, color:'var(--t-accent)', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }} />
+              <div style={{ ...iStyle, color:'var(--t-accent)', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, display:'flex', alignItems:'center', opacity:0.7 }}>
+                {form.ponderador}
+              </div>
             </div>
           </div>
           <div>

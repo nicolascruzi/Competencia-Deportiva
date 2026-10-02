@@ -148,7 +148,6 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
         const actividad = await createActividad({
           deporte_nombre: form.deporte_nombre,
           minutos:        parseFloat(form.minutos),
-          ponderador:     parseFloat(form.ponderador),
           fecha:          form.fecha,
           notas:          form.notas || null,
           cantidad_companeros: cantidadCompaneros,
@@ -218,27 +217,22 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
               <Input type="number" inputMode="numeric" min="1" required placeholder="60"
                 value={form.minutos} onChange={e => setForm(f => ({ ...f, minutos: e.target.value }))} />
             </Field>
-            <Field label={pondBloqueado ? 'Ponderador (comp.)' : 'Ponderador'}>
-              {pondBloqueado ? (
-                <div style={{ ...S.input, display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'default', opacity:0.7 }}>
-                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}>
-                    {form.ponderador}
-                  </span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-                  </svg>
-                </div>
-              ) : (
-                <Input type="number" inputMode="decimal" min="0.1" step="0.1" required
-                  value={form.ponderador} onChange={e => setForm(f => ({ ...f, ponderador: e.target.value }))} />
-              )}
+            <Field label="Ponderador">
+              <div style={{ ...S.input, display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'default', opacity:0.7 }}>
+                <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}>
+                  {form.ponderador}
+                </span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+              </div>
             </Field>
           </div>
-          {pondBloqueado && (
-            <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:-6 }}>
-              Ponderador fijado por <span style={{ color:'var(--t-accent)', fontWeight:600 }}>{competenciaActiva.nombre}</span>. Solo el admin puede modificarlo.
-            </div>
-          )}
+          <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:-6 }}>
+            {pondBloqueado
+              ? <>Ponderador fijado por <span style={{ color:'var(--t-accent)', fontWeight:600 }}>{competenciaActiva.nombre}</span>. Solo el admin puede modificarlo.</>
+              : 'Se calcula automáticamente según el deporte. Solo el admin de tu competencia puede configurarlo.'}
+          </div>
 
           {/* Fecha */}
           <Field label="Fecha">
