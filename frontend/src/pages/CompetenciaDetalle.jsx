@@ -2924,6 +2924,23 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
     ).finally(() => setLoading(false));
   }, [competencia.id, mes, rankingRefreshKey]);
 
+  // El tab Ranking ya no se filtra por mes (la competencia tiene su propio plazo) — se carga aparte,
+  // siempre acumulado, independiente del mes que el usuario tenga seleccionado en otros tabs.
+  const [actsAcumulado, setActsAcumulado] = useState([]);
+  const [rankingAcumulado, setRankingAcumulado] = useState([]);
+  const [rankingEquiposAcumulado, setRankingEquiposAcumulado] = useState([]);
+  useEffect(() => {
+    Promise.all([
+      getActividadesComp(competencia.id),
+      getRankingComp(competencia.id),
+      getRankingEquiposComp(competencia.id),
+    ]).then(([actsData, rankData, rankEquiposData]) => {
+      setActsAcumulado((Array.isArray(actsData) ? actsData : []).filter(Boolean));
+      setRankingAcumulado((Array.isArray(rankData) ? rankData : []).filter(Boolean));
+      setRankingEquiposAcumulado((Array.isArray(rankEquiposData) ? rankEquiposData : []).filter(Boolean));
+    }).catch(() => {});
+  }, [competencia.id, rankingRefreshKey]);
+
   // Navegación: prev/next idéntico al Calendario pero con Acumulado al final
   function prev() {
     if (isAcumulado) {
@@ -2957,7 +2974,7 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
 
   function renderRankingTab() {
     if (!tieneEquipos) {
-      return <Ranking acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />;
+      return <Ranking acts={actsAcumulado} rankingData={rankingAcumulado} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} />;
     }
 
     return (
@@ -2967,19 +2984,18 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
         </div>
         {rankingSubTab === 'equipos' ? (
           <EquiposTab
-            data={rankingEquiposData}
-            rankingData={rankingData}
-            acts={acts}
+            data={rankingEquiposAcumulado}
+            rankingData={rankingAcumulado}
+            acts={actsAcumulado}
             equipos={compConDeportes.equipos || []}
             equipoSeleccionadoId={equipoSeleccionadoId}
             onSelectEquipo={setEquipoSeleccionadoId}
             nombres={nombres}
             myId={user?.nombre_display || user?.nombre}
             onOpenProfile={(n, id) => setProfile({ nombre: n, id })}
-            mesSelector={mesSelectorEl}
           />
         ) : (
-          <Ranking acts={acts} rankingData={rankingData} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} mesSelector={mesSelectorEl} />
+          <Ranking acts={actsAcumulado} rankingData={rankingAcumulado} nombres={nombres} myId={user?.nombre_display || user?.nombre} onOpenProfile={(n, id) => setProfile({ nombre: n, id })} />
         )}
       </>
     );
