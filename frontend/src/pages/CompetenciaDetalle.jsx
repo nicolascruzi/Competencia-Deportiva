@@ -1915,8 +1915,8 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
           {/* Glow decorativo de fondo */}
           <div style={{ position:'absolute', top:-60, right:-40, width:180, height:180, borderRadius:'50%', background:'radial-gradient(circle, rgba(var(--t-accent-r),0.2) 0%, transparent 70%)', pointerEvents:'none' }} />
 
-          <div style={{ position:'relative', display:'flex', alignItems:'center', gap:20 }}>
-            <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center' }}>
+          <div style={{ position:'relative', display:'flex', alignItems:'flex-start', gap:20 }}>
+            <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', paddingTop:4 }}>
               <div
                 onClick={() => fotoUrl && setFotoLightbox(true)}
                 style={{
@@ -1949,14 +1949,14 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
             </div>
 
             {/* Stats, minimalistas: solo texto, sin tarjetas */}
-            <div style={{ flex:1, display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{ flex:1, display:'flex', flexDirection:'column', gap:10, paddingTop:4, paddingRight: asPage ? 0 : 36 }}>
               {[
                 { label:'Posts', value: data.length, color:'var(--t-text)' },
                 ...(isOwnProfile
                   ? [{ label:'Puntos', value: Math.round(pts), color:'var(--t-accent)' }]
                   : [
-                      { label:'Pts. competencia', value: Math.round(ptsCompetencia), color:'var(--t-accent)' },
-                      { label:'Pts. históricos',  value: Math.round(pts),            color:'var(--t-text)' },
+                      { label:'Competencia', value: Math.round(ptsCompetencia), color:'var(--t-accent)' },
+                      { label:'Histórico',   value: Math.round(pts),            color:'var(--t-text)' },
                     ]),
                 { label:'Racha', value: rachaActual, color:'var(--t-text)' },
               ].map(s => (
