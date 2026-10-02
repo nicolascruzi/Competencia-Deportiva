@@ -579,26 +579,37 @@ function TeamEvolucion({ acts, equipos, rankingData }) {
 // Resumen compacto: tarjetas de equipo lado a lado (nombre + puntos), tappables para seleccionar.
 function EquiposResumen({ data, equipoSeleccionadoId, onSelect }) {
   if (!data.length) return <EmptyState icon="🤝" title="Sin equipos" text="Todavía no hay equipos configurados." />;
+  // Hasta 4 equipos entran en una sola fila que ocupa el ancho de la pantalla (sin scroll horizontal);
+  // de 5 en adelante, se vuelve a un carrusel horizontal para no achicar demasiado cada tarjeta.
+  const cabenEnFila = data.length <= 4;
   return (
-    <div style={{ display:'flex', gap:8, overflowX:'auto', padding:'10px 4px' }}>
+    <div style={{
+      display: cabenEnFila ? 'grid' : 'flex',
+      gridTemplateColumns: cabenEnFila ? `repeat(${data.length}, 1fr)` : undefined,
+      gap:8, overflowX: cabenEnFila ? 'visible' : 'auto', padding:'10px 4px',
+    }}>
       {data.map(eq => {
         const selected = eq.id === equipoSeleccionadoId;
         return (
           <button key={eq.id} onClick={() => onSelect(eq.id)}
             style={{
-              flexShrink:0, minWidth:100, padding:'10px 14px', borderRadius:14, textAlign:'left', cursor:'pointer', WebkitTapHighlightColor:'transparent',
+              flexShrink: cabenEnFila ? undefined : 0,
+              minWidth: cabenEnFila ? 0 : 100,
+              width: cabenEnFila ? '100%' : undefined,
+              padding:'10px 12px', borderRadius:14, textAlign:'left', cursor:'pointer', WebkitTapHighlightColor:'transparent',
               border: selected ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)',
               background: selected ? 'rgba(var(--t-accent-r),0.1)' : 'var(--t-surface)',
+              boxSizing:'border-box', overflow:'hidden',
             }}>
             <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
               <span style={{ width:20, height:20, borderRadius:6, flexShrink:0, background: eq.color || 'var(--t-accent)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:11, color:'#fff' }}>{eq.nombre?.charAt(0).toUpperCase()}</span>
               </span>
-              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color: selected ? 'var(--t-accent)' : 'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color: selected ? 'var(--t-accent)' : 'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0 }}>
                 {eq.nombre}
               </span>
             </div>
-            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)' }}>{Math.round(eq.puntos)}</div>
+            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{Math.round(eq.puntos)}</div>
             <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>pts</div>
           </button>
         );
