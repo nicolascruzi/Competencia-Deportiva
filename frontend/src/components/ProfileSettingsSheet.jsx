@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { updatePerfil, uploadFotoPerfil } from '../api/perfil';
+import { updatePerfil, uploadFotoPerfil, deleteFotoPerfil } from '../api/perfil';
 import { useAuth } from '../context/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
@@ -167,6 +167,7 @@ function PushToggle() {
 export default function ProfileSettingsSheet({ onClose }) {
   const { user, logout, updateUser } = useAuth();
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deletingPhoto, setDeletingPhoto]   = useState(false);
   const [editingField, setEditingField]     = useState(null);
   const fileInputRef = useRef(null);
 
@@ -182,6 +183,18 @@ export default function ProfileSettingsSheet({ onClose }) {
     } finally {
       setUploadingPhoto(false);
       e.target.value = '';
+    }
+  }
+
+  async function handleDeletePhoto() {
+    setDeletingPhoto(true);
+    try {
+      await deleteFotoPerfil();
+      updateUser({ foto_perfil_url: null });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingPhoto(false);
     }
   }
 
@@ -243,6 +256,18 @@ export default function ProfileSettingsSheet({ onClose }) {
                 }
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display:'none' }} />
+              {user?.foto_perfil_url && (
+                <button
+                  onClick={handleDeletePhoto}
+                  disabled={deletingPhoto || uploadingPhoto}
+                  aria-label="Borrar foto de perfil"
+                  style={{ position:'absolute', bottom:1, left:1, width:26, height:26, borderRadius:'50%', background:'#E25C5C', border:'2px solid var(--t-surface)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', cursor:'pointer', opacity: deletingPhoto ? 0.6 : 1 }}>
+                  {deletingPhoto
+                    ? <div style={{ width:11, height:11, border:'1.5px solid rgba(255,255,255,0.35)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+                    : <IconXSmall />
+                  }
+                </button>
+              )}
             </div>
           </div>
 

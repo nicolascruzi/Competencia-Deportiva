@@ -1922,7 +1922,7 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
         {/* Header perfil: foto a la izquierda, nombre debajo, stats destacados a la derecha */}
         <div style={{
           position:'relative', overflow:'hidden',
-          padding: asPage ? '20px 20px 20px' : '52px 20px 20px',
+          padding: onBack ? '52px 20px 20px' : asPage ? '20px 20px 20px' : '52px 20px 20px',
           background:'linear-gradient(180deg, rgba(var(--t-accent-r),0.14) 0%, rgba(var(--t-accent-r),0.03) 60%, transparent 100%)',
         }}>
           {/* Glow decorativo de fondo */}
