@@ -3043,11 +3043,10 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
   if (profile) {
     return (
       <>
-        <div style={{ padding:'12px 16px 0' }}>
-          <button onClick={() => setProfile(null)}
-            style={{ display:'flex', alignItems:'center', gap:6, background:'transparent', border:'none', color:'var(--t-muted)', fontSize:13, fontWeight:600, cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-            Volver al ranking
+        <div style={{ padding:'8px 12px 0' }}>
+          <button onClick={() => setProfile(null)} aria-label="Volver"
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, background:'transparent', border:'none', color:'var(--t-muted)', cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
         </div>
         <ProfilePanel
