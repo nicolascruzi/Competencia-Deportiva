@@ -692,6 +692,8 @@ function fechaNum(s) {
 }
 
 // Racha: días consecutivos con actividad, terminando hoy o ayer
+// La racha solo "cuenta" a partir de 2 días consecutivos — un único día no se considera racha
+// (no muestra el fuego ni el número), así que devolvemos 0 en ese caso.
 function computeRacha(actsDeLaPersona) {
   const dias = new Set(actsDeLaPersona.map(a => fechaNum(a.fecha)));
   if (dias.size === 0) return 0;
@@ -705,7 +707,7 @@ function computeRacha(actsDeLaPersona) {
     d.setDate(d.getDate() - 1);
     cursor = fechaNum(d.toISOString());
   }
-  return streak;
+  return streak >= 2 ? streak : 0;
 }
 
 // Calcula puntos por semana (últimas N semanas) anclado a la última actividad del jugador
