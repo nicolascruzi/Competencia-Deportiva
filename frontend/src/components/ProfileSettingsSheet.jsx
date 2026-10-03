@@ -282,8 +282,6 @@ export default function ProfileSettingsSheet({ onClose }) {
               <PersonalCell label="Apellido" value={user?.apellido} onEdit={() => setEditingField('apellido')} />
               <PersonalCell label="Sexo" value={sexoLabel} onEdit={() => setEditingField('sexo')} />
               <PersonalCell label="Nacimiento" value={fechaNacDisplay} onEdit={() => setEditingField('fecha_nacimiento')} />
-              <PersonalCell label="Peso" value={user?.peso_kg ? `${user.peso_kg} kg` : null} onEdit={() => setEditingField('peso_kg')} />
-              <PersonalCell label="Estatura" value={user?.estatura_cm ? `${user.estatura_cm} cm` : null} onEdit={() => setEditingField('estatura_cm')} />
             </div>
             {editingField && (
               <div style={{ marginTop:12 }}>
@@ -293,22 +291,18 @@ export default function ProfileSettingsSheet({ onClose }) {
                     editingField === 'nombre' ? 'Nombre' :
                     editingField === 'apellido' ? 'Apellido' :
                     editingField === 'sexo' ? 'Sexo' :
-                    editingField === 'fecha_nacimiento' ? 'Fecha de nacimiento' :
-                    editingField === 'peso_kg' ? 'Peso' : 'Estatura'
+                    'Fecha de nacimiento'
                   }
                   rawValue={
                     editingField === 'apodo' ? (user?.apodo ?? '') :
                     editingField === 'nombre' ? (user?.nombre ?? '') :
                     editingField === 'apellido' ? (user?.apellido ?? '') :
                     editingField === 'sexo' ? (user?.sexo ?? '') :
-                    editingField === 'fecha_nacimiento' ? (user?.fecha_nacimiento?.slice(0,10) ?? '') :
-                    editingField === 'peso_kg' ? (user?.peso_kg ?? '') :
-                    (user?.estatura_cm ?? '')
+                    (user?.fecha_nacimiento?.slice(0,10) ?? '')
                   }
                   type={
                     editingField === 'sexo' ? 'text' :
-                    editingField === 'fecha_nacimiento' ? 'date' :
-                    (editingField === 'peso_kg' || editingField === 'estatura_cm') ? 'number' : 'text'
+                    editingField === 'fecha_nacimiento' ? 'date' : 'text'
                   }
                   options={editingField === 'sexo' ? [
                     { label:'Masculino', value:'M' },
@@ -316,9 +310,7 @@ export default function ProfileSettingsSheet({ onClose }) {
                     { label:'Otro',      value:'X' },
                   ] : undefined}
                   onSave={async v => {
-                    if (editingField === 'peso_kg') await saveField('peso_kg', v ? parseFloat(v) : null);
-                    else if (editingField === 'estatura_cm') await saveField('estatura_cm', v ? parseInt(v) : null);
-                    else await saveField(editingField, v);
+                    await saveField(editingField, v);
                     setEditingField(null);
                   }}
                   onCancel={() => setEditingField(null)}

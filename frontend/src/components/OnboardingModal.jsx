@@ -22,8 +22,6 @@ export default function OnboardingModal({ onClose }) {
   const [apodo, setApodo]               = useState(user?.apodo || '');
   const [sexo, setSexo]                 = useState(user?.sexo || '');
   const [fechaNac, setFechaNac]         = useState(user?.fecha_nacimiento?.slice(0,10) || '');
-  const [peso, setPeso]                 = useState(user?.peso_kg || '');
-  const [estatura, setEstatura]         = useState(user?.estatura_cm || '');
 
   const fileRef = useRef(null);
 
@@ -47,8 +45,6 @@ export default function OnboardingModal({ onClose }) {
       if (current === 'personal') payload = {
         sexo: sexo || null,
         fecha_nacimiento: fechaNac || null,
-        peso_kg: peso ? parseFloat(peso) : null,
-        estatura_cm: estatura ? parseInt(estatura) : null,
       };
       if (Object.keys(payload).length > 0) {
         const updated = await updatePerfil(payload);
@@ -178,20 +174,6 @@ export default function OnboardingModal({ onClose }) {
               <input type="date" value={fechaNac} onChange={e => setFechaNac(e.target.value)}
                 style={{ width:'100%', boxSizing:'border-box', padding:'12px 14px', borderRadius:12, border:'1.5px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:15, outline:'none', colorScheme:'dark' }}
               />
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-              <div>
-                <label style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', display:'block', marginBottom:6 }}>Peso (kg)</label>
-                <input type="number" inputMode="decimal" placeholder="70" value={peso} onChange={e => setPeso(e.target.value)}
-                  style={{ width:'100%', boxSizing:'border-box', padding:'12px 14px', borderRadius:12, border:'1.5px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:15, outline:'none' }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', display:'block', marginBottom:6 }}>Estatura (cm)</label>
-                <input type="number" inputMode="numeric" placeholder="175" value={estatura} onChange={e => setEstatura(e.target.value)}
-                  style={{ width:'100%', boxSizing:'border-box', padding:'12px 14px', borderRadius:12, border:'1.5px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:15, outline:'none' }}
-                />
-              </div>
             </div>
           </div>
         )}
