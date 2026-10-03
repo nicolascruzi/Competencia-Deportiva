@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '../context/ThemeContext';
-import { getGrupos } from '../api/grupos';
+import { getGrupos, getParticipantesGrupo, sacarParticipante, borrarGrupo } from '../api/grupos';
 import { useNotifications } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext';
 
 const PALETTE_ORDER = ['tierra', 'ciruela', 'noche', 'summa'];
 
@@ -56,6 +58,151 @@ const IconBell = () => (
   </svg>
 );
 
+const IconTrash = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+  </svg>
+);
+
+// Popup con el listado completo de integrantes de un grupo. Cualquier participante puede abrirlo;
+// si es admin, puede sacar a otra persona del grupo (nunca al creador, ni a sí mismo — para eso
+// está "Salir del grupo") y tiene acceso directo a "Borrar grupo" desde acá mismo.
+function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo }) {
+  const { user } = useAuth();
+  const [participantes, setParticipantes] = useState(null); // null = cargando
+  const [error, setError] = useState('');
+  const [sacandoId, setSacandoId] = useState(null);
+  const [borrando, setBorrando] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    getParticipantesGrupo(grupo.id)
+      .then(res => { if (!cancelado) setParticipantes(res); })
+      .catch(err => { if (!cancelado) setError(err.message); });
+    return () => { cancelado = true; };
+  }, [grupo.id]);
+
+  async function handleSacar(p) {
+    const nombreLabel = p.nombre_display || p.nombre;
+    if (!confirm(`¿Sacar a ${nombreLabel} del grupo "${grupo.nombre}"? Deja de ser participante; sus actividades y puntos ya registrados no se borran.`)) return;
+    setSacandoId(p.id); setError('');
+    try {
+      await sacarParticipante(grupo.id, p.id);
+      setParticipantes(prev => prev.filter(x => x.id !== p.id));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSacandoId(null);
+    }
+  }
+
+  async function handleBorrarGrupo() {
+    if (!confirm(`¿Borrar "${grupo.nombre}" para SIEMPRE? Se pierde para todos los participantes, junto con sus competencias, equipos y challenges. Esto no se puede deshacer.`)) return;
+    const nombreEscrito = prompt(`Para confirmar, escribí exactamente el nombre del grupo:\n\n${grupo.nombre}`);
+    if (nombreEscrito == null) return;
+    setBorrando(true); setError('');
+    try {
+      await onBorrarGrupo(grupo.id, nombreEscrito);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+      setBorrando(false);
+    }
+  }
+
+  return createPortal(
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'78dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 12px)' }}>
+        <div style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0 }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+        </div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 18px 12px', flexShrink:0 }}>
+          <div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-text)' }}>
+              {grupo.nombre}
+            </div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>
+              {participantes ? `${participantes.length} integrante${participantes.length !== 1 ? 's' : ''}` : 'Cargando…'}
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+            ✕
+          </button>
+        </div>
+
+        <div style={{ overflowY:'auto', flex:1, padding:'0 10px' }}>
+          {participantes === null && (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'30px 20px', color:'var(--t-muted)' }}>
+              <div style={{ width:16, height:16, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+              <span style={{ fontSize:13 }}>Cargando integrantes…</span>
+            </div>
+          )}
+          {participantes?.map(p => {
+            const esYo = String(p.id) === String(user?.id);
+            const puedeSacar = isAdmin && !esYo && !p.es_creador;
+            return (
+              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 8px', borderRadius:12 }}>
+                <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'rgba(var(--t-accent-r),0.12)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  {p.foto_perfil_url
+                    ? <img src={p.foto_perfil_url} alt={p.nombre_display} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color:'var(--t-accent)' }}>{p.nombre_display?.charAt(0).toUpperCase()}</span>
+                  }
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {p.nombre_display}{esYo ? ' (vos)' : ''}
+                    </span>
+                  </div>
+                  {(p.es_creador || p.es_admin) && (
+                    <div style={{ display:'flex', gap:5, marginTop:2 }}>
+                      {p.es_creador && <span style={{ fontSize:9.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-accent)' }}>Creador</span>}
+                      {p.es_admin && <span style={{ fontSize:9.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-muted)' }}>Admin</span>}
+                    </div>
+                  )}
+                </div>
+                {puedeSacar && (
+                  <button
+                    disabled={sacandoId === p.id}
+                    onClick={() => handleSacar(p)}
+                    aria-label={`Sacar a ${p.nombre_display} del grupo`}
+                    style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-danger)', display:'flex', alignItems:'center', justifyContent:'center', cursor: sacandoId === p.id ? 'default' : 'pointer', opacity: sacandoId === p.id ? 0.5 : 1, flexShrink:0 }}>
+                    {sacandoId === p.id
+                      ? <div style={{ width:12, height:12, border:'2px solid rgba(185,28,28,0.3)', borderTopColor:'var(--t-danger)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+                      : <IconTrash />
+                    }
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {error && (
+          <div style={{ padding:'8px 18px', fontSize:12, color:'var(--t-danger)', flexShrink:0 }}>{error}</div>
+        )}
+
+        {isAdmin && (
+          <div style={{ padding:'10px 18px 0', borderTop:'1px solid var(--t-dim)', marginTop:6, flexShrink:0 }}>
+            <button
+              disabled={borrando}
+              onClick={handleBorrarGrupo}
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-danger)', background:'transparent', color:'var(--t-danger)', fontSize:14, fontWeight:700, cursor: borrando ? 'default' : 'pointer', opacity: borrando ? 0.6 : 1, marginTop:10 }}>
+              <IconTrash />
+              {borrando ? 'Borrando…' : 'Borrar grupo'}
+            </button>
+          </div>
+        )}
+
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    </>,
+    document.body
+  );
+}
+
 export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCurso, onSelectCompetenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onSalirGrupo, onBorrarGrupo, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
   const { themeId, setTheme, palettes } = useTheme();
   const { notifs, unread, markRead, markAll } = useNotifications() || { notifs: [], unread: 0, markRead: () => {}, markAll: () => {} };
@@ -70,6 +217,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
   const [salirError, setSalirError]       = useState('');
   const [borrarLoading, setBorrarLoading] = useState(false);
   const [borrarError, setBorrarError]     = useState('');
+  const [integrantesGrupo, setIntegrantesGrupo] = useState(null); // grupo cuyo popup de integrantes está abierto
 
   const selectorRef = useRef(null);
   const settingsRef = useRef(null);
@@ -265,24 +413,32 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
 
               return (
                 <div key={g.id} style={{ borderTop: gi > 0 ? '1px solid var(--t-dim)' : 'none', padding:'10px 0' }}>
-                  {/* Fila del grupo: clickeable para entrar al grupo aunque no tenga ninguna
-                      competencia en curso (si tiene, entra directo a la primera en curso) —
-                      sin esto, un grupo sin competencias activas quedaba inalcanzable: nunca se
-                      podía llegar a Configuración → Competencia para gestionarlo o borrarlo. */}
-                  <button
-                    onClick={() => { onSelectGrupo({ ...g, competencias_en_curso: enCurso }); setSelectorOpen(false); }}
-                    style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'0 18px 6px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                    <span style={{ color: isGrupoActivo ? 'var(--t-accent)' : 'var(--t-muted)', flexShrink:0 }}><IconUsers /></span>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color: isGrupoActivo ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                        {g.nombre}
+                  {/* Fila del grupo: el nombre entra al grupo aunque no tenga ninguna competencia
+                      en curso (si tiene, entra directo a la primera en curso) — sin esto, un grupo
+                      sin competencias activas quedaba inalcanzable. El ícono de personas, aparte,
+                      abre el popup con el listado de integrantes (y ahí, borrar grupo / sacar a
+                      alguien si sos admin). */}
+                  <div style={{ display:'flex', alignItems:'center', gap:4, padding:'0 10px 6px 18px' }}>
+                    <button
+                      onClick={() => setIntegrantesGrupo(g)}
+                      aria-label={`Ver integrantes de ${g.nombre}`}
+                      style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, border:'none', background:'transparent', color: isGrupoActivo ? 'var(--t-accent)' : 'var(--t-muted)', cursor:'pointer', flexShrink:0, WebkitTapHighlightColor:'transparent' }}>
+                      <IconUsers />
+                    </button>
+                    <button
+                      onClick={() => { onSelectGrupo({ ...g, competencias_en_curso: enCurso }); setSelectorOpen(false); }}
+                      style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0, padding:'4px 0', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color: isGrupoActivo ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {g.nombre}
+                        </div>
+                        <div style={{ fontSize:10.5, color:'var(--t-muted)', marginTop:1 }}>
+                          {g.participantes} participante{g.participantes !== 1 ? 's' : ''}
+                        </div>
                       </div>
-                      <div style={{ fontSize:10.5, color:'var(--t-muted)', marginTop:1 }}>
-                        {g.participantes} participante{g.participantes !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                    {isGrupoActivo && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
-                  </button>
+                      {isGrupoActivo && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
+                    </button>
+                  </div>
 
                   {/* Competencias anidadas: en curso primero, luego finalizadas recientes */}
                   <div style={{ paddingLeft:16, borderLeft:'2px solid var(--t-dim)', marginLeft:23 }}>
@@ -709,6 +865,17 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
         </div>
       </div>
 
+      {integrantesGrupo && (
+        <IntegrantesSheet
+          grupo={integrantesGrupo}
+          isAdmin={!!integrantesGrupo.soy_admin}
+          onClose={() => setIntegrantesGrupo(null)}
+          onBorrarGrupo={async (grupoId, confirmarNombre) => {
+            await onBorrarGrupo?.(grupoId, confirmarNombre);
+            setGrupos(prev => prev.filter(x => x.id !== grupoId));
+          }}
+        />
+      )}
     </>
   );
 }

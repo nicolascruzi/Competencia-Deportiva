@@ -562,6 +562,31 @@ router.put('/:id/equipos/asignaciones', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /grupos/:id/participantes — listado completo de integrantes del grupo (cualquier participante)
+router.get('/:id/participantes', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!(await esParticipanteDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de este grupo' });
+
+    const { rows: [grupo] } = await pool.query('SELECT creador_id FROM grupos WHERE id=$1', [id]);
+    if (!grupo) return res.status(404).json({ error: 'Grupo no encontrado' });
+
+    const { rows } = await pool.query(
+      `SELECT u.id, u.nombre, u.apellido, u.apodo, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url,
+              EXISTS(SELECT 1 FROM grupo_admins ga WHERE ga.grupo_id=$1 AND ga.user_id=u.id) AS es_admin
+       FROM grupo_participantes gp JOIN users u ON u.id = gp.user_id
+       WHERE gp.grupo_id = $1
+       ORDER BY nombre_display`,
+      [id]
+    );
+
+    res.json(rows.map(r => ({ ...r, es_creador: r.id === grupo.creador_id })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener participantes' });
+  }
+});
+
 // ── ADMINS ───────────────────────────────────────────────────────────────────
 
 // POST /grupos/:id/admins — promover a un participante a admin (cualquier admin puede)
@@ -623,6 +648,31 @@ router.delete('/:id/participantes/me', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al salir del grupo' });
+  }
+});
+
+// DELETE /grupos/:id/participantes/:userId — un admin saca a otro participante del grupo. No puede
+// sacarse a sí mismo por acá (existe "salir del grupo" para eso) ni sacar al creador del grupo. El
+// historial de actividades y puntos de esa persona en las competencias de este grupo no se toca —
+// mismo criterio que "salir del grupo" por cuenta propia.
+router.delete('/:id/participantes/:userId', authMiddleware, async (req, res) => {
+  const { id, userId } = req.params;
+  try {
+    if (!(await esAdminDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede sacar a alguien del grupo' });
+    if (String(userId) === String(req.user.id)) return res.status(400).json({ error: 'Para salir vos mismo, usá "Salir del grupo".' });
+
+    const { rows: [grupo] } = await pool.query('SELECT creador_id FROM grupos WHERE id=$1', [id]);
+    if (!grupo) return res.status(404).json({ error: 'Grupo no encontrado' });
+    if (String(grupo.creador_id) === String(userId)) return res.status(400).json({ error: 'No se puede sacar al creador del grupo.' });
+
+    const { rowCount } = await pool.query('DELETE FROM grupo_participantes WHERE grupo_id=$1 AND user_id=$2', [id, userId]);
+    if (!rowCount) return res.status(404).json({ error: 'Esa persona no es participante de este grupo' });
+
+    await pool.query('DELETE FROM grupo_admins WHERE grupo_id=$1 AND user_id=$2', [id, userId]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al sacar al participante' });
   }
 });
 
