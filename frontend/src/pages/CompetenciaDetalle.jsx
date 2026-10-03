@@ -833,9 +833,6 @@ function ProgresoCompetenciaCompacto({ fechaInicio, fechaFin }) {
       <div style={{ position:'relative', width:'100%', height:8, borderRadius:999, background:'var(--t-dim2)', border:'1px solid rgba(var(--t-accent-r),0.25)', overflow:'hidden' }}>
         <div style={{ position:'absolute', inset:0, width:`${p.pct}%`, borderRadius:999, background:'var(--t-accent)', boxShadow:'0 0 0 1px rgba(var(--t-accent-r),0.4)', transition:'width 0.3s' }} />
       </div>
-      <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-accent)', whiteSpace:'nowrap' }}>
-        {p.labelCorto}
-      </div>
     </div>
   );
 }
@@ -2883,7 +2880,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
   );
 }
 
-export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, onSemanasSaved, configSheetOpen, onConfigSheetClose, navYear, navMonth, onNavYear, onNavMonth }) {
+export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, onSemanasSaved, configSheetOpen, onConfigSheetClose, onConfigSaved, navYear, navMonth, onNavYear, onNavMonth }) {
   const { user } = useAuth();
   const { withLoading } = useLoading();
   const now = new Date();
@@ -3148,6 +3145,7 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
             onSaved={actualizada => {
               setCompConDeportes(prev => ({ ...prev, ...actualizada }));
               setRankingRefreshKey(k => k + 1);
+              onConfigSaved?.(actualizada);
             }}
           />
         ) : <AdminSheetLoading onClose={onConfigSheetClose} />,

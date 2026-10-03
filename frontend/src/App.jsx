@@ -285,6 +285,14 @@ function AppShell() {
           }}
           configSheetOpen={configSheetOpen}
           onConfigSheetClose={() => setConfigSheetOpen(false)}
+          onConfigSaved={actualizada => {
+            setGrupoActivo(prev => ({
+              ...prev,
+              competencias_en_curso: prev.competencias_en_curso.map(c =>
+                c.id === competenciaActiva.id ? { ...c, ...actualizada } : c
+              ),
+            }));
+          }}
           navYear={navYear}
           navMonth={navMonth}
           onNavYear={setNavYear}

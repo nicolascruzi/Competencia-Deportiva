@@ -255,7 +255,16 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
       [id]
     );
 
-    res.json({ ...actualizada, semanas });
+    const hoy = new Date().toISOString().slice(0, 10);
+    const semanaActual = semanas.find(s => s.fecha_inicio <= hoy && hoy <= s.fecha_fin);
+
+    res.json({
+      ...actualizada,
+      semanas,
+      semana_actual_id: semanaActual?.id ?? null,
+      deporte_semana_actual_nombre: semanaActual?.deporte_semana_nombre ?? null,
+      deporte_semana_actual_ponderador_extra: semanaActual?.deporte_semana_ponderador_extra ?? null,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al actualizar la configuración' });
