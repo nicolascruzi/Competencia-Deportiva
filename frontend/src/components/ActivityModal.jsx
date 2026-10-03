@@ -62,6 +62,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   const [loading, setLoading]       = useState(false);
   const [cantidadCompaneros, setCantidadCompaneros] = useState(0); // 0-3, 3 = "3 o más"
   const [misCompetencias, setMisCompetencias] = useState([]);
+  const [cargandoCompetencias, setCargandoCompetencias] = useState(true);
   const fileInputRef                = useRef(null);
   const { withLoading } = useLoading();
 
@@ -119,7 +120,8 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
       setFoto(null);
       setFotoPreview(null);
       setCantidadCompaneros(0);
-      getGrupos().then(setMisCompetencias).catch(() => setMisCompetencias([]));
+      setCargandoCompetencias(true);
+      getGrupos().then(setMisCompetencias).catch(() => setMisCompetencias([])).finally(() => setCargandoCompetencias(false));
     }
   }, [open]);
 
@@ -274,8 +276,19 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
               value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
           </Field>
 
-          {/* Hecho en compañía — cantidad de amigos con los que se hizo la actividad */}
-          {mostrarSelectorCompaneros && (
+          {/* Hecho en compañía — cantidad de amigos con los que se hizo la actividad. Mientras se
+              determina si corresponde mostrarlo (fetch de competencias en curso), se reserva el
+              espacio con un skeleton para que no "salte" el resto del formulario al resolver. */}
+          {cargandoCompetencias && (
+            <Field label="¿Con cuántos compañeros lo hiciste?">
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i} style={{ width: i === 0 ? 70 : 52, height:34, borderRadius:20, background:'var(--t-dim)', opacity:0.5 }} />
+                ))}
+              </div>
+            </Field>
+          )}
+          {!cargandoCompetencias && mostrarSelectorCompaneros && (
             <Field label="¿Con cuántos compañeros lo hiciste?">
               <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                 {[
