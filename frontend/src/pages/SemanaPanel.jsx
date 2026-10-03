@@ -65,12 +65,11 @@ function ChallengeRow({ competenciaId, challenge, onCompletado, readOnly }) {
         <span style={{
           flex:1, minWidth:0, fontSize:13.5, fontWeight:500, lineHeight:1.3,
           color: challenge.completado ? 'var(--t-muted)' : 'var(--t-text)',
-          textDecoration: challenge.completado ? 'line-through' : 'none',
         }}>
           {completando ? 'Guardando…' : challenge.texto}
         </span>
         <span style={{ fontSize:11.5, fontWeight:700, color: challenge.completado ? 'var(--t-accent)' : 'var(--t-muted)', flexShrink:0, fontVariantNumeric:'tabular-nums' }}>
-          +{challenge.puntos ?? 0}
+          +{Math.round(challenge.puntos ?? 0)}
         </span>
       </button>
       {error && <div style={{ fontSize:11, color:'#F87171', paddingLeft:12 }}>{error}</div>}
