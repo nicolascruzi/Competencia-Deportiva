@@ -64,7 +64,7 @@ export default function Login() {
             PURA RACHA
           </div>
           <div style={{ fontSize: 13, color: 'var(--t-muted)', letterSpacing: '0.03em' }}>
-            Seguí tu racha deportiva
+            Sigue tu racha deportiva
           </div>
         </div>
 

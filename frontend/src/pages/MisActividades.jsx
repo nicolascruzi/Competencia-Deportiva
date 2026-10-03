@@ -820,7 +820,7 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
               Sin actividades
             </div>
             <div style={{ fontSize:14, lineHeight:1.6, marginBottom:24 }}>
-              Registrá tu primera actividad para empezar a acumular puntos.
+              Registra tu primera actividad para empezar a acumular puntos.
             </div>
             <button onClick={onNewActivity}
               style={{ padding:'13px 28px', borderRadius:14, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', background:'var(--t-accent)', color:'var(--t-ground)', border:'none', cursor:'pointer' }}>

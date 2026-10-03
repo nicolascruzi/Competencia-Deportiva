@@ -75,7 +75,7 @@ function ComentarioInput({ user, onSend, inputRef }) {
         ref={inputRef}
         value={texto}
         onChange={e => setTexto(e.target.value)}
-        placeholder="Escribí un comentario…"
+        placeholder="Escribe un comentario…"
         style={{ flex:1, padding:'8px 12px', borderRadius:20, border:'1.5px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:14, outline:'none', minWidth:0 }}
       />
       <button type="submit" disabled={!texto.trim() || sending}

@@ -61,7 +61,7 @@ export default function NuevaCompetenciaSheet({ grupoId, onClose, onCreated }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!nombre.trim()) return setError('El nombre es obligatorio');
-    if ((fechaInicio && !fechaFin) || (!fechaInicio && fechaFin)) return setError('Definí fecha de inicio y fin, o ninguna de las dos');
+    if ((fechaInicio && !fechaFin) || (!fechaInicio && fechaFin)) return setError('Define fecha de inicio y fin, o ninguna de las dos');
     if (fechaInicio && fechaFin && fechaFin < fechaInicio) return setError('La fecha de fin no puede ser anterior a la de inicio');
     setError(''); setLoading(true);
     try {
@@ -122,7 +122,7 @@ export default function NuevaCompetenciaSheet({ grupoId, onClose, onCreated }) {
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             <div>
               <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Ponderadores por deporte</label>
-              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>Puntos = minutos × ponderador. Podés cambiarlo después.</div>
+              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>Puntos = minutos × ponderador. Puedes cambiarlo después.</div>
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               {deportes.map(d => (
@@ -133,7 +133,7 @@ export default function NuevaCompetenciaSheet({ grupoId, onClose, onCreated }) {
 
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Duración (opcional)</label>
-            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Definí un rango para habilitar challenges semanales y votación de deporte de la semana.</div>
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Define un rango para habilitar challenges semanales y votación de deporte de la semana.</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} style={inputStyle} />
               <input type="date" value={fechaFin} min={fechaInicio || undefined} onChange={e => setFechaFin(e.target.value)} style={inputStyle} />

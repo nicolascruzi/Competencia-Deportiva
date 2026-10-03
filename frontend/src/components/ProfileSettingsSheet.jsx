@@ -121,10 +121,10 @@ function PushToggle() {
           </div>
           <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2, lineHeight:1.4 }}>
             {denied
-              ? 'Bloqueadas en el navegador — habilitá en ajustes del sistema'
+              ? 'Bloqueadas en el navegador — habilita en ajustes del sistema'
               : subscribed
               ? 'Activadas — te avisamos de comentarios y actividades nuevas'
-              : 'Recibí alertas cuando un compañero sube contenido'}
+              : 'Recibe alertas cuando un compañero sube contenido'}
           </div>
         </div>
         {/* Toggle */}

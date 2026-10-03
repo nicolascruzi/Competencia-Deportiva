@@ -875,7 +875,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector 
       }))
     : aggregateByPerson(acts);
 
-  if (!people.length) return <EmptyState icon="🏁" title="Sin registros" text="Cargá actividades para ver el ranking." />;
+  if (!people.length) return <EmptyState icon="🏁" title="Sin registros" text="Carga actividades para ver el ranking." />;
 
   const tabBtn = (id, label) => (
     <button key={id} onClick={() => setSubtab(id)}
@@ -2268,7 +2268,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
           return map;
         });
       });
-      setAddSuccess(`"${nombre}" se agregó — buscalo en la lista y no olvides Guardar cambios.`);
+      setAddSuccess(`"${nombre}" se agregó — búscalo en la lista y no olvides Guardar cambios.`);
       setNuevoNombre('');
       setNuevoIcono('🏅');
       setNuevoPond('1.0');
@@ -2857,7 +2857,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
             <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
               <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deporte de la semana</div>
               <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>
-                La semana 1 se fija a mano. De la semana 2 en adelante se decide por votación de los participantes, pero podés sobreescribir la semana actual.
+                La semana 1 se fija a mano. De la semana 2 en adelante se decide por votación de los participantes, pero puedes sobreescribir la semana actual.
               </div>
               {semanas.filter(s => s.numero_semana === 1 || s.id === competencia.semana_actual_id)
                 .sort((a, b) => a.numero_semana - b.numero_semana)

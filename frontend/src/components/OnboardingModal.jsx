@@ -32,7 +32,7 @@ export default function OnboardingModal({ onClose }) {
     try {
       const data = await uploadFotoPerfil(file);
       updateUser({ foto_perfil_url: data.foto_perfil_url });
-    } catch { setError('No se pudo subir la foto. Intentá de nuevo.'); }
+    } catch { setError('No se pudo subir la foto. Intenta de nuevo.'); }
     finally { setUploading(false); e.target.value = ''; }
   }
 
@@ -52,7 +52,7 @@ export default function OnboardingModal({ onClose }) {
       }
       if (step < STEPS.length - 1) setStep(s => s + 1);
       else onClose();
-    } catch { setError('Hubo un error guardando. Intentá de nuevo.'); }
+    } catch { setError('Hubo un error guardando. Intenta de nuevo.'); }
     finally { setSaving(false); }
   }
 
@@ -84,7 +84,7 @@ export default function OnboardingModal({ onClose }) {
             {step === 2 && 'Datos personales'}
           </div>
           <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:6 }}>
-            {step === 0 && 'Poné una foto para que tus compañeros te reconozcan.'}
+            {step === 0 && 'Pon una foto para que tus compañeros te reconozcan.'}
             {step === 1 && 'El apodo aparecerá en el ranking y los registros.'}
             {step === 2 && 'Opcional — te ayuda a llevar un mejor seguimiento.'}
           </div>
@@ -140,10 +140,10 @@ export default function OnboardingModal({ onClose }) {
               style={{ width:'100%', boxSizing:'border-box', padding:'14px 16px', borderRadius:14, border:'1.5px solid var(--t-accent)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:20, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, outline:'none', textTransform:'uppercase', letterSpacing:'0.04em' }}
             />
             <div style={{ marginTop:8, fontSize:12, color:'var(--t-muted)' }}>
-              Si lo dejás vacío se usará tu nombre: <strong style={{ color:'var(--t-text)' }}>{user?.nombre}</strong>
+              Si lo dejas vacío se usará tu nombre: <strong style={{ color:'var(--t-text)' }}>{user?.nombre}</strong>
             </div>
             <div style={{ marginTop:16, padding:'12px 14px', borderRadius:12, background:'var(--t-surface2)', border:'1px solid var(--t-dim)' }}>
-              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:6 }}>Así vas a aparecer en el ranking</div>
+              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:6 }}>Así aparecerás en el ranking</div>
               <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:22, textTransform:'uppercase', color:'var(--t-accent)' }}>
                 {apodo.trim() || user?.nombre || '—'}
               </div>

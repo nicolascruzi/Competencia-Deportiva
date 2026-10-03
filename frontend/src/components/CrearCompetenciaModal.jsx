@@ -16,7 +16,7 @@ function PinDisplay({ nombre, pin, onClose }) {
   }
 
   function compartirWhatsApp() {
-    const texto = encodeURIComponent(`Unite a mi competencia "${nombre}" en Pura Racha 🔥\nEl PIN es: ${pin}`);
+    const texto = encodeURIComponent(`Únete a mi competencia "${nombre}" en Pura Racha 🔥\nEl PIN es: ${pin}`);
     window.open(`https://wa.me/?text=${texto}`, '_blank');
   }
 
@@ -35,7 +35,7 @@ function PinDisplay({ nombre, pin, onClose }) {
               ¡Competencia creada!
             </div>
             <div style={{ fontSize:13, color:'var(--t-muted)' }}>
-              Compartí este PIN para que otros se unan a{' '}
+              Comparte este PIN para que otros se unan a{' '}
               <span style={{ color:'var(--t-text)', fontWeight:600 }}>{nombre}</span>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
   }, [open]);
 
   async function handleAgregarCustom() {
-    if (!customNombre.trim()) return setCustomError('Ingresá el nombre del deporte');
+    if (!customNombre.trim()) return setCustomError('Ingresa el nombre del deporte');
     setCustomError('');
     try {
       await createDeporte({ nombre: customNombre.trim(), icono: customEmoji.trim() || '🏅', ponderador_default: parseFloat(customPond) || 1.0 });
@@ -186,7 +186,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
   async function handleCrear(e) {
     e.preventDefault();
     if (!nombre.trim()) return setError('El nombre es obligatorio');
-    if ((fechaInicio && !fechaFin) || (!fechaInicio && fechaFin)) return setError('Definí fecha de inicio y fin, o ninguna de las dos');
+    if ((fechaInicio && !fechaFin) || (!fechaInicio && fechaFin)) return setError('Define fecha de inicio y fin, o ninguna de las dos');
     if (fechaInicio && fechaFin && fechaFin < fechaInicio) return setError('La fecha de fin no puede ser anterior a la de inicio');
     setError(''); setLoading(true);
     try {
@@ -284,12 +284,12 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
             <button onClick={() => setPaso('crear')}
               style={{ width:'100%', padding:'18px', borderRadius:14, border:'1.5px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.06)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
               <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-accent)', lineHeight:1 }}>Crear competencia</div>
-              <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:4 }}>Configurá nombre y ponderadores</div>
+              <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:4 }}>Configura nombre y ponderadores</div>
             </button>
             <button onClick={() => setPaso('unirse')}
               style={{ width:'100%', padding:'18px', borderRadius:14, border:'1.5px solid var(--t-dim)', background:'var(--t-surface2)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
               <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>Unirse con PIN</div>
-              <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:4 }}>Ingresá el PIN de 6 dígitos que te compartieron</div>
+              <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:4 }}>Ingresa el PIN de 6 dígitos que te compartieron</div>
             </button>
           </div>
         )}
@@ -310,7 +310,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               <div>
                 <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Ponderadores por deporte</label>
-                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>Puntos = minutos × ponderador. Podés cambiarlo después.</div>
+                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>Puntos = minutos × ponderador. Puedes cambiarlo después.</div>
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                 {deportes.map(d => (
@@ -362,7 +362,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
             {/* Rango de fechas */}
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Duración (opcional)</label>
-              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Definí un rango para habilitar equipos y challenges semanales.</div>
+              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Define un rango para habilitar equipos y challenges semanales.</div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} style={inputStyle} />
                 <input type="date" value={fechaFin} min={fechaInicio || undefined} onChange={e => setFechaFin(e.target.value)} style={inputStyle} />
@@ -373,7 +373,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
             {fechaInicio && fechaFin && (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Equipos</label>
-                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Solo nombres por ahora — asignás a cada participante después, desde la competencia.</div>
+                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Solo nombres por ahora — asignas a cada participante después, desde la competencia.</div>
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   {equiposNombres.map((n, i) => (
                     <div key={i} style={{ display:'flex', gap:8 }}>
@@ -399,7 +399,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
             {/* Challenges (opcional, no depende de tener fechas configuradas) */}
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Challenges (opcional)</label>
-              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Podés agregar más después, editando la competencia.</div>
+              <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Puedes agregar más después, editando la competencia.</div>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                 {challengesData.map((c, i) => (
                   <div key={i} style={{ border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 12px', display:'flex', flexDirection:'column', gap:8, background:'var(--t-surface2)' }}>
@@ -444,7 +444,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
             {semanasCalculadas.length > 0 && (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Deporte de la semana (opcional)</label>
-                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Podés dejarlo vacío y completarlo después editando la competencia.</div>
+                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Puedes dejarlo vacío y completarlo después editando la competencia.</div>
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   {semanasCalculadas.map(s => {
                     const abierta = semanaAbierta === s.numero_semana;

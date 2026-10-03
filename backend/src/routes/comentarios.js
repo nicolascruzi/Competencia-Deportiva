@@ -84,7 +84,7 @@ router.delete('/:id', async (req, res) => {
     );
     if (!c) return res.status(404).json({ error: 'Comentario no encontrado' });
     if (c.user_id !== req.user.id)
-      return res.status(403).json({ error: 'No podés eliminar este comentario' });
+      return res.status(403).json({ error: 'No puedes eliminar este comentario' });
 
     await pool.query('DELETE FROM comentarios WHERE id = $1', [id]);
     res.json({ ok: true });

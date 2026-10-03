@@ -10,7 +10,7 @@ export default function SinCompetencia({ onOpen }) {
           Ninguna competencia activa
         </div>
         <div style={{ fontSize:14, color:'var(--t-muted)', lineHeight:1.6 }}>
-          Mantenés presionado el nombre en la parte superior para seleccionar o crear una.
+          Mantén presionado el nombre en la parte superior para seleccionar o crear una.
         </div>
       </div>
       <button onClick={onOpen}

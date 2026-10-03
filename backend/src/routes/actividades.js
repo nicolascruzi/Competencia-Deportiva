@@ -78,7 +78,7 @@ router.get('/', async (req, res) => {
   // Filtro de usuario
   if (!isAdmin && user_id && parseInt(user_id) !== req.user.id) {
     if (!(await comparteGrupoCon(req.user.id, parseInt(user_id))))
-      return res.status(403).json({ error: 'No compartís ningún grupo con ese usuario' });
+      return res.status(403).json({ error: 'No compartes ningún grupo con ese usuario' });
     params.push(parseInt(user_id));
     conditions.push(`a.user_id = $${params.length}`);
   } else if (!isAdmin) {
@@ -190,7 +190,7 @@ router.put('/:id', async (req, res) => {
 
     const act = existing.rows[0];
     if (!isAdmin && act.user_id !== req.user.id)
-      return res.status(403).json({ error: 'No tenés permiso para editar esta actividad' });
+      return res.status(403).json({ error: 'No tienes permiso para editar esta actividad' });
 
     const { deporte_nombre, minutos, fecha, notas, cantidad_companeros } = req.body;
     const newDeporte    = deporte_nombre ?? act.deporte_nombre;
@@ -234,7 +234,7 @@ router.delete('/:id', async (req, res) => {
     if (!existing.rows.length) return res.status(404).json({ error: 'Actividad no encontrada' });
 
     if (!isAdmin && existing.rows[0].user_id !== req.user.id)
-      return res.status(403).json({ error: 'No tenés permiso para eliminar esta actividad' });
+      return res.status(403).json({ error: 'No tienes permiso para eliminar esta actividad' });
 
     await pool.query('DELETE FROM actividades WHERE id = $1', [id]);
     res.json({ message: 'Actividad eliminada' });

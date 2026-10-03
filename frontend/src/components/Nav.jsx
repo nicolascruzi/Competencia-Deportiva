@@ -98,7 +98,7 @@ function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo }) {
 
   async function handleBorrarGrupo() {
     if (!confirm(`¿Borrar "${grupo.nombre}" para SIEMPRE? Se pierde para todos los participantes, junto con sus competencias, equipos y challenges. Esto no se puede deshacer.`)) return;
-    const nombreEscrito = prompt(`Para confirmar, escribí exactamente el nombre del grupo:\n\n${grupo.nombre}`);
+    const nombreEscrito = prompt(`Para confirmar, escribe exactamente el nombre del grupo:\n\n${grupo.nombre}`);
     if (nombreEscrito == null) return;
     setBorrando(true); setError('');
     try {
@@ -153,7 +153,7 @@ function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo }) {
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                     <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                      {p.nombre_display}{esYo ? ' (vos)' : ''}
+                      {p.nombre_display}{esYo ? ' (tú)' : ''}
                     </span>
                   </div>
                   {(p.es_creador || p.es_admin) && (
@@ -401,7 +401,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
             </div>
           ) : grupos.length === 0 ? (
             <div style={{ padding:'14px 18px', fontSize:13, color:'var(--t-muted)' }}>
-              No tenés grupos todavía.
+              No tienes grupos todavía.
             </div>
           ) : (
             // El grupo que se está viendo ahora mismo va primero en la lista, para que quede
@@ -419,7 +419,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
                       en curso (si tiene, entra directo a la primera en curso) — sin esto, un grupo
                       sin competencias activas quedaba inalcanzable. "Ver integrantes →" es un link
                       explícito (no solo un ícono mudo) que abre el popup con el listado completo
-                      (y ahí, borrar grupo / sacar a alguien si sos admin). */}
+                      (y ahí, borrar grupo / sacar a alguien si eres admin). */}
                   <div style={{ padding:'0 18px 6px' }}>
                     <button
                       onClick={() => { onSelectGrupo({ ...g, competencias_en_curso: enCurso }); setSelectorOpen(false); }}
@@ -445,7 +445,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
                   {/* Competencias anidadas: en curso primero, luego finalizadas recientes */}
                   <div style={{ paddingLeft:16, borderLeft:'2px solid var(--t-dim)', marginLeft:23 }}>
                     {enCurso.length === 0 && finalizadas.length === 0 && (
-                      <div style={{ padding:'6px 14px', fontSize:12, color:'var(--t-muted)' }}>Sin competencias todavía — tocá el nombre del grupo para entrar</div>
+                      <div style={{ padding:'6px 14px', fontSize:12, color:'var(--t-muted)' }}>Sin competencias todavía — toca el nombre del grupo para entrar</div>
                     )}
                     {enCurso.map(c => {
                       const isSel = isGrupoActivo && competenciaActiva?.id === c.id;
@@ -725,7 +725,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
               <button
                 disabled={salirLoading}
                 onClick={async () => {
-                  if (!confirm(`¿Salir de "${grupoActivo.nombre}"? Dejás de ser participante del grupo. Tus actividades y puntos ya registrados no se borran.`)) return;
+                  if (!confirm(`¿Salir de "${grupoActivo.nombre}"? Dejas de ser participante del grupo. Tus actividades y puntos ya registrados no se borran.`)) return;
                   setSalirLoading(true); setSalirError('');
                   try {
                     await onSalirGrupo?.(grupoActivo.id);
@@ -755,7 +755,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
                 disabled={borrarLoading}
                 onClick={async () => {
                   if (!confirm(`¿Borrar "${grupoActivo.nombre}" para SIEMPRE? Se pierde para todos los participantes, junto con sus competencias, equipos y challenges. Esto no se puede deshacer.`)) return;
-                  const nombreEscrito = prompt(`Para confirmar, escribí exactamente el nombre del grupo:\n\n${grupoActivo.nombre}`);
+                  const nombreEscrito = prompt(`Para confirmar, escribe exactamente el nombre del grupo:\n\n${grupoActivo.nombre}`);
                   if (nombreEscrito == null) return;
                   setBorrarLoading(true); setBorrarError('');
                   try {

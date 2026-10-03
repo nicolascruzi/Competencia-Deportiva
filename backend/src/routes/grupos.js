@@ -465,7 +465,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     if (!grupo) return res.status(404).json({ error: 'Grupo no encontrado' });
     if (!(await esAdminDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede borrar el grupo' });
     if ((confirmarNombre || '').trim() !== grupo.nombre) {
-      return res.status(400).json({ error: 'El nombre no coincide. Escribí el nombre del grupo tal cual para confirmar.' });
+      return res.status(400).json({ error: 'El nombre no coincide. Escribe el nombre del grupo tal cual para confirmar.' });
     }
 
     await pool.query('DELETE FROM grupos WHERE id=$1', [id]);
@@ -641,7 +641,7 @@ router.delete('/:id/participantes/me', authMiddleware, async (req, res) => {
     );
     const esAdmin = await esAdminDeGrupo(id, req.user.id);
     if (esAdmin && totalAdmins <= 1)
-      return res.status(400).json({ error: 'Sos el único admin del grupo. Promové a otro participante como admin antes de salir.' });
+      return res.status(400).json({ error: 'Eres el único admin del grupo. Promueve a otro participante como admin antes de salir.' });
 
     await pool.query('DELETE FROM grupo_participantes WHERE grupo_id=$1 AND user_id=$2', [id, req.user.id]);
     res.json({ ok: true });
@@ -659,7 +659,7 @@ router.delete('/:id/participantes/:userId', authMiddleware, async (req, res) => 
   const { id, userId } = req.params;
   try {
     if (!(await esAdminDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede sacar a alguien del grupo' });
-    if (String(userId) === String(req.user.id)) return res.status(400).json({ error: 'Para salir vos mismo, usá "Salir del grupo".' });
+    if (String(userId) === String(req.user.id)) return res.status(400).json({ error: 'Para salir tú mismo, usa "Salir del grupo".' });
 
     const { rows: [grupo] } = await pool.query('SELECT creador_id FROM grupos WHERE id=$1', [id]);
     if (!grupo) return res.status(404).json({ error: 'Grupo no encontrado' });

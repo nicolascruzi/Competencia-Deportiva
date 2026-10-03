@@ -31,7 +31,7 @@ router.post('/actividad/:id', authMiddleware, upload.single('foto'), async (req,
     const { rows: [act] } = await pool.query('SELECT * FROM actividades WHERE id=$1', [actId]);
     if (!act) return res.status(404).json({ error: 'Actividad no encontrada' });
     if (!isAdmin && act.user_id !== req.user.id)
-      return res.status(403).json({ error: 'No tenés permiso para editar esta actividad' });
+      return res.status(403).json({ error: 'No tienes permiso para editar esta actividad' });
 
     // Si ya tenía foto, borrarla de Cloudinary
     if (act.foto_public_id) {
@@ -65,7 +65,7 @@ router.delete('/actividad/:id', authMiddleware, async (req, res) => {
     const { rows: [act] } = await pool.query('SELECT * FROM actividades WHERE id=$1', [actId]);
     if (!act) return res.status(404).json({ error: 'Actividad no encontrada' });
     if (!isAdmin && act.user_id !== req.user.id)
-      return res.status(403).json({ error: 'No tenés permiso' });
+      return res.status(403).json({ error: 'No tienes permiso' });
 
     if (act.foto_public_id) {
       await cloudinary.uploader.destroy(act.foto_public_id).catch(() => {});

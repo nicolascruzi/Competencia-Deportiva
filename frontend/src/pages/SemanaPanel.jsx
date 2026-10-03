@@ -177,7 +177,7 @@ function VotacionDeporte({ competenciaId, semanaId }) {
         return (
           <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--t-muted)' }}>
             <span style={{ color:'var(--t-accent)' }}>✓</span>
-            <span>Ya votaste por <span style={{ color:'var(--t-text)', fontWeight:600 }}>{miVoto?.nombre}</span> — tocá otra opción si querés cambiarlo.</span>
+            <span>Ya votaste por <span style={{ color:'var(--t-text)', fontWeight:600 }}>{miVoto?.nombre}</span> — toca otra opción si quieres cambiarlo.</span>
           </div>
         );
       })()}
@@ -255,9 +255,9 @@ function VotacionCTA({ competenciaId, semanaId, onOpen }) {
       </div>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
-          {cargando ? 'Cargando votación…' : (miVoto ? <>Ya votaste por {miVoto.nombre}</> : 'Votá por el deporte de la semana')}
+          {cargando ? 'Cargando votación…' : (miVoto ? <>Ya votaste por {miVoto.nombre}</> : 'Vota por el deporte de la semana')}
         </div>
-        {miVoto && !cargando && <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Tocá para cambiar tu voto</div>}
+        {miVoto && !cargando && <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Toca para cambiar tu voto</div>}
       </div>
       {!cargando && <div style={{ fontSize:18, color:'var(--t-accent)', flexShrink:0 }}>›</div>}
     </button>
@@ -316,7 +316,7 @@ function AvisoVotacionPendiente({ competenciaId, proximaSemana, onIrAVotar }) {
         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
           Todavía no votaste el deporte de la semana {proximaSemana.numero_semana}
         </div>
-        <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Tocá para ir a votar</div>
+        <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Toca para ir a votar</div>
       </div>
       <div style={{ fontSize:18, color:'var(--t-accent)', flexShrink:0 }}>›</div>
     </button>
