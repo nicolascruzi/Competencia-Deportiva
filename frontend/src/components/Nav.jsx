@@ -265,8 +265,13 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
 
               return (
                 <div key={g.id} style={{ borderTop: gi > 0 ? '1px solid var(--t-dim)' : 'none', padding:'10px 0' }}>
-                  {/* Fila del grupo */}
-                  <div style={{ display:'flex', alignItems:'center', gap:10, padding:'0 18px 6px' }}>
+                  {/* Fila del grupo: clickeable para entrar al grupo aunque no tenga ninguna
+                      competencia en curso (si tiene, entra directo a la primera en curso) —
+                      sin esto, un grupo sin competencias activas quedaba inalcanzable: nunca se
+                      podía llegar a Configuración → Competencia para gestionarlo o borrarlo. */}
+                  <button
+                    onClick={() => { onSelectGrupo({ ...g, competencias_en_curso: enCurso }); setSelectorOpen(false); }}
+                    style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'0 18px 6px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
                     <span style={{ color: isGrupoActivo ? 'var(--t-accent)' : 'var(--t-muted)', flexShrink:0 }}><IconUsers /></span>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color: isGrupoActivo ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -276,12 +281,13 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
                         {g.participantes} participante{g.participantes !== 1 ? 's' : ''}
                       </div>
                     </div>
-                  </div>
+                    {isGrupoActivo && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
+                  </button>
 
                   {/* Competencias anidadas: en curso primero, luego finalizadas recientes */}
                   <div style={{ paddingLeft:16, borderLeft:'2px solid var(--t-dim)', marginLeft:23 }}>
                     {enCurso.length === 0 && finalizadas.length === 0 && (
-                      <div style={{ padding:'6px 14px', fontSize:12, color:'var(--t-muted)' }}>Sin competencias todavía</div>
+                      <div style={{ padding:'6px 14px', fontSize:12, color:'var(--t-muted)' }}>Sin competencias todavía — tocá el nombre del grupo para entrar</div>
                     )}
                     {enCurso.map(c => {
                       const isSel = isGrupoActivo && competenciaActiva?.id === c.id;
