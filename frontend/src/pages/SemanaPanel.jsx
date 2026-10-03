@@ -5,6 +5,17 @@ import { sportIcon } from '../lib/sportIcons';
 import SinCompetencia from '../components/SinCompetencia';
 import PageHeader from '../components/PageHeader';
 
+const MESES_CORTOS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+// Rango legible sin año (ej. "28 sep al 4 oct", o "1 al 4 oct" si caen en el mismo mes).
+function formatearRangoSemana(fechaInicioISO, fechaFinISO) {
+  const [, mi, di] = fechaInicioISO.split('-').map(Number);
+  const [, mf, df] = fechaFinISO.split('-').map(Number);
+  const inicio = `${di} ${MESES_CORTOS[mi - 1]}`;
+  if (mi === mf) return `${di} al ${df} ${MESES_CORTOS[mf - 1]}`;
+  return `${inicio} al ${df} ${MESES_CORTOS[mf - 1]}`;
+}
+
 function ChallengeRow({ competenciaId, challenge, onCompletado, readOnly }) {
   const [completando, setCompletando] = useState(false);
   const [error, setError] = useState('');
@@ -353,7 +364,7 @@ function SemanaCard({
             </span>
             {isActual && <span style={{ fontSize:11, fontWeight:700, color:'var(--t-accent)', textTransform:'uppercase', letterSpacing:'0.04em' }}>· actual</span>}
           </div>
-          <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:1 }}>{semana.fecha_inicio} al {semana.fecha_fin}</div>
+          <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:1 }}>{formatearRangoSemana(semana.fecha_inicio, semana.fecha_fin)}</div>
           {!expanded && (
             <div style={{ fontSize:12, color:'var(--t-muted2)', marginTop:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{resumen}</div>
           )}
