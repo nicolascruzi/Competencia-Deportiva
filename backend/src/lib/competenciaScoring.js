@@ -20,6 +20,9 @@ function buildScoringCtes(mesFilter = '') {
     SELECT numero_semana, fecha_inicio, fecha_fin, deporte_semana_nombre, deporte_semana_ponderador_extra
     FROM competencia_semanas WHERE competencia_id = $1
   ),
+  comp_rango AS (
+    SELECT fecha_inicio, fecha_fin FROM competencias WHERE id = $1
+  ),
   acts_calc AS (
     SELECT
       a.user_id,
@@ -35,7 +38,11 @@ function buildScoringCtes(mesFilter = '') {
       a.minutos AS minutos,
       a.id AS actividad_id
     FROM actividades a
-    WHERE EXISTS (SELECT 1 FROM actividad_competencias ac2 WHERE ac2.actividad_id = a.id AND ac2.competencia_id = $1) ${mesFilter}
+    WHERE EXISTS (SELECT 1 FROM actividad_competencias ac2 WHERE ac2.actividad_id = a.id AND ac2.competencia_id = $1)
+      AND EXISTS (
+        SELECT 1 FROM comp_rango cr
+        WHERE (cr.fecha_inicio IS NULL OR cr.fecha_fin IS NULL OR a.fecha BETWEEN cr.fecha_inicio AND cr.fecha_fin)
+      ) ${mesFilter}
   ),
   bonus_companeros AS (
     SELECT a.user_id,
@@ -47,7 +54,8 @@ function buildScoringCtes(mesFilter = '') {
       END) AS pts_bonus
     FROM actividades a
     JOIN competencias c ON c.id = $1
-    WHERE EXISTS (SELECT 1 FROM actividad_competencias ac2 WHERE ac2.actividad_id = a.id AND ac2.competencia_id = $1) ${mesFilter}
+    WHERE EXISTS (SELECT 1 FROM actividad_competencias ac2 WHERE ac2.actividad_id = a.id AND ac2.competencia_id = $1)
+      AND (c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR a.fecha BETWEEN c.fecha_inicio AND c.fecha_fin) ${mesFilter}
     GROUP BY a.user_id
   ),
   challenge_pts AS (

@@ -639,7 +639,9 @@ router.get('/:id/meses', authMiddleware, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT DISTINCT TO_CHAR(a.fecha,'YYYY-MM') AS mes
        FROM actividades a
+       JOIN competencias c ON c.id = $1
        WHERE EXISTS (SELECT 1 FROM actividad_competencias ac WHERE ac.actividad_id = a.id AND ac.competencia_id = $1)
+         AND (c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR a.fecha BETWEEN c.fecha_inicio AND c.fecha_fin)
        ORDER BY mes DESC`,
       [id]
     );
@@ -684,7 +686,9 @@ router.get('/:id/actividades', authMiddleware, async (req, res) => {
               a.notas, a.foto_url, a.created_at
        FROM actividades a
        JOIN users u ON u.id = a.user_id
-       WHERE EXISTS (SELECT 1 FROM actividad_competencias ac WHERE ac.actividad_id = a.id AND ac.competencia_id = $1) ${mesFilter}
+       JOIN competencias c ON c.id = $1
+       WHERE EXISTS (SELECT 1 FROM actividad_competencias ac WHERE ac.actividad_id = a.id AND ac.competencia_id = $1)
+         AND (c.fecha_inicio IS NULL OR c.fecha_fin IS NULL OR a.fecha BETWEEN c.fecha_inicio AND c.fecha_fin) ${mesFilter}
        ORDER BY a.fecha ASC, a.created_at ASC`,
       params
     );
