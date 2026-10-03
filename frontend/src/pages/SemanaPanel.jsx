@@ -227,21 +227,29 @@ function VotacionCTA({ competenciaId, semanaId, onOpen }) {
     return () => { cancelado = true; };
   }, [competenciaId, semanaId]);
 
+  const cargando = miVoto === undefined;
+
   return (
-    <button onClick={onOpen}
+    <button onClick={onOpen} disabled={cargando}
       style={{
         display:'flex', alignItems:'center', gap:10, padding:'12px 16px', borderRadius:14, textAlign:'left',
         border:'1.5px dashed rgba(var(--t-accent-r),0.45)', background:'rgba(var(--t-accent-r),0.08)',
-        cursor:'pointer', WebkitTapHighlightColor:'transparent', width:'100%',
+        cursor: cargando ? 'default' : 'pointer', WebkitTapHighlightColor:'transparent', width:'100%',
+        opacity: cargando ? 0.6 : 1,
       }}>
-      <div style={{ fontSize:20, lineHeight:1, flexShrink:0 }}>{miVoto ? '✓' : '🗳️'}</div>
+      <div style={{ fontSize:20, lineHeight:1, flexShrink:0 }}>
+        {cargando
+          ? <div style={{ width:16, height:16, border:'2px solid rgba(var(--t-accent-r),0.25)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+          : (miVoto ? '✓' : '🗳️')
+        }
+      </div>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
-          {miVoto ? <>Ya votaste por {miVoto.nombre}</> : 'Votá por el deporte de la semana'}
+          {cargando ? 'Cargando votación…' : (miVoto ? <>Ya votaste por {miVoto.nombre}</> : 'Votá por el deporte de la semana')}
         </div>
-        {miVoto && <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Tocá para cambiar tu voto</div>}
+        {miVoto && !cargando && <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Tocá para cambiar tu voto</div>}
       </div>
-      <div style={{ fontSize:18, color:'var(--t-accent)', flexShrink:0 }}>›</div>
+      {!cargando && <div style={{ fontSize:18, color:'var(--t-accent)', flexShrink:0 }}>›</div>}
     </button>
   );
 }
@@ -448,6 +456,7 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
 
   return (
     <div style={{ paddingBottom:32 }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       <PageHeader eyebrow={competencia.nombre} title="Semana" />
 
