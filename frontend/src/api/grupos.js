@@ -2,6 +2,7 @@ import { apiFetch } from './client';
 
 export const getGrupos         = ()        => apiFetch('/grupos');
 export const getGrupo          = (id)       => apiFetch(`/grupos/${id}`);
+export const renombrarGrupo    = (id, nombre) => apiFetch(`/grupos/${id}`, { method: 'PUT', body: JSON.stringify({ nombre }) });
 export const createGrupo       = (body)     => apiFetch('/grupos',          { method: 'POST', body: JSON.stringify(body) });
 export const joinGrupo         = (pin)      => apiFetch('/grupos/join',     { method: 'POST', body: JSON.stringify({ pin }) });
 export const getCompetenciasGrupo  = (id)   => apiFetch(`/grupos/${id}/competencias`);

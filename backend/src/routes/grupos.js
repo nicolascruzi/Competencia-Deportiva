@@ -452,6 +452,27 @@ router.delete('/:id/competencias/:compId', authMiddleware, async (req, res) => {
   }
 });
 
+// PUT /grupos/:id — edita el nombre del grupo (admin)
+router.put('/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { nombre } = req.body;
+  try {
+    if (!nombre || !nombre.trim()) return res.status(400).json({ error: 'El nombre no puede estar vacío' });
+    if (!(await esAdminDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede editar el grupo' });
+
+    const { rows: [grupo] } = await pool.query(
+      'UPDATE grupos SET nombre=$1 WHERE id=$2 RETURNING id, nombre',
+      [nombre.trim(), id]
+    );
+    if (!grupo) return res.status(404).json({ error: 'Grupo no encontrado' });
+
+    res.json(grupo);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al editar el grupo' });
+  }
+});
+
 // DELETE /grupos/:id — borra el grupo completo (admin). Irreversible: se pierden en cascada todas
 // sus competencias (y lo que cuelga de cada una: semanas, challenges, ponderadores, equipos, votos,
 // vínculos de actividad) y la pertenencia de todos los participantes al grupo. Las actividades de

@@ -239,6 +239,12 @@ function AppShell() {
     }
   }
 
+  function handleGrupoRenombrado(grupoId, nombreNuevo) {
+    if (grupoActivo?.id === grupoId) {
+      setGrupoActivo(prev => prev ? { ...prev, nombre: nombreNuevo } : prev);
+    }
+  }
+
   function handleMainTab(id) {
     if (id === mainTab) {
       // Ya estamos en este tab — scroll al top
@@ -344,6 +350,7 @@ function AppShell() {
         onHistorial={grupo => setHistorialGrupo(grupo)}
         onSalirGrupo={handleSalirGrupo}
         onBorrarGrupo={handleBorrarGrupo}
+        onGrupoRenombrado={handleGrupoRenombrado}
         onOpenPerfil={() => setProfileSettingsOpen(true)}
         isGlobalAdmin={isGlobalAdmin}
         onNotifClick={(actividadId) => {

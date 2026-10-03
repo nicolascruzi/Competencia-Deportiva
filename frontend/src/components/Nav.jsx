@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../context/ThemeContext';
-import { getGrupos, getParticipantesGrupo, sacarParticipante, borrarGrupo } from '../api/grupos';
+import { getGrupos, getParticipantesGrupo, sacarParticipante, borrarGrupo, renombrarGrupo } from '../api/grupos';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -63,16 +63,26 @@ const IconTrash = () => (
     <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
   </svg>
 );
+const IconEdit = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+);
 
 // Popup con el listado completo de integrantes de un grupo. Cualquier participante puede abrirlo;
 // si es admin, puede sacar a otra persona del grupo (nunca al creador, ni a sí mismo — para eso
 // está "Salir del grupo") y tiene acceso directo a "Borrar grupo" desde acá mismo.
-function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo }) {
+function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo, onRenombrado }) {
   const { user } = useAuth();
   const [participantes, setParticipantes] = useState(null); // null = cargando
   const [error, setError] = useState('');
   const [sacandoId, setSacandoId] = useState(null);
   const [borrando, setBorrando] = useState(false);
+  const [editandoNombre, setEditandoNombre] = useState(false);
+  const [nombreDraft, setNombreDraft] = useState(grupo.nombre);
+  const [nombreActual, setNombreActual] = useState(grupo.nombre);
+  const [guardandoNombre, setGuardandoNombre] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -84,7 +94,7 @@ function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo }) {
 
   async function handleSacar(p) {
     const nombreLabel = p.nombre_display || p.nombre;
-    if (!confirm(`¿Sacar a ${nombreLabel} del grupo "${grupo.nombre}"? Deja de ser participante; sus actividades y puntos ya registrados no se borran.`)) return;
+    if (!confirm(`¿Sacar a ${nombreLabel} del grupo "${nombreActual}"? Deja de ser participante; sus actividades y puntos ya registrados no se borran.`)) return;
     setSacandoId(p.id); setError('');
     try {
       await sacarParticipante(grupo.id, p.id);
@@ -97,8 +107,8 @@ function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo }) {
   }
 
   async function handleBorrarGrupo() {
-    if (!confirm(`¿Borrar "${grupo.nombre}" para SIEMPRE? Se pierde para todos los participantes, junto con sus competencias, equipos y challenges. Esto no se puede deshacer.`)) return;
-    const nombreEscrito = prompt(`Para confirmar, escribe exactamente el nombre del grupo:\n\n${grupo.nombre}`);
+    if (!confirm(`¿Borrar "${nombreActual}" para SIEMPRE? Se pierde para todos los participantes, junto con sus competencias, equipos y challenges. Esto no se puede deshacer.`)) return;
+    const nombreEscrito = prompt(`Para confirmar, escribe exactamente el nombre del grupo:\n\n${nombreActual}`);
     if (nombreEscrito == null) return;
     setBorrando(true); setError('');
     try {
@@ -110,6 +120,22 @@ function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo }) {
     }
   }
 
+  async function handleGuardarNombre() {
+    const nombreLimpio = nombreDraft.trim();
+    if (!nombreLimpio || nombreLimpio === nombreActual) { setEditandoNombre(false); setNombreDraft(nombreActual); return; }
+    setGuardandoNombre(true); setError('');
+    try {
+      const actualizado = await renombrarGrupo(grupo.id, nombreLimpio);
+      setNombreActual(actualizado.nombre);
+      setEditandoNombre(false);
+      onRenombrado?.(grupo.id, actualizado.nombre);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardandoNombre(false);
+    }
+  }
+
   return createPortal(
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)' }} />
@@ -117,11 +143,36 @@ function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo }) {
         <div style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0 }}>
           <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
         </div>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 18px 12px', flexShrink:0 }}>
-          <div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-text)' }}>
-              {grupo.nombre}
-            </div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 18px 12px', flexShrink:0, gap:10 }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            {editandoNombre ? (
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <input
+                  autoFocus
+                  value={nombreDraft}
+                  onChange={e => setNombreDraft(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleGuardarNombre(); if (e.key === 'Escape') { setEditandoNombre(false); setNombreDraft(nombreActual); } }}
+                  disabled={guardandoNombre}
+                  style={{ flex:1, minWidth:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, textTransform:'uppercase', color:'var(--t-text)', background:'var(--t-surface2)', border:'1.5px solid var(--t-accent)', borderRadius:8, padding:'4px 8px', outline:'none' }}
+                />
+                <button onClick={handleGuardarNombre} disabled={guardandoNombre}
+                  style={{ fontSize:11, fontWeight:700, color:'var(--t-accent)', background:'transparent', border:'none', cursor:'pointer', padding:'4px 2px', flexShrink:0 }}>
+                  {guardandoNombre ? '…' : 'Guardar'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {nombreActual}
+                </div>
+                {isAdmin && (
+                  <button onClick={() => { setNombreDraft(nombreActual); setEditandoNombre(true); }} aria-label="Editar nombre del grupo"
+                    style={{ color:'var(--t-muted)', background:'transparent', border:'none', cursor:'pointer', padding:2, display:'flex', flexShrink:0 }}>
+                    <IconEdit />
+                  </button>
+                )}
+              </div>
+            )}
             <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>
               {participantes ? `${participantes.length} integrante${participantes.length !== 1 ? 's' : ''}` : 'Cargando…'}
             </div>
@@ -203,7 +254,7 @@ function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo }) {
   );
 }
 
-export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCurso, onSelectCompetenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onSalirGrupo, onBorrarGrupo, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
+export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCurso, onSelectCompetenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onSalirGrupo, onBorrarGrupo, onGrupoRenombrado, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
   const { themeId, setTheme, palettes } = useTheme();
   const { notifs, unread, markRead, markAll } = useNotifications() || { notifs: [], unread: 0, markRead: () => {}, markAll: () => {} };
   const [selectorOpen, setSelectorOpen]   = useState(false);
@@ -874,6 +925,11 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
           onBorrarGrupo={async (grupoId, confirmarNombre) => {
             await onBorrarGrupo?.(grupoId, confirmarNombre);
             setGrupos(prev => prev.filter(x => x.id !== grupoId));
+          }}
+          onRenombrado={(grupoId, nombreNuevo) => {
+            setGrupos(prev => prev.map(x => x.id === grupoId ? { ...x, nombre: nombreNuevo } : x));
+            setIntegrantesGrupo(prev => prev && prev.id === grupoId ? { ...prev, nombre: nombreNuevo } : prev);
+            onGrupoRenombrado?.(grupoId, nombreNuevo);
           }}
         />
       )}
