@@ -52,18 +52,12 @@ function ChallengeRow({ competenciaId, challenge, onCompletado, readOnly }) {
   );
 }
 
-function WeekNav({ prev, next, canPrev, canNext }) {
+function ChevronDown({ open }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:2 }}>
-      <button onClick={prev} disabled={!canPrev}
-        style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color: canPrev ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canPrev ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-      <button onClick={next} disabled={!canNext}
-        style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color: canNext ? 'var(--t-muted)' : 'var(--t-dim)', cursor: canNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', WebkitTapHighlightColor:'transparent', flexShrink:0 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-      </button>
-    </div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      style={{ flexShrink:0, transition:'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
   );
 }
 
@@ -296,138 +290,195 @@ function AvisoVotacionPendiente({ competenciaId, proximaSemana, onIrAVotar }) {
   );
 }
 
+// Una semana del timeline: colapsada muestra solo un resumen (deporte asignado / votación / challenges
+// pendientes); expandida muestra el contenido completo (igual que antes mostraba la semana única).
+function SemanaCard({
+  competencia, semana, challenges, isActual, expanded, onToggle, onCompletado,
+  seVota, votacionSheetOpenId, onOpenVotacion, onCloseVotacion, votacionRefreshKey,
+  proximaSemana, avisarVotacion, onIrAVotar,
+}) {
+  const tieneDeporte = !!semana.deporte_semana_nombre;
+  const vigentes = challenges.filter(ch =>
+    (!ch.fecha_inicio || !ch.fecha_fin) ||
+    (ch.fecha_inicio <= semana.fecha_fin && ch.fecha_fin >= semana.fecha_inicio)
+  );
+  const completados = vigentes.filter(ch => ch.completado).length;
+
+  // Resumen de una línea para el estado colapsado.
+  let resumen;
+  if (tieneDeporte) {
+    resumen = <>{sportIcon(semana.deporte_semana_nombre)} {semana.deporte_semana_nombre}{vigentes.length > 0 && ` · ${completados}/${vigentes.length} challenges`}</>;
+  } else if (seVota) {
+    resumen = '🗳️ Votación del deporte';
+  } else if (vigentes.length > 0) {
+    resumen = `${completados}/${vigentes.length} challenges`;
+  } else {
+    resumen = 'Sin novedades';
+  }
+
+  return (
+    <div style={{ border:'1px solid var(--t-dim)', borderRadius:16, overflow:'hidden', background:'var(--t-surface)' }}>
+      <button onClick={onToggle}
+        style={{
+          width:'100%', display:'flex', alignItems:'center', gap:10, padding:'14px 16px', textAlign:'left',
+          background: isActual ? 'rgba(var(--t-accent-r),0.08)' : 'transparent', border:'none', cursor:'pointer', WebkitTapHighlightColor:'transparent',
+        }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ display:'flex', alignItems:'baseline', gap:6, flexWrap:'wrap' }}>
+            <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', color:'var(--t-text)' }}>
+              Semana {semana.numero_semana}
+            </span>
+            {isActual && <span style={{ fontSize:11, fontWeight:700, color:'var(--t-accent)', textTransform:'uppercase', letterSpacing:'0.04em' }}>· actual</span>}
+          </div>
+          <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:1 }}>{semana.fecha_inicio} al {semana.fecha_fin}</div>
+          {!expanded && (
+            <div style={{ fontSize:12, color:'var(--t-muted2)', marginTop:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{resumen}</div>
+          )}
+        </div>
+        <ChevronDown open={expanded} />
+      </button>
+
+      {expanded && (
+        <div style={{ padding:'0 16px 16px', display:'flex', flexDirection:'column', gap:12 }}>
+
+          {tieneDeporte && (
+            <div style={{
+              display:'flex', alignItems:'center', gap:14, padding:'16px 18px', borderRadius:16,
+              background:'linear-gradient(135deg, rgba(var(--t-accent-r),0.14), rgba(var(--t-accent-r),0.04))',
+              border:'1.5px solid rgba(var(--t-accent-r),0.3)',
+            }}>
+              <div style={{ fontSize:40, lineHeight:1 }}>{sportIcon(semana.deporte_semana_nombre)}</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Deporte de la semana</div>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, marginTop:2 }}>
+                  {semana.deporte_semana_nombre}
+                </div>
+                <div style={{ fontSize:12, color:'var(--t-accent)', fontWeight:700, marginTop:2 }}>
+                  ×{semana.deporte_semana_ponderador_extra} puntos esta semana
+                </div>
+              </div>
+            </div>
+          )}
+
+          {avisarVotacion && (
+            <AvisoVotacionPendiente
+              competenciaId={competencia.id}
+              proximaSemana={proximaSemana}
+              onIrAVotar={onIrAVotar}
+            />
+          )}
+
+          {seVota && (
+            <VotacionCTA
+              key={votacionRefreshKey}
+              competenciaId={competencia.id}
+              semanaId={semana.id}
+              onOpen={() => onOpenVotacion(semana.id)}
+            />
+          )}
+
+          {vigentes.length > 0 ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Challenges</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {vigentes.map(ch => (
+                  <ChallengeRow key={ch.id} competenciaId={competencia.id} challenge={ch} onCompletado={onCompletado} readOnly={!isActual} />
+                ))}
+              </div>
+            </div>
+          ) : !tieneDeporte && !seVota && (
+            <div style={{ textAlign:'center', padding:'24px 16px', color:'var(--t-muted)' }}>
+              <div style={{ fontSize:28, marginBottom:8 }}>🎯</div>
+              <div style={{ fontSize:13, lineHeight:1.6 }}>Sin challenges ni deporte asignado para estos días.</div>
+            </div>
+          )}
+
+          {votacionSheetOpenId === semana.id && seVota && createPortal(
+            <VotacionSheet
+              competenciaId={competencia.id}
+              semanaId={semana.id}
+              onClose={onCloseVotacion}
+            />,
+            document.body
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SemanaPanel({ competencia, onOpenSelector }) {
   const [challenges, setChallenges] = useState(competencia?.challenges || []);
-  const [viewingSemanaId, setViewingSemanaId] = useState(competencia?.semana_actual_id ?? null);
-  const [votacionSheetOpen, setVotacionSheetOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState(competencia?.semana_actual_id ?? null);
+  const [votacionSheetOpenId, setVotacionSheetOpenId] = useState(null);
   const [votacionRefreshKey, setVotacionRefreshKey] = useState(0);
 
   useEffect(() => {
     setChallenges(competencia?.challenges || []);
-    setViewingSemanaId(competencia?.semana_actual_id ?? null);
+    setExpandedId(competencia?.semana_actual_id ?? null);
   }, [competencia]);
 
   if (!competencia) return <SinCompetencia onOpen={onOpenSelector} />;
 
   const semanasOrdenadas = [...(competencia.semanas || [])].sort((a, b) => a.numero_semana - b.numero_semana);
-  const viewingIndex = semanasOrdenadas.findIndex(s => s.id === viewingSemanaId);
-  const semanaVista = viewingIndex >= 0 ? semanasOrdenadas[viewingIndex] : null;
-  const esSemanaActual = viewingSemanaId === competencia.semana_actual_id;
-
-  function goPrev() { setVotacionSheetOpen(false); if (viewingIndex > 0) setViewingSemanaId(semanasOrdenadas[viewingIndex - 1].id); }
-  function goNext() { setVotacionSheetOpen(false); if (viewingIndex < semanasOrdenadas.length - 1) setViewingSemanaId(semanasOrdenadas[viewingIndex + 1].id); }
-
-  // Un challenge se muestra si corresponde a la semana que se está viendo: sin fechas, es "siempre
-  // vigente" (aparece en cualquier semana); con fechas, se muestra en toda semana con la que se
-  // solape (no solo si "hoy" cae en su rango) — así lo que se ve siempre es coherente con la semana
-  // que el usuario tiene abierta, sin importar la fecha real de hoy.
-  const vigentes = semanaVista
-    ? challenges.filter(ch =>
-        (!ch.fecha_inicio || !ch.fecha_fin) ||
-        (ch.fecha_inicio <= semanaVista.fecha_fin && ch.fecha_fin >= semanaVista.fecha_inicio)
-      )
-    : challenges.filter(ch => !ch.fecha_inicio || !ch.fecha_fin);
-  const tieneDeporte = !!semanaVista?.deporte_semana_nombre;
-  const seVota = !!semanaVista && semanaVista.numero_semana > 1 && !tieneDeporte;
-
-  // Si estoy viendo la semana actual, la próxima (si existe y aún no tiene deporte) es la que se vota ahora.
-  const proximaSemana = esSemanaActual && viewingIndex >= 0 && viewingIndex < semanasOrdenadas.length - 1
-    ? semanasOrdenadas[viewingIndex + 1]
-    : null;
-  const avisarVotacion = proximaSemana && !proximaSemana.deporte_semana_nombre;
 
   function handleCompletado(challengeId, nuevoValor) {
     setChallenges(prev => prev.map(ch => ch.id === challengeId ? { ...ch, completado: nuevoValor } : ch));
   }
 
+  function handleToggle(semanaId) {
+    setVotacionSheetOpenId(null);
+    setExpandedId(prev => prev === semanaId ? null : semanaId);
+  }
+
   return (
     <div style={{ paddingBottom:32 }}>
 
-      <PageHeader
-        eyebrow={competencia.nombre}
-        title={<>
-          {semanaVista ? `Semana ${semanaVista.numero_semana}` : 'Semana'}
-          {esSemanaActual && semanaVista && <span style={{ color:'var(--t-accent)' }}> · actual</span>}
-        </>}
-        titleAction={semanasOrdenadas.length > 1 && (
-          <WeekNav prev={goPrev} next={goNext} canPrev={viewingIndex > 0} canNext={viewingIndex < semanasOrdenadas.length - 1} />
-        )}
-        meta={semanaVista && `${semanaVista.fecha_inicio} al ${semanaVista.fecha_fin}`}
-      />
+      <PageHeader eyebrow={competencia.nombre} title="Semana" />
 
-      <div style={{ padding:'16px 20px 0', display:'flex', flexDirection:'column', gap:14 }}>
-
-        {/* Deporte de la semana destacado */}
-        {tieneDeporte && (
-          <div style={{
-            display:'flex', alignItems:'center', gap:14, padding:'16px 18px', borderRadius:16,
-            background:'linear-gradient(135deg, rgba(var(--t-accent-r),0.14), rgba(var(--t-accent-r),0.04))',
-            border:'1.5px solid rgba(var(--t-accent-r),0.3)',
-          }}>
-            <div style={{ fontSize:40, lineHeight:1 }}>{sportIcon(semanaVista.deporte_semana_nombre)}</div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Deporte de la semana</div>
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, marginTop:2 }}>
-                {semanaVista.deporte_semana_nombre}
-              </div>
-              <div style={{ fontSize:12, color:'var(--t-accent)', fontWeight:700, marginTop:2 }}>
-                ×{semanaVista.deporte_semana_ponderador_extra} puntos esta semana
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Aviso: la próxima semana ya tiene votación abierta y todavía no voté */}
-        {avisarVotacion && (
-          <AvisoVotacionPendiente
-            competenciaId={competencia.id}
-            proximaSemana={proximaSemana}
-            onIrAVotar={() => { goNext(); setVotacionSheetOpen(true); }}
-          />
-        )}
-
-        {/* Votación del deporte de la semana (semana 2+, hasta que cierre): el CTA ya indica si el
-            usuario votó o no, y abre un sheet con el listado completo en vez de desplegarlo inline. */}
-        {seVota && (
-          <VotacionCTA
-            key={votacionRefreshKey}
-            competenciaId={competencia.id}
-            semanaId={semanaVista.id}
-            onOpen={() => setVotacionSheetOpen(true)}
-          />
-        )}
-
-        {/* Challenges de esta semana */}
-        {vigentes.length > 0 ? (
-          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Challenges</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-              {vigentes.map(ch => (
-                <ChallengeRow key={ch.id} competenciaId={competencia.id} challenge={ch} onCompletado={handleCompletado} readOnly={!esSemanaActual} />
-              ))}
-            </div>
-          </div>
-        ) : !tieneDeporte && !seVota && (
+      <div style={{ padding:'16px 20px 0', display:'flex', flexDirection:'column', gap:10 }}>
+        {semanasOrdenadas.length === 0 && (
           <div style={{ textAlign:'center', padding:'60px 24px', color:'var(--t-muted)' }}>
             <div style={{ fontSize:40, marginBottom:12 }}>🎯</div>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:18, textTransform:'uppercase', color:'var(--t-text)', marginBottom:6 }}>
-              Sin novedades esta semana
+              Sin semanas configuradas
             </div>
             <div style={{ fontSize:13, lineHeight:1.6 }}>
-              No hay challenges ni deporte de la semana asignado para estos días.
+              Esta competencia todavía no tiene fechas, así que no hay semanas para mostrar.
             </div>
           </div>
         )}
-      </div>
+        {semanasOrdenadas.map((semana, i) => {
+          const isActual = semana.id === competencia.semana_actual_id;
+          const tieneDeporte = !!semana.deporte_semana_nombre;
+          const seVota = semana.numero_semana > 1 && !tieneDeporte;
 
-      {votacionSheetOpen && seVota && createPortal(
-        <VotacionSheet
-          competenciaId={competencia.id}
-          semanaId={semanaVista.id}
-          onClose={() => { setVotacionSheetOpen(false); setVotacionRefreshKey(k => k + 1); }}
-        />,
-        document.body
-      )}
+          // El aviso de "votación pendiente" se cuelga de la semana actual, apuntando a la próxima.
+          const proximaSemana = isActual && i < semanasOrdenadas.length - 1 ? semanasOrdenadas[i + 1] : null;
+          const avisarVotacion = !!proximaSemana && !proximaSemana.deporte_semana_nombre;
+
+          return (
+            <SemanaCard
+              key={semana.id}
+              competencia={competencia}
+              semana={semana}
+              challenges={challenges}
+              isActual={isActual}
+              expanded={expandedId === semana.id}
+              onToggle={() => handleToggle(semana.id)}
+              onCompletado={handleCompletado}
+              seVota={seVota}
+              votacionSheetOpenId={votacionSheetOpenId}
+              onOpenVotacion={setVotacionSheetOpenId}
+              onCloseVotacion={() => { setVotacionSheetOpenId(null); setVotacionRefreshKey(k => k + 1); }}
+              votacionRefreshKey={votacionRefreshKey}
+              proximaSemana={proximaSemana}
+              avisarVotacion={avisarVotacion}
+              onIrAVotar={() => { setExpandedId(proximaSemana.id); setVotacionSheetOpenId(proximaSemana.id); }}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
