@@ -404,7 +404,9 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
               No tenés grupos todavía.
             </div>
           ) : (
-            grupos.map((g, gi) => {
+            // El grupo que se está viendo ahora mismo va primero en la lista, para que quede
+            // explícito dónde estás parado sin tener que buscarlo entre todos los demás.
+            [...grupos].sort((a, b) => (b.id === grupoActivo?.id) - (a.id === grupoActivo?.id)).map((g, gi) => {
               const isGrupoActivo = grupoActivo?.id === g.id;
               const enCurso = g.competencias_en_curso ?? [];
               const finalizadas = g.competencias_finalizadas_recientes ?? [];
@@ -455,11 +457,10 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
                             setSelectorOpen(false);
                           }}
                           style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'7px 14px', background: isSel ? 'rgba(var(--t-accent-r),0.07)' : 'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                          <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ADE80', flexShrink:0 }} />
                           <span style={{ flex:1, fontSize:13.5, fontWeight:600, color: isSel ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                             {c.nombre}
                           </span>
-                          <span style={{ fontSize:9.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'#4ADE80', flexShrink:0 }}>En vivo</span>
+                          <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.12)', padding:'2px 7px', borderRadius:20, flexShrink:0 }}>En curso</span>
                           {isSel && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
                         </button>
                       );
