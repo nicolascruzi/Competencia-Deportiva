@@ -352,6 +352,15 @@ function RankingEvolucion({ acts, nombres }) {
     const maxVal = Math.max(...personLines.flat()) || 1;
     const n = allDates.length;
 
+    // Posición X proporcional al tiempo real transcurrido (no al índice): así un hueco de varias
+    // semanas sin actividad de nadie se ve como un espacio vacío, en vez de comprimirse al mismo
+    // ancho que un hueco de un día entre otro par de fechas.
+    const dayMs = 86400000;
+    const t0 = new Date(allDates[0] + 'T00:00:00Z').getTime();
+    const tEnd = new Date(allDates[n - 1] + 'T00:00:00Z').getTime();
+    const totalSpan = Math.max(tEnd - t0, dayMs);
+    const xForDate = d => pad.left + ((new Date(d + 'T00:00:00Z').getTime() - t0) / totalSpan) * w;
+
     // Gridlines
     [0, 0.25, 0.5, 0.75, 1].forEach(t => {
       const y = pad.top + h * (1 - t);
@@ -366,19 +375,30 @@ function RankingEvolucion({ acts, nombres }) {
       ctx.fillText(Math.round(maxVal * t).toLocaleString('es'), pad.left - 5, y + 4);
     });
 
-    // Etiquetas eje X
+    // Etiquetas eje X: posiciones elegidas por espacio real en el canvas (no por índice), para que
+    // reflejen el mismo criterio proporcional al tiempo que las líneas — si no, un tramo con muchas
+    // fechas seguidas "roba" todas las etiquetas y un hueco largo se queda sin ninguna.
     const maxLabels = W < 340 ? 3 : 5;
-    const step = Math.max(1, Math.floor(n / maxLabels));
+    const usedX = [];
+    const minGap = w / (maxLabels * 1.6);
     ctx.fillStyle = 'rgba(120,145,180,0.7)';
     ctx.font = `9px Inter, sans-serif`;
     ctx.textAlign = 'center';
-    allDates.forEach((d, i) => {
-      if (i % step === 0 || i === n - 1) {
-        const x = pad.left + (i / Math.max(n - 1, 1)) * w;
-        const parts = d.split('-');
-        ctx.fillText(`${parts[2]}/${parts[1]}`, x, H - 6);
-      }
-    });
+    for (let k = 0; k < maxLabels; k++) {
+      const targetX = pad.left + (k / Math.max(maxLabels - 1, 1)) * w;
+      let best = null, bestDist = Infinity;
+      allDates.forEach(d => {
+        const x = xForDate(d);
+        const dist = Math.abs(x - targetX);
+        if (dist < bestDist) { bestDist = dist; best = d; }
+      });
+      if (!best) continue;
+      const x = xForDate(best);
+      if (usedX.some(ux => Math.abs(ux - x) < minGap)) continue;
+      usedX.push(x);
+      const parts = best.split('-');
+      ctx.fillText(`${parts[2]}/${parts[1]}`, x, H - 6);
+    }
 
     // Líneas por persona
     personLines.forEach((line, pi) => {
@@ -390,7 +410,7 @@ function RankingEvolucion({ acts, nombres }) {
       ctx.lineCap = 'round';
       ctx.beginPath();
       line.forEach((val, i) => {
-        const x = pad.left + (i / Math.max(n - 1, 1)) * w;
+        const x = xForDate(allDates[i]);
         const y = pad.top + h * (1 - val / maxVal);
         i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       });
@@ -1219,6 +1239,15 @@ function Evolucion({ acts, nombres }) {
     const maxVal = Math.max(...personLines.flat()) || 1;
     const n   = allDates.length;
 
+    // Posición X proporcional al tiempo real transcurrido (no al índice): así un hueco de varias
+    // semanas sin actividad de nadie se ve como un espacio vacío, en vez de comprimirse al mismo
+    // ancho que un hueco de un día entre otro par de fechas.
+    const dayMs = 86400000;
+    const t0 = new Date(allDates[0] + 'T00:00:00Z').getTime();
+    const tEnd = new Date(allDates[n - 1] + 'T00:00:00Z').getTime();
+    const totalSpan = Math.max(tEnd - t0, dayMs);
+    const xForDate = d => pad.left + ((new Date(d + 'T00:00:00Z').getTime() - t0) / totalSpan) * w;
+
     ctx.strokeStyle = 'rgba(36,61,87,0.8)';
     ctx.lineWidth = 1;
     [0,0.25,0.5,0.75,1].forEach(t => {
@@ -1230,18 +1259,30 @@ function Evolucion({ acts, nombres }) {
       ctx.fillText(Math.round(maxVal*t).toLocaleString('es'), pad.left-5, y+4);
     });
 
+    // Etiquetas eje X: posiciones elegidas por espacio real en el canvas (no por índice), para que
+    // reflejen el mismo criterio proporcional al tiempo que las líneas — si no, un tramo con muchas
+    // fechas seguidas "roba" todas las etiquetas y un hueco largo se queda sin ninguna.
     const maxLabels = W < 340 ? 3 : W < 500 ? 4 : 6;
-    const step = Math.max(1, Math.floor(n/maxLabels));
+    const usedX = [];
+    const minGap = w / (maxLabels * 1.6);
     ctx.fillStyle = 'rgba(122,155,191,0.7)';
     ctx.font = `9px Inter, sans-serif`;
     ctx.textAlign = 'center';
-    allDates.forEach((d, i) => {
-      if (i % step === 0 || i === n-1) {
-        const x = pad.left + (i/Math.max(n-1,1))*w;
-        const parts = d.split('-');
-        ctx.fillText(`${parts[2]}/${parts[1]}`, x, H-6);
-      }
-    });
+    for (let k = 0; k < maxLabels; k++) {
+      const targetX = pad.left + (k / Math.max(maxLabels - 1, 1)) * w;
+      let best = null, bestDist = Infinity;
+      allDates.forEach(d => {
+        const x = xForDate(d);
+        const dist = Math.abs(x - targetX);
+        if (dist < bestDist) { bestDist = dist; best = d; }
+      });
+      if (!best) continue;
+      const x = xForDate(best);
+      if (usedX.some(ux => Math.abs(ux - x) < minGap)) continue;
+      usedX.push(x);
+      const parts = best.split('-');
+      ctx.fillText(`${parts[2]}/${parts[1]}`, x, H-6);
+    }
 
     personLines.forEach((line, pi) => {
       if (hidden.has(people[pi])) return;
@@ -1250,7 +1291,7 @@ function Evolucion({ acts, nombres }) {
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       ctx.beginPath();
       line.forEach((val, i) => {
-        const x = pad.left + (i/Math.max(n-1,1))*w;
+        const x = xForDate(allDates[i]);
         const y = pad.top + h*(1-val/maxVal);
         i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
       });
