@@ -5,14 +5,10 @@ const TabRanking = ({ active }) => (
   </svg>
 );
 const TabSemana = ({ active }) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>
-  </svg>
+  <span style={{ fontSize:20, lineHeight:1, opacity: active ? 1 : 0.65 }}>🎯</span>
 );
 const TabActividades = ({ active }) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-  </svg>
+  <span style={{ fontSize:20, lineHeight:1, opacity: active ? 1 : 0.65 }}>🏃</span>
 );
 const TabFeed = ({ active }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--t-accent)' : 'var(--t-muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -58,11 +54,11 @@ const TabAdminPerfil = ({ active }) => (
 );
 
 const TABS_USER = [
-  { id:'ranking',     label:'Ranking',     Icon: TabRanking },
-  { id:'calendario',  label:'Semana',      Icon: TabSemana },
-  { id:'feed',        label:'Feed',        Icon: TabFeed },
-  { id:'actividades', label:'Actividades', Icon: TabActividades },
-  { id:'perfil',      label:'Perfil',      Icon: TabPerfil },
+  { id:'ranking',     label:'Ranking',         Icon: TabRanking },
+  { id:'calendario',  label:'Desafíos',        Icon: TabSemana },
+  { id:'feed',        label:'Feed',            Icon: TabFeed },
+  { id:'actividades', label:'Mis actividades', Icon: TabActividades },
+  { id:'perfil',      label:'Perfil',          Icon: TabPerfil },
 ];
 
 const TABS_ADMIN = [
