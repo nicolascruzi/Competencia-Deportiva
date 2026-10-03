@@ -114,40 +114,56 @@ CREATE TABLE IF NOT EXISTS notificaciones (
 );
 CREATE INDEX IF NOT EXISTS idx_notificaciones_user ON notificaciones(user_id, leida);
 
+-- Renombres de deportes ya existentes al nombre/grafía oficial de la tabla de ponderadores (mismo
+-- deporte). Las actividades ya registradas guardan su propio deporte_nombre como texto congelado,
+-- así que no se ven afectadas por estos renombres del catálogo.
+UPDATE deportes SET nombre = 'Saltar la cuerda' WHERE nombre = 'Cuerda';
+UPDATE deportes SET nombre = 'Box / Kickboxing' WHERE nombre = 'Box';
+UPDATE deportes SET nombre = 'Básquetbol'       WHERE nombre = 'Basquetbol';
+UPDATE deportes SET nombre = 'Trail running'    WHERE nombre = 'Trail Running';
+
 -- Deportes con ponderadores oficiales
 INSERT INTO deportes (nombre, icono, ponderador_default) VALUES
-  ('Natación',           '🏊', 1.50),
-  ('Box',                '🥊', 1.50),
-  ('Trote',              '🏃', 1.40),
-  ('Fútbol',             '⚽', 1.40),
-  ('Basquetbol',         '🏀', 1.30),
-  ('Crossfit',           '🏋️', 1.20),
-  ('Spinning',           '🚴', 1.20),
-  ('Trail Running',      '🏃', 1.40),
-  ('Cuerda',             '🪢', 1.20),
-  ('Tenis',              '🎾', 1.10),
-  ('Bicicleta Rodillo',  '🚴', 1.10),
-  ('Escalada',           '🧗', 1.10),
-  ('Funcional',          '💪', 1.10),
-  ('Bicicleta Ruta',     '🚴', 1.10),
-  ('Gimnasio',           '🏋️', 1.00),
-  ('Elíptica',           '🏃', 1.00),
-  ('Padel',              '🏓', 0.70),
-  ('Trekking',           '🥾', 0.70),
-  ('Surf',               '🏄', 0.70),
-  ('Golf',               '⛳', 0.40),
-  ('Rodeo',              '🤠', 1.40),
-  ('Ski/Snowboard',      '⛷️', 0.30),
-  ('Bicicleta MTB',      '🚵', 1.20),
-  ('Ebike',              '⚡', 0.90),
-  ('Kine',               '🩺', 0.80),
-  ('Topeada',            '🐂', 0.40),
-  ('Buceo',              '🤿', 0.60),
-  ('Ski acuático',       '🎿', 1.50),
-  ('Gimnasia artística', '🤸', 0.80),
-  ('Atletismo',          '🏅', 0.90),
-  ('Pilates',            '🧘', 1.00),
-  ('Caminata',           '🚶', 0.60)
+  ('Box / Kickboxing',       '🥊', 1.50),
+  ('Natación',                '🏊', 1.50),
+  ('Hyrox',                   '🏆', 1.50),
+  ('Saltar la cuerda',        '🪢', 1.40),
+  ('Básquetbol',              '🏀', 1.30),
+  ('Crossfit',                '🏋️', 1.30),
+  ('HIIT',                    '🔥', 1.30),
+  ('Fútbol',                  '⚽', 1.30),
+  ('Trail running',           '⛰️', 1.30),
+  ('Bicicleta mountain bike', '🚵', 1.20),
+  ('Funcional',               '💪', 1.20),
+  ('Spinning',                '🚴', 1.20),
+  ('Trote',                   '🏃', 1.20),
+  ('Bicicleta Rodillo',       '🚲', 1.10),
+  ('Escalada',                '🧗', 1.10),
+  ('Hockey',                  '🏑', 1.10),
+  ('Tenis',                   '🎾', 1.10),
+  ('Bicicleta Ruta',          '🚴‍♂️', 1.00),
+  ('Elíptica',                '🏃‍♀️', 1.00),
+  ('Ballet',                  '🩰', 1.00),
+  ('Gimnasio',                '🏋️‍♂️', 0.90),
+  ('Pilates',                 '🧘', 1.00),
+  ('Padel',                   '🏓', 0.80),
+  ('Vóleibol',                '🏐', 0.80),
+  ('Trekking',                '🥾', 0.70),
+  ('Kine',                    '🩺', 0.60),
+  ('Yoga',                    '🧘‍♀️', 0.60),
+  ('Surf',                    '🏄', 0.50),
+  ('Traslado bicicleta',      '🚲', 0.50),
+  ('Buceo',                   '🤿', 0.40),
+  ('Golf',                    '⛳', 0.40),
+  ('Caminata deportiva',      '🚶‍♂️', 0.40),
+  ('Ski/Snowboard',           '⛷️', 0.30),
+  ('Traslado caminata',       '🚶', 0.30),
+  ('Rodeo',                   '🤠', 1.40),
+  ('Ebike',                   '⚡', 0.90),
+  ('Topeada',                 '🐂', 0.40),
+  ('Ski acuático',            '🎿', 1.50),
+  ('Gimnasia artística',      '🤸', 0.80),
+  ('Atletismo',               '🏅', 0.90)
 ON CONFLICT (nombre) DO UPDATE SET
   ponderador_default = EXCLUDED.ponderador_default,
   icono = EXCLUDED.icono;
