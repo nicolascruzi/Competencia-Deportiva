@@ -27,27 +27,42 @@ function ChallengeRow({ competenciaId, challenge, onCompletado, readOnly }) {
     }
   }
 
+  const checkbox = (
+    <div style={{
+      width:20, height:20, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
+      border: challenge.completado ? 'none' : '1.5px solid var(--t-dim2)',
+      background: challenge.completado ? 'var(--t-accent)' : 'transparent',
+      transition:'background 0.15s',
+    }}>
+      {challenge.completado && (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-ground)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      )}
+    </div>
+  );
+
   return (
-    <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, padding:'14px 16px', display:'flex', flexDirection:'column', gap:8, opacity: readOnly ? 0.75 : 1 }}>
-      <div style={{ fontSize:15, fontWeight:600, color:'var(--t-text)' }}>{challenge.texto}</div>
-      {error && <div style={{ fontSize:12, color:'#F87171' }}>{error}</div>}
+    <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
       <button onClick={handleToggle} disabled={readOnly || completando}
         style={{
-          alignSelf:'flex-start', display:'flex', alignItems:'center', gap:8, padding:'8px 16px', borderRadius:10,
+          display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:12, width:'100%', textAlign:'left',
           cursor: (readOnly || completando) ? 'default' : 'pointer',
-          fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em',
-          border: challenge.completado ? '1.5px solid rgba(var(--t-accent-r),0.4)' : 'none',
-          background: challenge.completado ? 'rgba(var(--t-accent-r),0.12)' : (readOnly ? 'var(--t-dim)' : 'var(--t-accent)'),
-          color: challenge.completado ? 'var(--t-accent)' : (readOnly ? 'var(--t-muted)' : 'var(--t-ground)'),
-          opacity: (completando || readOnly) ? 0.6 : 1,
+          border:'1px solid var(--t-dim)',
+          background: challenge.completado ? 'rgba(var(--t-accent-r),0.08)' : 'var(--t-surface)',
+          opacity: (completando || readOnly) ? 0.75 : 1, WebkitTapHighlightColor:'transparent',
         }}>
-        {challenge.completado && (
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        )}
-        {challenge.completado
-          ? (readOnly ? 'Completado' : 'Completado · Tocá para desmarcar')
-          : completando ? 'Guardando…' : `Marqué el challenge (+${challenge.puntos ?? 0} pts)`}
+        {checkbox}
+        <span style={{
+          flex:1, minWidth:0, fontSize:13.5, fontWeight:500, lineHeight:1.3,
+          color: challenge.completado ? 'var(--t-muted)' : 'var(--t-text)',
+          textDecoration: challenge.completado ? 'line-through' : 'none',
+        }}>
+          {completando ? 'Guardando…' : challenge.texto}
+        </span>
+        <span style={{ fontSize:11.5, fontWeight:700, color: challenge.completado ? 'var(--t-accent)' : 'var(--t-muted)', flexShrink:0, fontVariantNumeric:'tabular-nums' }}>
+          +{challenge.puntos ?? 0}
+        </span>
       </button>
+      {error && <div style={{ fontSize:11, color:'#F87171', paddingLeft:12 }}>{error}</div>}
     </div>
   );
 }
@@ -380,7 +395,7 @@ function SemanaCard({
           {vigentes.length > 0 ? (
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Challenges</div>
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                 {vigentes.map(ch => (
                   <ChallengeRow key={ch.id} competenciaId={competencia.id} challenge={ch} onCompletado={onCompletado} readOnly={!isActual} />
                 ))}
