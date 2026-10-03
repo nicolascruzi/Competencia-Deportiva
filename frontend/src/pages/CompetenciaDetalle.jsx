@@ -2516,7 +2516,7 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'10px 12px', borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)' }}>
               <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Extra (×)</span>
               <input
-                type="number" inputMode="decimal" min="0" step="0.1" disabled={readOnly}
+                type="number" inputMode="decimal" min="0" step="0.01" disabled={readOnly}
                 value={bonusDeporteSemana} onChange={e => setBonusDeporteSemana(e.target.value)}
                 style={{ width:80, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none' }}
               />
