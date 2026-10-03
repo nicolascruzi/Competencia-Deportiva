@@ -56,7 +56,7 @@ const IconBell = () => (
   </svg>
 );
 
-export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCurso, onSelectCompetenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onSalirGrupo, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
+export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCurso, onSelectCompetenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onSalirGrupo, onBorrarGrupo, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
   const { themeId, setTheme, palettes } = useTheme();
   const { notifs, unread, markRead, markAll } = useNotifications() || { notifs: [], unread: 0, markRead: () => {}, markAll: () => {} };
   const [selectorOpen, setSelectorOpen]   = useState(false);
@@ -68,6 +68,8 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
   const [pinCopied, setPinCopied]         = useState(false);
   const [salirLoading, setSalirLoading]   = useState(false);
   const [salirError, setSalirError]       = useState('');
+  const [borrarLoading, setBorrarLoading] = useState(false);
+  const [borrarError, setBorrarError]     = useState('');
 
   const selectorRef = useRef(null);
   const settingsRef = useRef(null);
@@ -584,6 +586,37 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
             )}
             {salirError && (
               <div style={{ padding:'8px 16px', fontSize:12, color:'var(--t-danger)' }}>{salirError}</div>
+            )}
+            {grupoActivo && isAdmin && (
+              <button
+                disabled={borrarLoading}
+                onClick={async () => {
+                  if (!confirm(`¿Borrar "${grupoActivo.nombre}" para SIEMPRE? Se pierde para todos los participantes, junto con sus competencias, equipos y challenges. Esto no se puede deshacer.`)) return;
+                  const nombreEscrito = prompt(`Para confirmar, escribí exactamente el nombre del grupo:\n\n${grupoActivo.nombre}`);
+                  if (nombreEscrito == null) return;
+                  setBorrarLoading(true); setBorrarError('');
+                  try {
+                    await onBorrarGrupo?.(grupoActivo.id, nombreEscrito);
+                    setSettingsOpen(false); setSettingsView('root');
+                  } catch (err) {
+                    setBorrarError(err.message);
+                  } finally {
+                    setBorrarLoading(false);
+                  }
+                }}
+                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor: borrarLoading ? 'default' : 'pointer', opacity: borrarLoading ? 0.6 : 1, WebkitTapHighlightColor:'transparent' }}>
+                <span style={{ color:'var(--t-danger)', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                  </svg>
+                </span>
+                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-danger)', textAlign:'left' }}>
+                  {borrarLoading ? 'Borrando…' : 'Borrar grupo'}
+                </span>
+              </button>
+            )}
+            {borrarError && (
+              <div style={{ padding:'8px 16px', fontSize:12, color:'var(--t-danger)' }}>{borrarError}</div>
             )}
           </div>
         </div>

@@ -9,6 +9,7 @@ export const crearCompetenciaGrupo = (id, body) => apiFetch(`/grupos/${id}/compe
 export const cerrarCompetenciaGrupo = (id, compId) => apiFetch(`/grupos/${id}/competencias/${compId}/cerrar`, { method: 'POST' });
 export const borrarCompetenciaGrupo = (id, compId) => apiFetch(`/grupos/${id}/competencias/${compId}`, { method: 'DELETE' });
 export const salirDeGrupo           = (id)         => apiFetch(`/grupos/${id}/participantes/me`, { method: 'DELETE' });
+export const borrarGrupo            = (id, confirmarNombre) => apiFetch(`/grupos/${id}`, { method: 'DELETE', body: JSON.stringify({ confirmarNombre }) });
 
 export const getEquiposGrupo      = (id)              => apiFetch(`/grupos/${id}/equipos`);
 export const updateEquiposGrupo   = (id, equipos)      => apiFetch(`/grupos/${id}/equipos`, { method: 'PUT', body: JSON.stringify({ equipos }) });

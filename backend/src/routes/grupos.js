@@ -452,6 +452,30 @@ router.delete('/:id/competencias/:compId', authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /grupos/:id — borra el grupo completo (admin). Irreversible: se pierden en cascada todas
+// sus competencias (y lo que cuelga de cada una: semanas, challenges, ponderadores, equipos, votos,
+// vínculos de actividad) y la pertenencia de todos los participantes al grupo. Las actividades de
+// cada usuario (actividades) no se tocan — no tienen FK a grupo. Exige confirmar escribiendo el
+// nombre exacto del grupo, dado que afecta a todos los participantes, no solo a quien la pide.
+router.delete('/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { confirmarNombre } = req.body;
+  try {
+    const { rows: [grupo] } = await pool.query('SELECT id, nombre FROM grupos WHERE id=$1', [id]);
+    if (!grupo) return res.status(404).json({ error: 'Grupo no encontrado' });
+    if (!(await esAdminDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede borrar el grupo' });
+    if ((confirmarNombre || '').trim() !== grupo.nombre) {
+      return res.status(400).json({ error: 'El nombre no coincide. Escribí el nombre del grupo tal cual para confirmar.' });
+    }
+
+    await pool.query('DELETE FROM grupos WHERE id=$1', [id]);
+    res.json({ ok: true, id: grupo.id, nombre: grupo.nombre });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al borrar el grupo' });
+  }
+});
+
 // ── EQUIPOS (del grupo) ──────────────────────────────────────────────────────
 
 // GET /grupos/:id/equipos — lista equipos con sus miembros
