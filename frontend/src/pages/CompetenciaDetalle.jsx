@@ -2695,7 +2695,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
   async function handleSave() {
     setSaving(true); setError('');
     try {
-      await updateSemanas(competencia.id, semanas.filter(s => s.numero_semana === 1).map(s => ({
+      await updateSemanas(competencia.id, semanas.filter(s => s.numero_semana === 1 || s.id === competencia.semana_actual_id).map(s => ({
         id: s.id,
         deporte_semana_nombre: s.deporte_semana_nombre,
         deporte_semana_ponderador_extra: s.deporte_semana_ponderador_extra,
@@ -2820,14 +2820,17 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
             )}
           </div>
 
-          {/* ── Deporte de la semana 1 (única editable a mano; desde la semana 2 se decide por votación) ── */}
-          {semanas.some(s => s.numero_semana === 1) && (
+          {/* ── Deporte de la semana editable a mano: siempre la semana 1, y además la semana actual
+              (sea cual sea su número) — así el admin puede corregirlo aunque ya haya votación. ── */}
+          {semanas.some(s => s.numero_semana === 1 || s.id === competencia.semana_actual_id) && (
             <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deporte de la semana 1</div>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deporte de la semana</div>
               <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>
-                Desde la semana 2 el deporte se decide por votación de los participantes, en la pestaña Semana.
+                La semana 1 se fija a mano. De la semana 2 en adelante se decide por votación de los participantes, pero podés sobreescribir la semana actual.
               </div>
-              {semanas.filter(s => s.numero_semana === 1).map(s => {
+              {semanas.filter(s => s.numero_semana === 1 || s.id === competencia.semana_actual_id)
+                .sort((a, b) => a.numero_semana - b.numero_semana)
+                .map(s => {
                 const isOpen = abierta === s.id;
                 const isActual = s.id === competencia.semana_actual_id;
                 const tieneContenido = !!s.deporte_semana_nombre;

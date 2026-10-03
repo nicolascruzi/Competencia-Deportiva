@@ -309,14 +309,22 @@ router.put('/:id/semanas', authMiddleware, async (req, res) => {
 
     if (!Array.isArray(semanas)) return res.status(400).json({ error: 'semanas debe ser un array' });
 
+    const hoy = new Date().toISOString().slice(0, 10);
+
     for (const s of semanas) {
       if (s.id == null) continue;
-      // Solo la semana 1 se fija a mano — de la 2 en adelante el deporte se decide por votación.
+      // La semana 1 se fija a mano siempre; de la 2 en adelante el deporte se decide por votación,
+      // pero el admin puede igual sobreescribirlo a mano solo para la semana actual (hoy cae dentro
+      // de su rango de fechas) — no para una pasada ni una futura todavía no vigente.
       const { rows: [semana] } = await pool.query(
-        'SELECT numero_semana FROM competencia_semanas WHERE id=$1 AND competencia_id=$2',
+        `SELECT numero_semana,
+                TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
+         FROM competencia_semanas WHERE id=$1 AND competencia_id=$2`,
         [parseInt(s.id), id]
       );
-      if (!semana || semana.numero_semana !== 1) continue;
+      if (!semana) continue;
+      const esSemanaActual = semana.fecha_inicio <= hoy && hoy <= semana.fecha_fin;
+      if (semana.numero_semana !== 1 && !esSemanaActual) continue;
       await pool.query(
         `UPDATE competencia_semanas
          SET deporte_semana_nombre=$1, deporte_semana_ponderador_extra=$2, updated_at=NOW()
