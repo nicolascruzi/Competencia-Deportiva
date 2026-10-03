@@ -76,6 +76,33 @@ export const PALETTES = {
       '--t-card-shadow':'rgba(0,0,0,0.4)',
     },
   },
+  summa: {
+    id: 'summa',
+    nombre: 'Summa corporativo',
+    descripcion: 'Fondo gris claro · acento azul intenso',
+    // El quinto swatch del preview es el cyan de marca (#00BED6), solo decorativo
+    // aquí — la app nunca lo usa como variable de texto o acento funcional.
+    preview: ['#F2F4F7', '#FFFFFF', '#D9D9D9', '#656565', '#031843', '#00BED6'],
+    vars: {
+      '--t-ground':    '#F2F4F7',
+      '--t-surface':   '#FFFFFF',
+      '--t-surface2':  '#F7F8FA',
+      '--t-dim':       '#D9D9D9',
+      '--t-dim2':      '#BCC2CB',
+      '--t-text':      '#031843',
+      '--t-muted':     '#656565',
+      '--t-muted2':    '#6F7787',
+      '--t-accent':    '#031843',
+      '--t-accent-r':  '3,24,67',
+      '--t-brand':     '#031843',
+      '--t-danger':    '#A32820',
+      '--t-nav-bg':    '#FFFFFF',
+      '--t-nav-border':'#D9D9D9',
+      '--t-tab-bg':    '#FFFFFF',
+      '--t-overlay':   'rgba(3,24,67,0.55)',
+      '--t-card-shadow':'rgba(3,24,67,0.08)',
+    },
+  },
 };
 
 const DEFAULT = 'tierra';
