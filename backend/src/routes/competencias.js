@@ -184,6 +184,38 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
       await pool.query(`UPDATE competencias SET ${sets.join(', ')} WHERE id=$${params.length}`, params);
     }
 
+    // Si cambió el rango de fechas, resincronizar actividad_competencias: el vínculo se crea una
+    // sola vez al registrar la actividad (comparando contra las fechas vigentes en ese momento) y
+    // nunca se revisa de nuevo, así que mover fecha_inicio/fecha_fin puede dejar afuera actividades
+    // que ahora sí entran en rango, o adentro actividades que ahora quedaron fuera. Se reconstruye
+    // desde cero a partir de las actividades de los participantes del grupo.
+    if (fecha_inicio !== undefined || fecha_fin !== undefined) {
+      await pool.query('DELETE FROM actividad_competencias WHERE competencia_id=$1', [id]);
+      if (nuevaFechaInicio && nuevaFechaFin) {
+        await pool.query(
+          `INSERT INTO actividad_competencias (actividad_id, competencia_id)
+           SELECT a.id, $1
+           FROM actividades a
+           JOIN grupo_participantes gp ON gp.user_id = a.user_id
+           JOIN competencias c ON c.id = $1 AND c.grupo_id = gp.grupo_id
+           WHERE a.fecha BETWEEN c.fecha_inicio AND c.fecha_fin
+           ON CONFLICT DO NOTHING`,
+          [id]
+        );
+      } else {
+        // Sin rango de fechas: la competencia acepta todas las actividades de sus participantes.
+        await pool.query(
+          `INSERT INTO actividad_competencias (actividad_id, competencia_id)
+           SELECT a.id, $1
+           FROM actividades a
+           JOIN grupo_participantes gp ON gp.user_id = a.user_id
+           JOIN competencias c ON c.id = $1 AND c.grupo_id = gp.grupo_id
+           ON CONFLICT DO NOTHING`,
+          [id]
+        );
+      }
+    }
+
     // Recalcular semanas para el nuevo rango. Una semana existente se identifica por su
     // fecha_inicio real (no por numero_semana, que puede correrse de posición si cambian las
     // fechas) — así conserva su deporte-de-la-semana/challenges/votos mientras sus días no cambien.
