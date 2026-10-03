@@ -802,9 +802,10 @@ function calcularProgresoCompetencia(fechaInicio, fechaFin) {
   const totalDias = Math.round((new Date(fechaFin + 'T00:00:00Z') - new Date(fechaInicio + 'T00:00:00Z')) / 86400000) + 1;
   if (totalDias <= 0) return null;
 
-  const diasTranscurridos = Math.round((new Date(hoy + 'T00:00:00Z') - new Date(fechaInicio + 'T00:00:00Z')) / 86400000) + 1;
+  const diasTranscurridosRaw = Math.round((new Date(hoy + 'T00:00:00Z') - new Date(fechaInicio + 'T00:00:00Z')) / 86400000) + 1;
+  const diasTranscurridos = Math.max(0, Math.min(totalDias, diasTranscurridosRaw));
   const diasRestantes = totalDias - diasTranscurridos;
-  const pct = Math.max(0, Math.min(100, (diasTranscurridos / totalDias) * 100));
+  const pct = Math.max(0, Math.min(100, (diasTranscurridosRaw / totalDias) * 100));
 
   let label, labelCorto;
   if (hoy < fechaInicio)      { label = 'Todavía no empieza'; labelCorto = 'Por empezar'; }
@@ -813,7 +814,7 @@ function calcularProgresoCompetencia(fechaInicio, fechaFin) {
   else if (diasRestantes === 1) { label = 'Queda 1 día'; labelCorto = '1 día'; }
   else                        { label = `Quedan ${diasRestantes} días`; labelCorto = `${diasRestantes} días`; }
 
-  return { pct, label, labelCorto, diasRestantes };
+  return { pct, label, labelCorto, diasRestantes, diasTranscurridos, totalDias };
 }
 
 // Barra compacta de avance temporal, pensada para el header junto al título (poco espacio vertical).
@@ -822,12 +823,18 @@ function ProgresoCompetenciaCompacto({ fechaInicio, fechaFin }) {
   if (!p) return null;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3, flexShrink:0, width:70 }}>
-      <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-muted)', whiteSpace:'nowrap' }}>
-        {p.labelCorto}
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0, width:108 }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap:4, whiteSpace:'nowrap' }}>
+        <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-text)', lineHeight:1 }}>
+          Día {p.diasTranscurridos}
+        </span>
+        <span style={{ fontSize:11, color:'var(--t-muted)', lineHeight:1 }}>de {p.totalDias}</span>
       </div>
-      <div style={{ position:'relative', width:'100%', height:6, borderRadius:999, background:'var(--t-dim)', overflow:'hidden' }}>
-        <div style={{ position:'absolute', inset:0, width:`${p.pct}%`, borderRadius:999, background:'var(--t-accent)', transition:'width 0.3s' }} />
+      <div style={{ position:'relative', width:'100%', height:8, borderRadius:999, background:'var(--t-dim2)', border:'1px solid rgba(var(--t-accent-r),0.25)', overflow:'hidden' }}>
+        <div style={{ position:'absolute', inset:0, width:`${p.pct}%`, borderRadius:999, background:'var(--t-accent)', boxShadow:'0 0 0 1px rgba(var(--t-accent-r),0.4)', transition:'width 0.3s' }} />
+      </div>
+      <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-accent)', whiteSpace:'nowrap' }}>
+        {p.labelCorto}
       </div>
     </div>
   );
@@ -2849,7 +2856,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
                           {deportes.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
                         </select>
                         <input
-                          type="number" inputMode="decimal" min="0.1" step="0.1" placeholder="Extra" disabled={readOnly || !s.deporte_semana_nombre}
+                          type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="Extra" disabled={readOnly || !s.deporte_semana_nombre}
                           value={s.deporte_semana_ponderador_extra ?? ''}
                           onChange={e => updateSemana(s.id, { deporte_semana_ponderador_extra: e.target.value })}
                           style={{ width:70, flexShrink:0, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', opacity: s.deporte_semana_nombre ? 1 : 0.5 }}

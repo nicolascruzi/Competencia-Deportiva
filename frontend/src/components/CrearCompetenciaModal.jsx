@@ -471,7 +471,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
                               {deportes.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
                             </select>
                             <input
-                              type="number" inputMode="decimal" min="0.1" step="0.1" placeholder="Extra"
+                              type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="Extra"
                               value={data.deporte_semana_ponderador_extra ?? ''}
                               onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_ponderador_extra: e.target.value } }))}
                               disabled={!data.deporte_semana_nombre}
