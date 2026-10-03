@@ -37,6 +37,8 @@
   --t-nav-bg:    #FAFAF8;
   --t-nav-border:#E5DFD5;
   --t-tab-bg:    #FAFAF8;
+  --t-header-bg:  #FAFAF8;
+  --t-header-text:#C4703A;
   --t-overlay:   rgba(44,31,20,0.55);
   --t-card-shadow:rgba(44,31,20,0.08);
 }

@@ -145,7 +145,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
   return (
     <>
       {/* Status bar cover */}
-      <div style={{ position:'fixed', top:0, left:0, right:0, height:'env(safe-area-inset-top)', background:'var(--t-nav-bg)', zIndex:51 }} />
+      <div style={{ position:'fixed', top:0, left:0, right:0, height:'env(safe-area-inset-top)', background:'var(--t-header-bg)', zIndex:51 }} />
 
       {/* ── HEADER ── */}
       <header style={{
@@ -153,7 +153,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
         height: 52,
         display: 'grid', gridTemplateColumns: '44px 1fr auto', alignItems: 'center',
         padding: '0 10px',
-        background: 'var(--t-nav-bg)',
+        background: 'var(--t-header-bg)',
         borderBottom: '1px solid var(--t-nav-border)',
         marginTop: 'env(safe-area-inset-top)',
       }}>
@@ -161,7 +161,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
         {isGlobalAdmin
           ? <div />
           : <button onClick={onNewActivity} aria-label="Registrar actividad"
-              style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-accent)', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-header-text)', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
               <IconPlus />
             </button>
         }
@@ -169,10 +169,10 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
         {/* Centro: título */}
         {isGlobalAdmin
           ? <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--t-accent)' }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--t-header-text)' }}>
                 Admin
               </span>
-              <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.08em', color:'var(--t-ground)', background:'var(--t-accent)', padding:'2px 6px', borderRadius:5 }}>
+              <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.08em', color:'var(--t-header-bg)', background:'var(--t-header-text)', padding:'2px 6px', borderRadius:5 }}>
                 SUPER
               </span>
             </div>
@@ -184,10 +184,10 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
               onTouchEnd={onTitlePressEnd}
               onClick={onTitleClick}
               style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'transparent', border:'none', cursor:'pointer', padding:'4px 0', WebkitTapHighlightColor:'transparent', minWidth:0 }}>
-              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--t-accent)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'calc(100vw - 120px)' }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--t-header-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'calc(100vw - 120px)' }}>
                 Pura Racha
               </span>
-              <span style={{ color:'var(--t-muted)', flexShrink:0, marginTop:1 }}><IconChevron /></span>
+              <span style={{ color:'var(--t-header-text)', opacity:0.65, flexShrink:0, marginTop:1 }}><IconChevron /></span>
             </button>
         }
 
@@ -198,16 +198,16 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
               <button
                 onClick={() => { setNotifOpen(o => !o); setSelectorOpen(false); setSettingsOpen(false); }}
                 aria-label="Notificaciones"
-                style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: unread > 0 ? 'var(--t-accent)' : 'var(--t-muted)', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'color 0.15s' }}>
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color: unread > 0 ? 'var(--t-header-text)' : 'var(--t-header-text)', opacity: unread > 0 ? 1 : 0.65, cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'color 0.15s' }}>
                 <IconBell />
               </button>
               {unread > 0 && (
-                <span style={{ position:'absolute', top:5, right:5, width:8, height:8, borderRadius:'50%', background:'var(--t-accent)', border:'1.5px solid var(--t-nav-bg)', display:'block' }} />
+                <span style={{ position:'absolute', top:5, right:5, width:8, height:8, borderRadius:'50%', background:'var(--t-header-text)', border:'1.5px solid var(--t-header-bg)', display:'block' }} />
               )}
             </div>
           )}
           <button onClick={() => { setSettingsOpen(o => !o); setSettingsView('root'); setNotifOpen(false); }} aria-label="Configuración"
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-accent)', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'color 0.15s' }}>
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, border:'none', background:'transparent', color:'var(--t-header-text)', cursor:'pointer', WebkitTapHighlightColor:'transparent', transition:'color 0.15s' }}>
             <IconSettings />
           </button>
         </div>
