@@ -1898,7 +1898,6 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
     sportMap[a.deporte_nombre].sesiones++;
   });
   const sportRows = Object.entries(sportMap).sort((a, b) => b[1].pts - a[1].pts);
-  const deporteFavorito = sportRows[0]?.[0] ?? null;
 
   const rachaActual = computeRacha(data);
 
@@ -1990,20 +1989,9 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
                   : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:30, color:'var(--t-accent)' }}>{displayNombre.charAt(0).toUpperCase()}</span>
                 }
               </div>
-              {rachaActual > 0 && (
-                <div style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'2px 8px 2px 6px', borderRadius:20, background:'rgba(251,146,60,0.14)', border:'1px solid rgba(251,146,60,0.3)', marginTop:8 }}>
-                  <span style={{ fontSize:11 }}>🔥</span>
-                  <span style={{ fontSize:11, fontWeight:700, color:'#FB923C' }}>{rachaActual}d</span>
-                </div>
-              )}
-              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:7, textAlign:'center', maxWidth:110, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:16, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', marginTop:8, textAlign:'center', maxWidth:110, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 {displayNombre}
               </div>
-              {deporteFavorito && (
-                <div style={{ fontSize:11, color:'var(--t-muted)', textAlign:'center', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:110, marginTop:2 }}>
-                  {sportIcon(deporteFavorito)} {deporteFavorito}
-                </div>
-              )}
             </div>
 
             {/* Stats, minimalistas: solo texto, sin tarjetas */}
