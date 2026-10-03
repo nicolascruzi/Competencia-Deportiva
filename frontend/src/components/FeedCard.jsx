@@ -325,13 +325,6 @@ export function FeedCard({ act, user, onLightbox, onOpenProfile }) {
       <div style={{ display:'flex', alignItems:'center', gap:0, padding:'10px 14px 4px' }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
           <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:'var(--t-accent)', lineHeight:1 }}>
-            {Math.round(act.puntos)}
-          </span>
-          <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</span>
-        </div>
-        <div style={{ width:1, height:16, background:'var(--t-surface2)', margin:'0 12px' }} />
-        <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, fontSize:16, color:'var(--t-muted)', lineHeight:1 }}>
             {Math.round(parseFloat(act.minutos))}
           </span>
           <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
