@@ -443,7 +443,17 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
 
   if (!competencia) return <SinCompetencia onOpen={onOpenSelector} />;
 
-  const semanasOrdenadas = [...(competencia.semanas || [])].sort((a, b) => a.numero_semana - b.numero_semana);
+  // Orden cronológico real (para calcular "la próxima semana" de forma correcta) vs. orden de
+  // visualización: la semana actual siempre va primero, y el resto (pasadas y futuras) debajo,
+  // manteniendo entre ellas el orden cronológico.
+  const semanasCronologicas = [...(competencia.semanas || [])].sort((a, b) => a.numero_semana - b.numero_semana);
+  const semanasOrdenadas = [...semanasCronologicas].sort((a, b) => {
+    const aEsActual = a.id === competencia.semana_actual_id;
+    const bEsActual = b.id === competencia.semana_actual_id;
+    if (aEsActual && !bEsActual) return -1;
+    if (bEsActual && !aEsActual) return 1;
+    return a.numero_semana - b.numero_semana;
+  });
 
   function handleCompletado(challengeId, nuevoValor) {
     setChallenges(prev => prev.map(ch => ch.id === challengeId ? { ...ch, completado: nuevoValor } : ch));
@@ -472,13 +482,17 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
             </div>
           </div>
         )}
-        {semanasOrdenadas.map((semana, i) => {
+        {semanasOrdenadas.map((semana) => {
           const isActual = semana.id === competencia.semana_actual_id;
           const tieneDeporte = !!semana.deporte_semana_nombre;
           const seVota = semana.numero_semana > 1 && !tieneDeporte;
 
-          // El aviso de "votación pendiente" se cuelga de la semana actual, apuntando a la próxima.
-          const proximaSemana = isActual && i < semanasOrdenadas.length - 1 ? semanasOrdenadas[i + 1] : null;
+          // El aviso de "votación pendiente" se cuelga de la semana actual, apuntando a la próxima
+          // en orden cronológico real (no en el orden de visualización, que la mueve al frente).
+          const indiceCronologico = semanasCronologicas.findIndex(s => s.id === semana.id);
+          const proximaSemana = isActual && indiceCronologico < semanasCronologicas.length - 1
+            ? semanasCronologicas[indiceCronologico + 1]
+            : null;
           const avisarVotacion = !!proximaSemana && !proximaSemana.deporte_semana_nombre;
 
           return (
