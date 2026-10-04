@@ -6,7 +6,6 @@ import {
   getCompetenciasGrupo, cerrarCompetenciaGrupo, borrarCompetenciaGrupo,
 } from '../api/grupos';
 import { getRankingComp } from '../api/competencias';
-import PageHeader from '../components/PageHeader';
 import SubTabs from '../components/SubTabs';
 import NuevaCompetenciaSheet from '../components/NuevaCompetenciaSheet';
 import {
@@ -49,6 +48,12 @@ const IconTrophy = () => (
 const IconStop = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="5" y="5" width="14" height="14" rx="2"/>
+  </svg>
+);
+const IconUsersBig = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
   </svg>
 );
 
@@ -519,30 +524,45 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
 
   return (
     <div style={{ position:'fixed', inset:0, zIndex:150, background:'var(--t-ground)', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
-      <div style={{ position:'relative' }}>
-        <div style={{ position:'absolute', top:14, left:14, zIndex:20 }}>
-          <button onClick={onClose} aria-label="Volver"
-            style={{ width:30, height:30, display:'flex', alignItems:'center', justifyContent:'center', background:'transparent', border:'none', color:'var(--t-muted)', cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
-            <IconBack />
-          </button>
-        </div>
-        <PageHeader
-          eyebrow="Grupo"
-          title={
-            editandoNombre ? (
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+      <div style={{
+        position:'relative', overflow:'hidden', padding:'14px 20px 18px',
+        background:'linear-gradient(180deg, rgba(var(--t-accent-r),0.14) 0%, rgba(var(--t-accent-r),0.03) 60%, transparent 100%)',
+      }}>
+        <div style={{ position:'absolute', top:-60, right:-40, width:180, height:180, borderRadius:'50%', background:'radial-gradient(circle, rgba(var(--t-accent-r),0.2) 0%, transparent 70%)', pointerEvents:'none' }} />
+
+        <button onClick={onClose}
+          style={{ display:'flex', alignItems:'center', gap:5, background:'transparent', border:'none', color:'var(--t-muted)', cursor:'pointer', padding:0, marginBottom:14, WebkitTapHighlightColor:'transparent', position:'relative' }}>
+          <IconBack /> <span style={{ fontSize:13, fontWeight:600 }}>Atrás</span>
+        </button>
+
+        <div style={{ display:'flex', alignItems:'center', gap:14, position:'relative' }}>
+          <div style={{
+            width:52, height:52, borderRadius:16, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
+            background:'rgba(var(--t-accent-r),0.14)', color:'var(--t-accent)',
+          }}>
+            <IconUsersBig />
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            {editandoNombre ? (
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <input
                   autoFocus
                   value={nombreDraft}
                   onChange={e => setNombreDraft(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleGuardarNombre(); if (e.key === 'Escape') { setEditandoNombre(false); setNombreDraft(nombreActual); } }}
                   disabled={guardandoNombre}
-                  style={{ flex:1, minWidth:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(22px,6vw,30px)', textTransform:'uppercase', color:'var(--t-text)', background:'var(--t-surface2)', border:'1.5px solid var(--t-accent)', borderRadius:8, padding:'2px 8px', outline:'none' }}
+                  style={{ flex:1, minWidth:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(20px,6vw,28px)', textTransform:'uppercase', color:'var(--t-text)', background:'var(--t-surface2)', border:'1.5px solid var(--t-accent)', borderRadius:8, padding:'2px 8px', outline:'none' }}
                 />
+                <button onClick={handleGuardarNombre} disabled={guardandoNombre}
+                  style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)', background:'transparent', border:'none', cursor:'pointer', flexShrink:0 }}>
+                  {guardandoNombre ? '…' : 'Guardar'}
+                </button>
               </div>
             ) : (
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{nombreActual}</span>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:'clamp(20px,6vw,28px)', textTransform:'uppercase', lineHeight:1, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {nombreActual}
+                </span>
                 {isAdmin && (
                   <button onClick={() => { setNombreDraft(nombreActual); setEditandoNombre(true); }} aria-label="Editar nombre del grupo"
                     style={{ color:'var(--t-muted)', background:'transparent', border:'none', cursor:'pointer', padding:2, display:'flex', flexShrink:0 }}>
@@ -550,17 +570,14 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
                   </button>
                 )}
               </div>
-            )
-          }
-          titleAction={editandoNombre && (
-            <button onClick={handleGuardarNombre} disabled={guardandoNombre}
-              style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)', background:'transparent', border:'none', cursor:'pointer', flexShrink:0 }}>
-              {guardandoNombre ? '…' : 'Guardar'}
-            </button>
-          )}
-        />
+            )}
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)', marginTop:3 }}>
+              Grupo
+            </div>
+          </div>
+        </div>
         {errorNombre && (
-          <div style={{ margin:'0 20px 10px', fontSize:12, color:'var(--t-danger)' }}>{errorNombre}</div>
+          <div style={{ marginTop:10, fontSize:12, color:'var(--t-danger)', position:'relative' }}>{errorNombre}</div>
         )}
       </div>
 

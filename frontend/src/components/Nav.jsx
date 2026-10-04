@@ -263,14 +263,17 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
 
               return (
                 <div key={g.id} style={{ borderTop: gi > 0 ? '1px solid var(--t-dim)' : 'none', padding:'10px 0' }}>
-                  {/* Fila del grupo: el nombre entra al grupo aunque no tenga ninguna competencia
-                      en curso (si tiene, entra directo a la primera en curso) — sin esto, un grupo
-                      sin competencias activas quedaba inalcanzable. "Ver integrantes →" es un link
-                      explícito (no solo un ícono mudo) que abre el popup con el listado completo
-                      (y ahí, borrar grupo / sacar a alguien si eres admin). */}
+                  {/* Fila del grupo: tocar el nombre entra a la pantalla completa del grupo
+                      (integrantes, competencias, configuración) — desde ahí se elige qué
+                      competencia ver. Las competencias en curso también están anidadas abajo
+                      como atajo directo a su ranking, sin pasar por la pantalla del grupo. */}
                   <div style={{ padding:'0 18px 6px' }}>
                     <button
-                      onClick={() => { onSelectGrupo({ ...g, competencias_en_curso: enCurso }); setSelectorOpen(false); }}
+                      onClick={() => {
+                        setSelectorOpen(false);
+                        onSelectGrupo({ ...g, competencias_en_curso: enCurso });
+                        onAbrirDetalleGrupo?.({ ...g, competencias_en_curso: enCurso });
+                      }}
                       style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'4px 0', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
                       <span style={{ color: isGrupoActivo ? 'var(--t-accent)' : 'var(--t-muted)', flexShrink:0 }}><IconUsers /></span>
                       <div style={{ flex:1, minWidth:0 }}>
@@ -279,14 +282,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
                         </div>
                       </div>
                       {isGrupoActivo && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
-                    </button>
-                    <button
-                      onClick={() => { setSelectorOpen(false); onAbrirDetalleGrupo?.({ ...g, competencias_en_curso: enCurso }); }}
-                      style={{ display:'flex', alignItems:'center', gap:4, marginTop:2, marginLeft:18, padding:'2px 0', background:'transparent', border:'none', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
-                      <span style={{ fontSize:11, fontWeight:600, color:'var(--t-accent)', textDecoration:'underline', textUnderlineOffset:2 }}>
-                        Ver {g.participantes} integrante{g.participantes !== 1 ? 's' : ''}
-                      </span>
-                      <span style={{ color:'var(--t-accent)', fontSize:11 }}>→</span>
+                      <span style={{ color:'var(--t-muted)', flexShrink:0 }}><IconChevronRight /></span>
                     </button>
                   </div>
 
