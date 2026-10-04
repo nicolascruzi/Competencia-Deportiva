@@ -35,6 +35,22 @@ const IconBack = () => (
     <path d="M15 18l-6-6 6-6"/>
   </svg>
 );
+const IconDots = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+  </svg>
+);
+const IconTrophy = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+    <path d="M6 4h12v6a6 6 0 01-12 0V4z"/><path d="M12 16v4"/><path d="M8 20h8"/>
+  </svg>
+);
+const IconStop = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="5" y="5" width="14" height="14" rx="2"/>
+  </svg>
+);
 
 function fmtFecha(iso) {
   if (!iso) return '';
@@ -169,6 +185,85 @@ function TabIntegrantes({ grupo, isAdmin, onSalirGrupo, onBorrarGrupo }) {
   );
 }
 
+// ─── Card de una competencia dentro del listado ───────────────────────────────
+
+function CompetenciaCard({ competencia: c, isAdmin, cerrando, borrando, onAbrir, onCerrar, onBorrar }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const enCurso = c.estado === 'en_curso';
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onClickFuera(e) { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); }
+    document.addEventListener('mousedown', onClickFuera);
+    return () => document.removeEventListener('mousedown', onClickFuera);
+  }, [menuOpen]);
+
+  return (
+    <div style={{
+      position:'relative', width:'100%', borderRadius:16,
+      background: enCurso ? 'linear-gradient(135deg, rgba(var(--t-accent-r),0.1), rgba(var(--t-accent-r),0.02))' : 'var(--t-surface2)',
+      border: enCurso ? '1px solid rgba(var(--t-accent-r),0.25)' : '1px solid var(--t-dim)',
+    }}>
+      <button onClick={onAbrir}
+        style={{ display:'flex', alignItems:'flex-start', gap:12, width:'100%', padding:'16px 16px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+        <div style={{
+          width:40, height:40, borderRadius:12, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
+          background: enCurso ? 'rgba(var(--t-accent-r),0.16)' : 'var(--t-dim)',
+          color: enCurso ? 'var(--t-accent)' : 'var(--t-muted)',
+        }}>
+          <IconTrophy />
+        </div>
+        <div style={{ flex:1, minWidth:0, paddingTop:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.01em', color:'var(--t-text)', lineHeight:1.2, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+            {c.nombre}
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6, flexWrap:'wrap' }}>
+            <span style={{
+              fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', padding:'3px 8px', borderRadius:20, flexShrink:0,
+              color: enCurso ? 'var(--t-accent)' : 'var(--t-muted)',
+              background: enCurso ? 'rgba(var(--t-accent-r),0.14)' : 'var(--t-dim)',
+            }}>
+              {enCurso ? '● En curso' : 'Finalizada'}
+            </span>
+            <span style={{ fontSize:11.5, color:'var(--t-muted)' }}>
+              {c.fecha_inicio ? `${fmtFecha(c.fecha_inicio)} al ${fmtFecha(c.fecha_fin)}` : 'Sin fechas configuradas'}
+            </span>
+          </div>
+        </div>
+        <span style={{ color:'var(--t-muted)', flexShrink:0, marginTop:4 }}><IconChevronRight /></span>
+      </button>
+
+      {isAdmin && (
+        <div ref={menuRef} style={{ position:'absolute', top:10, right:10 }}>
+          <button onClick={() => setMenuOpen(o => !o)} aria-label="Más acciones"
+            style={{ width:28, height:28, borderRadius:8, border:'none', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+            <IconDots />
+          </button>
+          {menuOpen && (
+            <div style={{ position:'absolute', top:32, right:0, zIndex:30, width:190, background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, boxShadow:'0 8px 24px rgba(0,0,0,0.18)', overflow:'hidden' }}>
+              {enCurso && (
+                <button
+                  disabled={cerrando || borrando}
+                  onClick={() => { setMenuOpen(false); onCerrar(); }}
+                  style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'11px 14px', background:'transparent', border:'none', cursor: cerrando ? 'default' : 'pointer', textAlign:'left', color:'var(--t-text)', fontSize:13, fontWeight:600, opacity: cerrando ? 0.6 : 1, WebkitTapHighlightColor:'transparent' }}>
+                  <IconStop /> {cerrando ? 'Cerrando…' : 'Cerrar competencia'}
+                </button>
+              )}
+              <button
+                disabled={cerrando || borrando}
+                onClick={() => { setMenuOpen(false); onBorrar(); }}
+                style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'11px 14px', background:'transparent', border:'none', borderTop: enCurso ? '1px solid var(--t-dim)' : 'none', cursor: borrando ? 'default' : 'pointer', textAlign:'left', color:'var(--t-danger)', fontSize:13, fontWeight:600, opacity: borrando ? 0.6 : 1, WebkitTapHighlightColor:'transparent' }}>
+                <IconTrash /> {borrando ? 'Borrando…' : 'Borrar competencia'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── TAB: Competencias (listado del grupo) ───────────────────────────────────
 
 function TabCompetencias({ grupo, isAdmin, onAbrirCompetencia }) {
@@ -230,41 +325,16 @@ function TabCompetencias({ grupo, isAdmin, onAbrirCompetencia }) {
             </button>
           )}
           {competencias.map(c => (
-            <div key={c.id}
-              style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 14px', borderRadius:12, background:'var(--t-surface2)', border:'1px solid var(--t-dim)' }}>
-              <button onClick={() => onAbrirCompetencia(c)}
-                style={{ flex:1, minWidth:0, display:'flex', alignItems:'center', gap:10, background:'transparent', border:'none', cursor:'pointer', textAlign:'left', padding:0, WebkitTapHighlightColor:'transparent' }}>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:14, fontWeight:700, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                    {c.nombre}
-                  </div>
-                  <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>
-                    {c.fecha_inicio ? `${fmtFecha(c.fecha_inicio)} al ${fmtFecha(c.fecha_fin)}` : 'Sin fechas configuradas'}
-                  </div>
-                </div>
-                <span style={{
-                  fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', padding:'3px 8px', borderRadius:20, flexShrink:0,
-                  color: c.estado === 'en_curso' ? 'var(--t-accent)' : 'var(--t-muted)',
-                  background: c.estado === 'en_curso' ? 'rgba(var(--t-accent-r),0.12)' : 'var(--t-dim)',
-                }}>
-                  {c.estado === 'en_curso' ? 'En curso' : 'Finalizada'}
-                </span>
-                <span style={{ color:'var(--t-muted)', flexShrink:0 }}><IconChevronRight /></span>
-              </button>
-              {isAdmin && c.estado === 'en_curso' && (
-                <button onClick={() => handleCerrar(c)} disabled={cerrandoId === c.id || borrandoId === c.id}
-                  style={{ flexShrink:0, padding:'6px 10px', borderRadius:8, border:'1px solid rgba(248,113,113,0.3)', background:'rgba(248,113,113,0.08)', color:'#F87171', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.03em', cursor: cerrandoId === c.id ? 'default' : 'pointer', opacity: cerrandoId === c.id ? 0.6 : 1, WebkitTapHighlightColor:'transparent' }}>
-                  {cerrandoId === c.id ? '…' : 'Cerrar'}
-                </button>
-              )}
-              {isAdmin && (
-                <button onClick={() => handleBorrar(c)} disabled={cerrandoId === c.id || borrandoId === c.id}
-                  title="Borrar competencia"
-                  style={{ flexShrink:0, width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor: borrandoId === c.id ? 'default' : 'pointer', opacity: borrandoId === c.id ? 0.5 : 1, WebkitTapHighlightColor:'transparent' }}>
-                  {borrandoId === c.id ? '…' : <IconTrash />}
-                </button>
-              )}
-            </div>
+            <CompetenciaCard
+              key={c.id}
+              competencia={c}
+              isAdmin={isAdmin}
+              cerrando={cerrandoId === c.id}
+              borrando={borrandoId === c.id}
+              onAbrir={() => onAbrirCompetencia(c)}
+              onCerrar={() => handleCerrar(c)}
+              onBorrar={() => handleBorrar(c)}
+            />
           ))}
           {competencias.length === 0 && (
             <div style={{ textAlign:'center', padding:'20px 0', color:'var(--t-muted)', fontSize:13 }}>Todavía no hay competencias en este grupo.</div>
