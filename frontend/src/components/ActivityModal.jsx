@@ -350,15 +350,36 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
               onChange={handleFotoChange} style={{ display:'none' }} />
           </Field>
 
-          {/* Preview minutos */}
-          {minutos !== null && (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderRadius:10, background:'rgba(var(--t-accent-r),0.07)', border:'1px solid rgba(var(--t-accent-r),0.18)' }}>
-              <span style={{ fontSize:12, color:'var(--t-muted)', fontWeight:600 }}>Duración</span>
-              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-accent)' }}>
-                {minutos} min
-              </span>
-            </div>
-          )}
+          {/* Preview de puntos totales — desglosado para que quede claro cuánto viene del ponderador
+              (minutos × ponderador, incluyendo el extra de deporte de la semana si corresponde) y
+              cuánto del bonus por hacerlo con compañeros. */}
+          {minutos !== null && minutos > 0 && (() => {
+            const ptsPonderador = minutos * ponderadorTotal;
+            const ptsCompaneros = cantidadCompaneros > 0 ? bonusCompaneros[cantidadCompaneros] : 0;
+            const ptsTotal = ptsPonderador + ptsCompaneros;
+            return (
+              <div style={{ padding:'10px 14px', borderRadius:10, background:'rgba(var(--t-accent-r),0.07)', border:'1px solid rgba(var(--t-accent-r),0.18)', display:'flex', flexDirection:'column', gap:6 }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <span style={{ fontSize:12, color:'var(--t-muted)', fontWeight:600 }}>Puntos totales</span>
+                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-accent)' }}>
+                    {ptsTotal.toFixed(1)} pts
+                  </span>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap:2, fontSize:11, color:'var(--t-muted)' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between' }}>
+                    <span>{minutos} min × {ponderadorTotal.toFixed(2)} ponderador</span>
+                    <span>{ptsPonderador.toFixed(1)} pts</span>
+                  </div>
+                  {ptsCompaneros > 0 && (
+                    <div style={{ display:'flex', justifyContent:'space-between' }}>
+                      <span>Con compañeros</span>
+                      <span>+{ptsCompaneros} pts</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Submit */}
           <button type="submit" disabled={loading}
