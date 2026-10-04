@@ -64,6 +64,21 @@ async function calcularPonderador(deporteNombre, userId, fecha) {
   return deporte ? parseFloat(deporte.ponderador_default) : 1;
 }
 
+// Delta aditivo del deporte-de-la-semana aplicable a una actividad ya vinculada a sus competencias
+// (ej. "+0.2" = 20% extra sobre el ponderador base), igual criterio que GET /competencias/:id/actividades.
+async function calcularExtraSemana(actividadId, deporteNombre, fecha) {
+  const { rows: [r] } = await pool.query(
+    `SELECT COALESCE(MAX(s.deporte_semana_ponderador_extra), 0) AS extra
+     FROM actividad_competencias ac
+     JOIN competencia_semanas s ON s.competencia_id = ac.competencia_id
+     WHERE ac.actividad_id = $1
+       AND (s.deporte_semana_nombre = $2 OR s.deporte_semana_nombre_2 = $2)
+       AND $3::date BETWEEN s.fecha_inicio AND s.fecha_fin`,
+    [actividadId, deporteNombre, fecha]
+  );
+  return parseFloat(r.extra);
+}
+
 // GET /actividades — lista actividades (historial completo, sin filtro de competencia/fechas)
 // Admin ve todas; usuario normal ve las suyas, o las de un compañero de algún grupo en común
 // (para ver su perfil/calendario completo, no solo lo vinculado a una competencia puntual).
@@ -102,16 +117,32 @@ router.get('/', async (req, res) => {
       SELECT
         a.id, a.user_id, u.nombre AS user_nombre,
         u.nombre, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url,
-        a.deporte_nombre, a.minutos, a.ponderador, a.puntos,
+        a.deporte_nombre, a.minutos, a.ponderador AS ponderador_original,
         TO_CHAR(a.fecha, 'YYYY-MM-DD') AS fecha,
-        a.notas, a.foto_url, a.created_at
+        a.notas, a.foto_url, a.created_at,
+        COALESCE((
+          SELECT MAX(s.deporte_semana_ponderador_extra)
+          FROM actividad_competencias ac
+          JOIN competencia_semanas s ON s.competencia_id = ac.competencia_id
+          WHERE ac.actividad_id = a.id
+            AND (s.deporte_semana_nombre = a.deporte_nombre OR s.deporte_semana_nombre_2 = a.deporte_nombre)
+            AND a.fecha BETWEEN s.fecha_inicio AND s.fecha_fin
+        ), 0) AS extra_semana
       FROM actividades a
       JOIN users u ON u.id = a.user_id
       ${where}
       ORDER BY a.fecha DESC, a.created_at DESC
     `, params);
 
-    res.json(result.rows);
+    // deporte_semana_ponderador_extra es un delta aditivo (ej. "+0.2" = 20% extra), igual que en
+    // GET /competencias/:id/actividades — nunca se guardó en la columna generada actividades.puntos.
+    const actividades = result.rows.map(({ ponderador_original, extra_semana, ...r }) => {
+      const factor = 1 + parseFloat(extra_semana);
+      const ponderador = parseFloat(ponderador_original) * factor;
+      return { ...r, ponderador, puntos: parseFloat(r.minutos) * ponderador };
+    });
+
+    res.json(actividades);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener actividades' });
@@ -144,17 +175,23 @@ router.post('/', async (req, res) => {
     const result = await pool.query(`
       INSERT INTO actividades (user_id, deporte_id, deporte_nombre, minutos, ponderador, fecha, notas, cantidad_companeros)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, fecha, notas, foto_url, created_at, cantidad_companeros
+      RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, TO_CHAR(fecha, 'YYYY-MM-DD') AS fecha, notas, foto_url, created_at, cantidad_companeros
     `, [targetUserId, deporteId, deporte_nombre.trim(), parseFloat(minutos), ponderador, fecha, notas || null, normalizarCantidadCompaneros(cantidad_companeros)]);
 
     const act = result.rows[0];
 
     await vincularCompetencias(act.id, targetUserId);
 
-    res.status(201).json(act);
+    // La columna ponderador/puntos guardada es el valor "base" sin el extra de deporte-de-la-semana
+    // (deporte_semana_ponderador_extra es un delta aditivo que puede cambiar con el tiempo, así que
+    // nunca se persiste en la actividad) — se recalcula igual que en GET /actividades antes de responder.
+    const factor = 1 + await calcularExtraSemana(act.id, act.deporte_nombre, act.fecha);
+    const actConExtra = { ...act, ponderador: parseFloat(act.ponderador) * factor, puntos: parseFloat(act.minutos) * parseFloat(act.ponderador) * factor };
+
+    res.status(201).json(actConExtra);
 
     // Notificar a todos los compañeros de competencia (en background)
-    notifyCompaneros(targetUserId, act, req.user.nombre).catch(() => {});
+    notifyCompaneros(targetUserId, actConExtra, req.user.nombre).catch(() => {});
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al crear actividad' });
@@ -211,13 +248,15 @@ router.put('/:id', async (req, res) => {
       SET deporte_id = $1, deporte_nombre = $2, minutos = $3, ponderador = $4,
           fecha = $5, notas = $6, cantidad_companeros = $7, updated_at = NOW()
       WHERE id = $8
-      RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, fecha, notas, updated_at, cantidad_companeros
+      RETURNING id, user_id, deporte_nombre, minutos, ponderador, puntos, TO_CHAR(fecha, 'YYYY-MM-DD') AS fecha, notas, updated_at, cantidad_companeros
     `, [deporteId, newDeporte, newMinutos, newPonderador, newFecha, newNotas, newCantidadCompaneros, id]);
 
     await pool.query('DELETE FROM actividad_competencias WHERE actividad_id = $1', [id]);
     await vincularCompetencias(id, act.user_id);
 
-    res.json(result.rows[0]);
+    const updated = result.rows[0];
+    const factor = 1 + await calcularExtraSemana(updated.id, updated.deporte_nombre, updated.fecha);
+    res.json({ ...updated, ponderador: parseFloat(updated.ponderador) * factor, puntos: parseFloat(updated.minutos) * parseFloat(updated.ponderador) * factor });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al actualizar actividad' });
