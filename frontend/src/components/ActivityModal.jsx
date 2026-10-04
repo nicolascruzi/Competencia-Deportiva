@@ -63,6 +63,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   const [cantidadCompaneros, setCantidadCompaneros] = useState(0); // 0-3, 3 = "3 o más"
   const [misCompetencias, setMisCompetencias] = useState([]);
   const [cargandoCompetencias, setCargandoCompetencias] = useState(true);
+  const [notasAbiertas, setNotasAbiertas] = useState(false);
   const fileInputRef                = useRef(null);
   const { withLoading } = useLoading();
 
@@ -124,6 +125,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
       setFoto(null);
       setFotoPreview(null);
       setCantidadCompaneros(0);
+      setNotasAbiertas(false);
       setCargandoCompetencias(true);
       getGrupos().then(setMisCompetencias).catch(() => setMisCompetencias([])).finally(() => setCargandoCompetencias(false));
     }
@@ -234,121 +236,109 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
             </Select>
           </Field>
 
-          {/* Minutos + Ponderador en la misma fila */}
+          {/* Minutos + Fecha en la misma fila — son los dos únicos datos que cambian siempre */}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
             <Field label="Minutos">
               <Input type="number" inputMode="numeric" min="1" required placeholder="60"
                 value={form.minutos} onChange={e => setForm(f => ({ ...f, minutos: e.target.value }))} />
             </Field>
-            <Field label="Ponderador">
-              <div style={{ ...S.input, display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'default', opacity:0.7 }}>
-                <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}>
-                  {form.ponderador}
-                  {extraSemana > 0 && (
-                    <span style={{ color:'#FB923C' }}> +{extraSemana}</span>
-                  )}
-                </span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-                </svg>
-              </div>
+            <Field label="Fecha">
+              <Input type="date" required
+                max={new Date().toISOString().slice(0, 10)}
+                value={form.fecha}
+                onChange={e => {
+                  const today = new Date().toISOString().slice(0, 10);
+                  const val = e.target.value > today ? today : e.target.value;
+                  setForm(f => ({ ...f, fecha: val }));
+                }} />
             </Field>
           </div>
-          <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:-6 }}>
-            {extraSemana > 0
-              ? <>Incluye <span style={{ color:'#FB923C', fontWeight:600 }}>+{extraSemana}</span> por ser el deporte de la semana (total {ponderadorTotal.toFixed(2)}).</>
-              : pondBloqueado
-              ? <>Ponderador fijado por <span style={{ color:'var(--t-accent)', fontWeight:600 }}>{competenciaActiva.nombre}</span>. Solo el admin puede modificarlo.</>
-              : 'Se calcula automáticamente según el deporte. Solo el admin de tu competencia puede configurarlo.'}
+
+          {/* Ponderador — solo una línea informativa, no un campo propio (el usuario no lo edita). */}
+          <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--t-muted)', marginTop:-4 }}>
+            <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}>
+              {ponderadorTotal.toFixed(2)}
+            </span>
+            <span>
+              {extraSemana > 0
+                ? <>ponderador, incluye <span style={{ color:'var(--t-accent)', fontWeight:600 }}>+{extraSemana}</span> por ser el deporte de la semana</>
+                : pondBloqueado
+                ? <>ponderador fijado por {competenciaActiva.nombre}</>
+                : 'ponderador según el deporte'}
+            </span>
           </div>
 
-          {/* Fecha */}
-          <Field label="Fecha">
-            <Input type="date" required
-              max={new Date().toISOString().slice(0, 10)}
-              value={form.fecha}
-              onChange={e => {
-                const today = new Date().toISOString().slice(0, 10);
-                const val = e.target.value > today ? today : e.target.value;
-                setForm(f => ({ ...f, fecha: val }));
-              }} />
-          </Field>
-
-          {/* Notas */}
-          <Field label="Notas (opcional)">
-            <Input type="text" placeholder="Descripción breve…"
-              value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
-          </Field>
-
-          {/* Hecho en compañía — cantidad de amigos con los que se hizo la actividad. Mientras se
-              determina si corresponde mostrarlo (fetch de competencias en curso), se reserva el
-              espacio con un skeleton para que no "salte" el resto del formulario al resolver. */}
+          {/* Hecho en compañía — chips compactos con label inline, sin su propio bloque "Field".
+              Mientras se determina si corresponde mostrarlo, se reserva el espacio con un skeleton. */}
           {cargandoCompetencias && (
-            <Field label="¿Con cuántos compañeros lo hiciste?">
-              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-                {[0, 1, 2, 3].map(i => (
-                  <div key={i} style={{ width: i === 0 ? 70 : 52, height:34, borderRadius:20, background:'var(--t-dim)', opacity:0.5 }} />
-                ))}
-              </div>
-            </Field>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {[0, 1, 2, 3].map(i => (
+                <div key={i} style={{ width: i === 0 ? 62 : 40, height:28, borderRadius:16, background:'var(--t-dim)', opacity:0.5 }} />
+              ))}
+            </div>
           )}
           {!cargandoCompetencias && mostrarSelectorCompaneros && (
-            <Field label="¿Con cuántos compañeros lo hiciste?">
-              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-                {[
-                  { value: 0, label: 'Solo yo' },
-                  { value: 1, label: '1' },
-                  { value: 2, label: '2' },
-                  { value: 3, label: '3 o más' },
-                ].map(opt => {
-                  const selected = cantidadCompaneros === opt.value;
-                  return (
-                    <button key={opt.value} type="button" onClick={() => setCantidadCompaneros(opt.value)}
-                      style={{
-                        padding:'7px 16px', borderRadius:20,
-                        border: selected ? '1.5px solid var(--t-accent)' : '1.5px solid var(--t-dim)',
-                        background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
-                        color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
-                        cursor:'pointer', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent',
-                      }}>
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
+            <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:6 }}>
+              <span style={{ fontSize:12, color:'var(--t-muted)', marginRight:2 }}>Con compañeros:</span>
+              {[
+                { value: 0, label: 'Solo yo' },
+                { value: 1, label: '1' },
+                { value: 2, label: '2' },
+                { value: 3, label: '3+' },
+              ].map(opt => {
+                const selected = cantidadCompaneros === opt.value;
+                return (
+                  <button key={opt.value} type="button" onClick={() => setCantidadCompaneros(opt.value)}
+                    style={{
+                      padding:'5px 12px', borderRadius:16,
+                      border: selected ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)',
+                      background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
+                      color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
+                      cursor:'pointer', fontSize:12.5, fontWeight:600, WebkitTapHighlightColor:'transparent',
+                    }}>
+                    {opt.label}
+                  </button>
+                );
+              })}
               {cantidadCompaneros > 0 && bonusCompaneros[cantidadCompaneros] > 0 && (
-                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:6 }}>
-                  Sumas <span style={{ color:'var(--t-accent)', fontWeight:600 }}>+{bonusCompaneros[cantidadCompaneros]} pts</span> extra por hacerlo con compañeros.
-                </div>
+                <span style={{ fontSize:11.5, color:'var(--t-accent)', fontWeight:600 }}>+{bonusCompaneros[cantidadCompaneros]} pts</span>
               )}
-            </Field>
+            </div>
           )}
 
-          {/* Foto */}
-          <Field label="Foto (opcional)">
-            {fotoPreview ? (
-              <div style={{ position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'16/9' }}>
-                <img src={fotoPreview} alt="preview" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
-                <button type="button" onClick={clearFoto}
-                  style={{ position:'absolute', top:8, right:8, width:28, height:28, borderRadius:6, background:'rgba(5,12,20,0.8)', border:'1px solid rgba(248,113,113,0.4)', color:'#F87171', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                style={{ width:'100%', padding:'12px 16px', borderRadius:10, border:'1px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', display:'flex', alignItems:'center', gap:10, transition:'border-color 0.15s' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor='var(--t-accent)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor='var(--t-dim)'}>
-                <span style={{ color:'var(--t-muted2)', flexShrink:0 }}><IconCamera /></span>
-                <div style={{ textAlign:'left' }}>
-                  <div style={{ fontSize:13, fontWeight:600, color:'var(--t-muted)' }}>Agregar foto</div>
-                  <div style={{ fontSize:11, color:'var(--t-muted2)', marginTop:1 }}>Galería o cámara</div>
-                </div>
+          {/* Notas y foto — acciones secundarias opcionales, colapsadas a íconos chicos para no
+              ocupar espacio cuando no se usan. */}
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            {!notasAbiertas && (
+              <button type="button" onClick={() => setNotasAbiertas(true)}
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:16, border:'1px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:12.5, WebkitTapHighlightColor:'transparent' }}>
+                + Nota
               </button>
             )}
-            <input ref={fileInputRef} type="file" accept="image/*"
-              onChange={handleFotoChange} style={{ display:'none' }} />
-          </Field>
+            {!fotoPreview && (
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:16, border:'1px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:12.5, WebkitTapHighlightColor:'transparent' }}>
+                <IconCamera /> Foto
+              </button>
+            )}
+          </div>
+
+          {notasAbiertas && (
+            <Input type="text" placeholder="Descripción breve…" autoFocus
+              value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
+          )}
+
+          {fotoPreview && (
+            <div style={{ position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'16/9' }}>
+              <img src={fotoPreview} alt="preview" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+              <button type="button" onClick={clearFoto}
+                style={{ position:'absolute', top:8, right:8, width:28, height:28, borderRadius:6, background:'rgba(5,12,20,0.8)', border:'1px solid rgba(248,113,113,0.4)', color:'#F87171', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                ✕
+              </button>
+            </div>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*"
+            onChange={handleFotoChange} style={{ display:'none' }} />
 
           {/* Preview de puntos totales — desglosado para que quede claro cuánto viene del ponderador
               (minutos × ponderador, incluyendo el extra de deporte de la semana si corresponde) y
