@@ -343,10 +343,14 @@ function AppShell() {
         onCreateCompetencia={handleCreateCompetencia}
         forceOpenSelector={forceOpenSelector}
         isAdmin={isAdmin}
-        onAdminPonderadores={() => setAdminSheetOpen(true)}
-        onAdminEquipos={() => setEquiposSheetOpen(true)}
-        onAdminSemanas={() => setSemanasSheetOpen(true)}
-        onAdminConfig={() => setConfigSheetOpen(true)}
+        onAbrirAdminCompetencia={async (grupo, competenciaId, vista) => {
+          await handleSelectGrupo(grupo, competenciaId);
+          setMainTab('ranking');
+          if (vista === 'ponderadores') setAdminSheetOpen(true);
+          else if (vista === 'equipos') setEquiposSheetOpen(true);
+          else if (vista === 'semanas') setSemanasSheetOpen(true);
+          else if (vista === 'config') setConfigSheetOpen(true);
+        }}
         onHistorial={grupo => setHistorialGrupo(grupo)}
         onSalirGrupo={handleSalirGrupo}
         onBorrarGrupo={handleBorrarGrupo}

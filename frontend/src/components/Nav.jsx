@@ -73,16 +73,22 @@ const IconEdit = () => (
 // Popup con el listado completo de integrantes de un grupo. Cualquier participante puede abrirlo;
 // si es admin, puede sacar a otra persona del grupo (nunca al creador, ni a sí mismo — para eso
 // está "Salir del grupo") y tiene acceso directo a "Borrar grupo" desde acá mismo.
-function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo, onRenombrado }) {
+function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo, onRenombrado, onSalirGrupo, onHistorial, onAbrirAdminCompetencia }) {
   const { user } = useAuth();
   const [participantes, setParticipantes] = useState(null); // null = cargando
   const [error, setError] = useState('');
   const [sacandoId, setSacandoId] = useState(null);
   const [borrando, setBorrando] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
   const [editandoNombre, setEditandoNombre] = useState(false);
   const [nombreDraft, setNombreDraft] = useState(grupo.nombre);
   const [nombreActual, setNombreActual] = useState(grupo.nombre);
   const [guardandoNombre, setGuardandoNombre] = useState(false);
+  const [pinCopied, setPinCopied] = useState(false);
+
+  const competenciasEnCurso = grupo.competencias_en_curso ?? [];
+  const [competenciaElegidaId, setCompetenciaElegidaId] = useState(competenciasEnCurso[0]?.id ?? null);
+  const competenciaElegida = competenciasEnCurso.find(c => c.id === competenciaElegidaId) ?? competenciasEnCurso[0] ?? null;
 
   useEffect(() => {
     let cancelado = false;
@@ -117,6 +123,18 @@ function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo, onRenombrado
     } catch (err) {
       setError(err.message);
       setBorrando(false);
+    }
+  }
+
+  async function handleSalirGrupo() {
+    if (!confirm(`¿Salir de "${nombreActual}"? Dejas de ser participante del grupo. Tus actividades y puntos ya registrados no se borran.`)) return;
+    setSaliendo(true); setError('');
+    try {
+      await onSalirGrupo(grupo.id);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+      setSaliendo(false);
     }
   }
 
@@ -231,21 +249,135 @@ function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo, onRenombrado
           })}
         </div>
 
+        {/* Competencia — Ponderadores, Equipos, Challenges semanales y Configuración general de la
+            competencia en curso del grupo. Si hay más de una (caso raro), un selector chico deja
+            elegir cuál; si no hay ninguna, toda la sección se oculta. */}
+        {competenciasEnCurso.length > 0 && (
+          <div style={{ padding:'10px 10px 0', borderTop:'1px solid var(--t-dim)', marginTop:6, flexShrink:0 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 8px 8px' }}>
+              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Competencia</div>
+              {competenciasEnCurso.length > 1 && (
+                <select value={competenciaElegidaId ?? ''} onChange={e => setCompetenciaElegidaId(parseInt(e.target.value))}
+                  style={{ fontSize:11.5, fontWeight:600, color:'var(--t-accent)', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8, padding:'3px 8px', outline:'none' }}>
+                  {competenciasEnCurso.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
+              )}
+            </div>
+            {competenciaElegida && (
+              <>
+                <button
+                  onClick={() => onAbrirAdminCompetencia?.(grupo, competenciaElegida.id, 'ponderadores')}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'11px 8px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                    </svg>
+                  </span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Ponderadores</span>
+                  <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
+                </button>
+                <button
+                  onClick={() => onAbrirAdminCompetencia?.(grupo, competenciaElegida.id, 'equipos')}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'11px 8px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                    </svg>
+                  </span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Equipos</span>
+                  <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
+                </button>
+                <button
+                  onClick={() => onAbrirAdminCompetencia?.(grupo, competenciaElegida.id, 'semanas')}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'11px 8px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                  </span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Challenges semanales</span>
+                  <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
+                </button>
+                <button
+                  onClick={() => onAbrirAdminCompetencia?.(grupo, competenciaElegida.id, 'config')}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'11px 8px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                    </svg>
+                  </span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Configuración general</span>
+                  <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Historial, PIN de acceso */}
+        <div style={{ padding:'10px 10px 0', borderTop:'1px solid var(--t-dim)', marginTop:6, flexShrink:0 }}>
+          <button
+            onClick={() => onHistorial?.(grupo)}
+            style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'11px 8px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+            <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l4 2"/>
+              </svg>
+            </span>
+            <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Historial</span>
+            <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
+          </button>
+          {grupo.pin && (
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(grupo.pin).then(() => {
+                  setPinCopied(true);
+                  setTimeout(() => setPinCopied(false), 2000);
+                });
+              }}
+              style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'11px 8px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+              <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="2" width="13" height="13" rx="2"/><path d="M5 9H4a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-1"/>
+                </svg>
+              </span>
+              <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>PIN de acceso</span>
+              <span style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:15, fontWeight:700, color:'var(--t-accent)', letterSpacing:'0.12em' }}>
+                  {grupo.pin}
+                </span>
+                <span style={{ fontSize:10, fontWeight:700, color: pinCopied ? 'var(--t-accent)' : 'var(--t-muted)' }}>
+                  {pinCopied ? '✓' : 'Copiar'}
+                </span>
+              </span>
+            </button>
+          )}
+        </div>
+
         {error && (
           <div style={{ padding:'8px 18px', fontSize:12, color:'var(--t-danger)', flexShrink:0 }}>{error}</div>
         )}
 
-        {isAdmin && (
-          <div style={{ padding:'10px 18px 0', borderTop:'1px solid var(--t-dim)', marginTop:6, flexShrink:0 }}>
+        <div style={{ padding:'10px 18px 0', borderTop:'1px solid var(--t-dim)', marginTop:6, flexShrink:0, display:'flex', flexDirection:'column', gap:8 }}>
+          <button
+            disabled={saliendo}
+            onClick={handleSalirGrupo}
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-danger)', fontSize:14, fontWeight:700, cursor: saliendo ? 'default' : 'pointer', opacity: saliendo ? 0.6 : 1 }}>
+            {saliendo ? 'Saliendo…' : 'Salir del grupo'}
+          </button>
+          {isAdmin && (
             <button
               disabled={borrando}
               onClick={handleBorrarGrupo}
-              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-danger)', background:'transparent', color:'var(--t-danger)', fontSize:14, fontWeight:700, cursor: borrando ? 'default' : 'pointer', opacity: borrando ? 0.6 : 1, marginTop:10 }}>
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-danger)', background:'transparent', color:'var(--t-danger)', fontSize:14, fontWeight:700, cursor: borrando ? 'default' : 'pointer', opacity: borrando ? 0.6 : 1 }}>
               <IconTrash />
               {borrando ? 'Borrando…' : 'Borrar grupo'}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
@@ -254,20 +386,15 @@ function IntegrantesSheet({ grupo, isAdmin, onClose, onBorrarGrupo, onRenombrado
   );
 }
 
-export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCurso, onSelectCompetenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAdminPonderadores, onAdminEquipos, onAdminSemanas, onAdminConfig, onHistorial, onSalirGrupo, onBorrarGrupo, onGrupoRenombrado, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
+export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCurso, onSelectCompetenciaActiva, grupoActivo, onSelectGrupo, onCreateCompetencia, forceOpenSelector, isAdmin, onAbrirAdminCompetencia, onHistorial, onSalirGrupo, onBorrarGrupo, onGrupoRenombrado, onOpenPerfil, isGlobalAdmin, onNotifClick }) {
   const { themeId, setTheme, palettes } = useTheme();
   const { notifs, unread, markRead, markAll } = useNotifications() || { notifs: [], unread: 0, markRead: () => {}, markAll: () => {} };
   const [selectorOpen, setSelectorOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen]   = useState(false);
-  const [settingsView, setSettingsView]   = useState('root'); // 'root' | 'paleta' | 'competencia'
+  const [settingsView, setSettingsView]   = useState('root'); // 'root' | 'paleta'
   const [notifOpen, setNotifOpen]         = useState(false);
   const [grupos, setGrupos]               = useState([]);
   const [loadingComps, setLoadingComps]   = useState(false);
-  const [pinCopied, setPinCopied]         = useState(false);
-  const [salirLoading, setSalirLoading]   = useState(false);
-  const [salirError, setSalirError]       = useState('');
-  const [borrarLoading, setBorrarLoading] = useState(false);
-  const [borrarError, setBorrarError]     = useState('');
   const [integrantesGrupo, setIntegrantesGrupo] = useState(null); // grupo cuyo popup de integrantes está abierto
 
   const selectorRef = useRef(null);
@@ -597,20 +724,6 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
               <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Paleta de colores</span>
               <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
             </button>
-            {grupoActivo && (
-              <button
-                onClick={() => setSettingsView('competencia')}
-                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 9H4.5a2.5 2.5 0 000 5H6"/><path d="M18 9h1.5a2.5 2.5 0 010 5H18"/>
-                    <path d="M8 9h8"/><path d="M8 15h8"/>
-                  </svg>
-                </span>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Competencia</span>
-                <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
-              </button>
-            )}
             <button
               onClick={() => { setSettingsOpen(false); setSettingsView('root'); onOpenPerfil?.(); }}
               style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
@@ -665,175 +778,6 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
           </div>
         </div>
 
-        {/* Vista: competencia (Ponderadores, Equipos, Challenges, Config general, PIN) */}
-        <div style={{
-          display: 'grid',
-          gridTemplateRows: settingsView === 'competencia' ? '1fr' : '0fr',
-          transition: 'grid-template-rows 0.2s ease',
-          overflow: 'hidden',
-        }}>
-          <div style={{ overflow:'hidden' }}>
-            {/* Volver */}
-            <button
-              onClick={() => setSettingsView('root')}
-              style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', background:'transparent', border:'none', borderBottom:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-              <span style={{ color:'var(--t-muted)' }}><IconBack /></span>
-              <span style={{ fontSize:13, fontWeight:600, color:'var(--t-muted)' }}>Competencia</span>
-            </button>
-
-            {competenciaActiva && (
-              <>
-                <button
-                  onClick={() => { setSettingsOpen(false); setSettingsView('root'); onAdminPonderadores?.(); }}
-                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="3"/>
-                      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-                    </svg>
-                  </span>
-                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Ponderadores</span>
-                  <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
-                </button>
-                <button
-                  onClick={() => { setSettingsOpen(false); setSettingsView('root'); onAdminEquipos?.(); }}
-                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                      <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
-                    </svg>
-                  </span>
-                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Equipos</span>
-                  <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
-                </button>
-                <button
-                  onClick={() => { setSettingsOpen(false); setSettingsView('root'); onAdminSemanas?.(); }}
-                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                  </span>
-                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Challenges semanales</span>
-                  <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
-                </button>
-                <button
-                  onClick={() => { setSettingsOpen(false); setSettingsView('root'); onAdminConfig?.(); }}
-                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                  <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="3"/>
-                      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-                    </svg>
-                  </span>
-                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Configuración general</span>
-                  <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>{isAdmin ? competenciaActiva.nombre : 'Solo lectura'}</span>
-                </button>
-              </>
-            )}
-            {grupoActivo && (
-              <button
-                onClick={() => { setSettingsOpen(false); setSettingsView('root'); onHistorial?.(grupoActivo); }}
-                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l4 2"/>
-                  </svg>
-                </span>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Historial</span>
-                <span style={{ color:'var(--t-muted)' }}><IconChevronRight /></span>
-              </button>
-            )}
-            {grupoActivo?.pin && (
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(grupoActivo.pin).then(() => {
-                    setPinCopied(true);
-                    setTimeout(() => setPinCopied(false), 2000);
-                  });
-                }}
-                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                <span style={{ color:'var(--t-muted)', flexShrink:0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="2" width="13" height="13" rx="2"/><path d="M5 9H4a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-1"/>
-                  </svg>
-                </span>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-text)' }}>
-                  PIN de acceso
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6 }}>
-                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:15, fontWeight:700, color:'var(--t-accent)', letterSpacing:'0.12em' }}>
-                    {grupoActivo.pin}
-                  </span>
-                  <span style={{ fontSize:10, fontWeight:700, color: pinCopied ? 'var(--t-accent)' : 'var(--t-muted)' }}>
-                    {pinCopied ? '✓' : 'Copiar'}
-                  </span>
-                </span>
-              </button>
-            )}
-            {grupoActivo && (
-              <button
-                disabled={salirLoading}
-                onClick={async () => {
-                  if (!confirm(`¿Salir de "${grupoActivo.nombre}"? Dejas de ser participante del grupo. Tus actividades y puntos ya registrados no se borran.`)) return;
-                  setSalirLoading(true); setSalirError('');
-                  try {
-                    await onSalirGrupo?.(grupoActivo.id);
-                    setSettingsOpen(false); setSettingsView('root');
-                  } catch (err) {
-                    setSalirError(err.message);
-                  } finally {
-                    setSalirLoading(false);
-                  }
-                }}
-                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor: salirLoading ? 'default' : 'pointer', opacity: salirLoading ? 0.6 : 1, WebkitTapHighlightColor:'transparent' }}>
-                <span style={{ color:'var(--t-danger)', flexShrink:0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-                  </svg>
-                </span>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-danger)', textAlign:'left' }}>
-                  {salirLoading ? 'Saliendo…' : 'Salir del grupo'}
-                </span>
-              </button>
-            )}
-            {salirError && (
-              <div style={{ padding:'8px 16px', fontSize:12, color:'var(--t-danger)' }}>{salirError}</div>
-            )}
-            {grupoActivo && isAdmin && (
-              <button
-                disabled={borrarLoading}
-                onClick={async () => {
-                  if (!confirm(`¿Borrar "${grupoActivo.nombre}" para SIEMPRE? Se pierde para todos los participantes, junto con sus competencias, equipos y challenges. Esto no se puede deshacer.`)) return;
-                  const nombreEscrito = prompt(`Para confirmar, escribe exactamente el nombre del grupo:\n\n${grupoActivo.nombre}`);
-                  if (nombreEscrito == null) return;
-                  setBorrarLoading(true); setBorrarError('');
-                  try {
-                    await onBorrarGrupo?.(grupoActivo.id, nombreEscrito);
-                    setSettingsOpen(false); setSettingsView('root');
-                  } catch (err) {
-                    setBorrarError(err.message);
-                  } finally {
-                    setBorrarLoading(false);
-                  }
-                }}
-                style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px', background:'transparent', border:'none', borderTop:'1px solid var(--t-dim)', cursor: borrarLoading ? 'default' : 'pointer', opacity: borrarLoading ? 0.6 : 1, WebkitTapHighlightColor:'transparent' }}>
-                <span style={{ color:'var(--t-danger)', flexShrink:0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                  </svg>
-                </span>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--t-danger)', textAlign:'left' }}>
-                  {borrarLoading ? 'Borrando…' : 'Borrar grupo'}
-                </span>
-              </button>
-            )}
-            {borrarError && (
-              <div style={{ padding:'8px 16px', fontSize:12, color:'var(--t-danger)' }}>{borrarError}</div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* ── DROPDOWN NOTIFICACIONES ── */}
@@ -930,6 +874,12 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
             setGrupos(prev => prev.map(x => x.id === grupoId ? { ...x, nombre: nombreNuevo } : x));
             setIntegrantesGrupo(prev => prev && prev.id === grupoId ? { ...prev, nombre: nombreNuevo } : prev);
             onGrupoRenombrado?.(grupoId, nombreNuevo);
+          }}
+          onSalirGrupo={onSalirGrupo}
+          onHistorial={grupo => { setIntegrantesGrupo(null); onHistorial?.(grupo); }}
+          onAbrirAdminCompetencia={(grupo, competenciaId, vista) => {
+            setIntegrantesGrupo(null);
+            onAbrirAdminCompetencia?.(grupo, competenciaId, vista);
           }}
         />
       )}
