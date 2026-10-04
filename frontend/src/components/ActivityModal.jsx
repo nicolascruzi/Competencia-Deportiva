@@ -236,74 +236,85 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
             </Select>
           </Field>
 
-          {/* Minutos + Fecha en la misma fila — son los dos únicos datos que cambian siempre */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          {/* Minutos + Ponderador en la misma fila, como antes */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, minWidth:0 }}>
             <Field label="Minutos">
               <Input type="number" inputMode="numeric" min="1" required placeholder="60"
                 value={form.minutos} onChange={e => setForm(f => ({ ...f, minutos: e.target.value }))} />
             </Field>
-            <Field label="Fecha">
-              <Input type="date" required
-                max={new Date().toISOString().slice(0, 10)}
-                value={form.fecha}
-                onChange={e => {
-                  const today = new Date().toISOString().slice(0, 10);
-                  const val = e.target.value > today ? today : e.target.value;
-                  setForm(f => ({ ...f, fecha: val }));
-                }} />
+            <Field label="Ponderador">
+              <div style={{ ...S.input, display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'default', opacity:0.7 }}>
+                <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {form.ponderador}
+                  {extraSemana > 0 && (
+                    <span style={{ color:'var(--t-accent)' }}> +{extraSemana}</span>
+                  )}
+                </span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+              </div>
             </Field>
           </div>
-
-          {/* Ponderador — solo una línea informativa, no un campo propio (el usuario no lo edita). */}
-          <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--t-muted)', marginTop:-4 }}>
-            <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}>
-              {ponderadorTotal.toFixed(2)}
-            </span>
-            <span>
+          {(extraSemana > 0 || pondBloqueado) && (
+            <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:-6 }}>
               {extraSemana > 0
-                ? <>ponderador, incluye <span style={{ color:'var(--t-accent)', fontWeight:600 }}>+{extraSemana}</span> por ser el deporte de la semana</>
-                : pondBloqueado
-                ? <>ponderador fijado por {competenciaActiva.nombre}</>
-                : 'ponderador según el deporte'}
-            </span>
-          </div>
+                ? <>Incluye <span style={{ color:'var(--t-accent)', fontWeight:600 }}>+{extraSemana}</span> por ser el deporte de la semana (total {ponderadorTotal.toFixed(2)}).</>
+                : <>Ponderador fijado por <span style={{ color:'var(--t-accent)', fontWeight:600 }}>{competenciaActiva.nombre}</span>.</>}
+            </div>
+          )}
+
+          {/* Fecha */}
+          <Field label="Fecha">
+            <Input type="date" required
+              max={new Date().toISOString().slice(0, 10)}
+              value={form.fecha}
+              onChange={e => {
+                const today = new Date().toISOString().slice(0, 10);
+                const val = e.target.value > today ? today : e.target.value;
+                setForm(f => ({ ...f, fecha: val }));
+              }} />
+          </Field>
 
           {/* Hecho en compañía — chips compactos con label inline, sin su propio bloque "Field".
               Mientras se determina si corresponde mostrarlo, se reserva el espacio con un skeleton. */}
           {cargandoCompetencias && (
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               {[0, 1, 2, 3].map(i => (
-                <div key={i} style={{ width: i === 0 ? 62 : 40, height:28, borderRadius:16, background:'var(--t-dim)', opacity:0.5 }} />
+                <div key={i} style={{ width: i === 0 ? 62 : 40, height:28, borderRadius:16, background:'var(--t-dim)', opacity:0.5, flexShrink:0 }} />
               ))}
             </div>
           )}
           {!cargandoCompetencias && mostrarSelectorCompaneros && (
-            <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:6 }}>
-              <span style={{ fontSize:12, color:'var(--t-muted)', marginRight:2 }}>Con compañeros:</span>
-              {[
-                { value: 0, label: 'Solo yo' },
-                { value: 1, label: '1' },
-                { value: 2, label: '2' },
-                { value: 3, label: '3+' },
-              ].map(opt => {
-                const selected = cantidadCompaneros === opt.value;
-                return (
-                  <button key={opt.value} type="button" onClick={() => setCantidadCompaneros(opt.value)}
-                    style={{
-                      padding:'5px 12px', borderRadius:16,
-                      border: selected ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)',
-                      background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
-                      color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
-                      cursor:'pointer', fontSize:12.5, fontWeight:600, WebkitTapHighlightColor:'transparent',
-                    }}>
-                    {opt.label}
-                  </button>
-                );
-              })}
+            <Field label="¿Con cuántos compañeros lo hiciste?">
+              <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                {[
+                  { value: 0, label: 'Solo yo' },
+                  { value: 1, label: '1' },
+                  { value: 2, label: '2' },
+                  { value: 3, label: '3+' },
+                ].map(opt => {
+                  const selected = cantidadCompaneros === opt.value;
+                  return (
+                    <button key={opt.value} type="button" onClick={() => setCantidadCompaneros(opt.value)}
+                      style={{
+                        padding:'5px 12px', borderRadius:16, flexShrink:0,
+                        border: selected ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)',
+                        background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
+                        color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
+                        cursor:'pointer', fontSize:12.5, fontWeight:600, WebkitTapHighlightColor:'transparent',
+                      }}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
               {cantidadCompaneros > 0 && bonusCompaneros[cantidadCompaneros] > 0 && (
-                <span style={{ fontSize:11.5, color:'var(--t-accent)', fontWeight:600 }}>+{bonusCompaneros[cantidadCompaneros]} pts</span>
+                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:4 }}>
+                  Sumas <span style={{ color:'var(--t-accent)', fontWeight:600 }}>+{bonusCompaneros[cantidadCompaneros]} pts</span> extra por hacerlo con compañeros.
+                </div>
               )}
-            </div>
+            </Field>
           )}
 
           {/* Notas y foto — acciones secundarias opcionales, colapsadas a íconos chicos para no
