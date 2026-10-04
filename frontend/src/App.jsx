@@ -18,6 +18,7 @@ import ActivityModal from './components/ActivityModal';
 import ActivityToast from './components/ActivityToast';
 import CrearCompetenciaModal from './components/CrearCompetenciaModal';
 import HistorialCompetenciasSheet from './components/HistorialCompetenciasSheet';
+import GrupoDetalle from './pages/GrupoDetalle';
 import OnboardingModal from './components/OnboardingModal';
 import PullToRefreshIndicator from './components/PullToRefreshIndicator';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
@@ -134,6 +135,7 @@ function AppShell() {
   const [semanasSheetOpen, setSemanasSheetOpen] = useState(false);
   const [configSheetOpen, setConfigSheetOpen] = useState(false);
   const [historialGrupo, setHistorialGrupo] = useState(null); // { id, soy_admin } | null
+  const [detalleGrupoAbierto, setDetalleGrupoAbierto] = useState(null); // grupo (con competencias_en_curso) | null
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
   const [restoringComp, setRestoringComp]     = useState(true);
   const [toast, setToast]                     = useState(null); // { actividad, ptsAntes, ptsDespues }
@@ -343,18 +345,8 @@ function AppShell() {
         onCreateCompetencia={handleCreateCompetencia}
         forceOpenSelector={forceOpenSelector}
         isAdmin={isAdmin}
-        onAbrirAdminCompetencia={async (grupo, competenciaId, vista) => {
-          await handleSelectGrupo(grupo, competenciaId);
-          setMainTab('ranking');
-          if (vista === 'ponderadores') setAdminSheetOpen(true);
-          else if (vista === 'equipos') setEquiposSheetOpen(true);
-          else if (vista === 'semanas') setSemanasSheetOpen(true);
-          else if (vista === 'config') setConfigSheetOpen(true);
-        }}
+        onAbrirDetalleGrupo={grupo => setDetalleGrupoAbierto(grupo)}
         onHistorial={grupo => setHistorialGrupo(grupo)}
-        onSalirGrupo={handleSalirGrupo}
-        onBorrarGrupo={handleBorrarGrupo}
-        onGrupoRenombrado={handleGrupoRenombrado}
         onOpenPerfil={() => setProfileSettingsOpen(true)}
         isGlobalAdmin={isGlobalAdmin}
         onNotifClick={(actividadId) => {
@@ -474,6 +466,26 @@ function AppShell() {
               selectCompetencia(competenciasEnCurso[0]?.id ?? null);
             }
             setRefreshKey(k => k + 1);
+          }}
+        />
+      )}
+
+      {detalleGrupoAbierto && (
+        <GrupoDetalle
+          grupo={detalleGrupoAbierto}
+          isAdmin={!!detalleGrupoAbierto.soy_admin}
+          onClose={() => setDetalleGrupoAbierto(null)}
+          onBorrarGrupo={async (grupoId, confirmarNombre) => {
+            await handleBorrarGrupo(grupoId, confirmarNombre);
+            setDetalleGrupoAbierto(null);
+          }}
+          onSalirGrupo={async (grupoId) => {
+            await handleSalirGrupo(grupoId);
+            setDetalleGrupoAbierto(null);
+          }}
+          onGrupoRenombrado={(grupoId, nombreNuevo) => {
+            handleGrupoRenombrado(grupoId, nombreNuevo);
+            setDetalleGrupoAbierto(prev => prev && prev.id === grupoId ? { ...prev, nombre: nombreNuevo } : prev);
           }}
         />
       )}
