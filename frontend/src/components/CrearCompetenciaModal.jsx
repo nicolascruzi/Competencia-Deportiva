@@ -486,9 +486,12 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
                               </select>
                             </div>
                             <input
-                              type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="Extra compartido"
+                              type="text" inputMode="decimal" placeholder="0.0"
                               value={data.deporte_semana_ponderador_extra ?? ''}
-                              onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_ponderador_extra: e.target.value } }))}
+                              onChange={e => {
+                                const limpio = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
+                                if (/^\d*\.?\d*$/.test(limpio)) setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_ponderador_extra: limpio } }));
+                              }}
                               disabled={!data.deporte_semana_nombre && !data.deporte_semana_nombre_2}
                               style={{ ...inputStyle, width:'100%', textAlign:'center', opacity: (data.deporte_semana_nombre || data.deporte_semana_nombre_2) ? 1 : 0.5 }}
                             />

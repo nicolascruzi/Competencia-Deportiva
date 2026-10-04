@@ -2545,10 +2545,14 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
               Se suma al ponderador propio del deporte elegido (a mano en la semana 1, por votación desde la semana 2) durante esa semana.
             </div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'10px 12px', borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)' }}>
-              <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Extra (×)</span>
+              <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)' }}>Extra (+)</span>
               <input
-                type="number" inputMode="decimal" min="0" step="0.01" disabled={readOnly}
-                value={bonusDeporteSemana} onChange={e => setBonusDeporteSemana(e.target.value)}
+                type="text" inputMode="decimal" placeholder="0.0" disabled={readOnly}
+                value={bonusDeporteSemana}
+                onChange={e => {
+                  const limpio = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
+                  if (/^\d*\.?\d*$/.test(limpio)) setBonusDeporteSemana(limpio);
+                }}
                 style={{ width:80, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none' }}
               />
             </div>
@@ -2911,9 +2915,12 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
                         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                           <span style={{ fontSize:12, color:'var(--t-muted)', flex:1 }}>Extra compartido (ambos deportes)</span>
                           <input
-                            type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="Extra" disabled={readOnly || (!s.deporte_semana_nombre && !s.deporte_semana_nombre_2)}
+                            type="text" inputMode="decimal" placeholder="0.0" disabled={readOnly || (!s.deporte_semana_nombre && !s.deporte_semana_nombre_2)}
                             value={s.deporte_semana_ponderador_extra ?? ''}
-                            onChange={e => updateSemana(s.id, { deporte_semana_ponderador_extra: e.target.value })}
+                            onChange={e => {
+                              const limpio = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
+                              if (/^\d*\.?\d*$/.test(limpio)) updateSemana(s.id, { deporte_semana_ponderador_extra: limpio });
+                            }}
                             style={{ width:70, flexShrink:0, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', opacity: (s.deporte_semana_nombre || s.deporte_semana_nombre_2) ? 1 : 0.5 }}
                           />
                         </div>

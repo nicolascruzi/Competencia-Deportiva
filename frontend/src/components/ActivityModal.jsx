@@ -296,10 +296,10 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
             <Field label="¿Con cuántos compañeros lo hiciste?">
               <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                 {[
-                  { value: 0, label: 'Solo yo', bonus: 0 },
-                  { value: 1, label: '1', bonus: bonusCompaneros[1] },
-                  { value: 2, label: '2', bonus: bonusCompaneros[2] },
-                  { value: 3, label: '3 o más', bonus: bonusCompaneros[3] },
+                  { value: 0, label: 'Solo yo' },
+                  { value: 1, label: '1' },
+                  { value: 2, label: '2' },
+                  { value: 3, label: '3 o más' },
                 ].map(opt => {
                   const selected = cantidadCompaneros === opt.value;
                   return (
@@ -310,14 +310,8 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
                         background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
                         color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
                         cursor:'pointer', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent',
-                        display:'flex', flexDirection:'column', alignItems:'center', gap:1,
                       }}>
-                      <span>{opt.label}</span>
-                      {opt.bonus > 0 && (
-                        <span style={{ fontSize:10, fontWeight:700, color: selected ? 'var(--t-accent)' : '#FB923C' }}>
-                          +{opt.bonus} pts
-                        </span>
-                      )}
+                      {opt.label}
                     </button>
                   );
                 })}
