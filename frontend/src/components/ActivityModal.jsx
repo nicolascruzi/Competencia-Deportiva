@@ -318,7 +318,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
               </div>
               {cantidadCompaneros > 0 && bonusCompaneros[cantidadCompaneros] > 0 && (
                 <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:6 }}>
-                  Sumas <span style={{ color:'#FB923C', fontWeight:600 }}>+{bonusCompaneros[cantidadCompaneros]} pts</span> extra por hacerlo con compañeros.
+                  Sumas <span style={{ color:'var(--t-accent)', fontWeight:600 }}>+{bonusCompaneros[cantidadCompaneros]} pts</span> extra por hacerlo con compañeros.
                 </div>
               )}
             </Field>
