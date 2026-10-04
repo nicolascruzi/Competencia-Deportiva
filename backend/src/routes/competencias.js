@@ -82,38 +82,45 @@ router.get('/:id', authMiddleware, async (req, res) => {
       `SELECT id, competencia_id, numero_semana,
               TO_CHAR(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
               TO_CHAR(fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
-              deporte_semana_nombre, deporte_semana_ponderador_extra
+              deporte_semana_nombre, deporte_semana_nombre_2, deporte_semana_ponderador_extra
        FROM competencia_semanas WHERE competencia_id=$1 ORDER BY numero_semana`,
       [id]
     );
 
     const hoy = new Date().toISOString().slice(0, 10);
 
-    // Resuelve la votación de cualquier semana (2+) cuya semana previa ya terminó y que aún no tiene
-    // deporte asignado — se calcula on-read, sin cron. La semana 1 nunca se resuelve por votación.
+    // Resuelve la votación de cualquier semana (2+) cuya semana previa ya terminó: hay dos
+    // categorías de votación independientes (tranquila y extrema, cada una con su propio ganador
+    // por mayoría de votos dentro de esa categoría), y ambas comparten el mismo bonus configurado
+    // en la competencia — no se suma el ponderador del deporte ganador, es el mismo "+X" sin
+    // importar cuál de los dos ganó. La semana 1 nunca se resuelve por votación.
     let huboResolucion = false;
     for (let i = 1; i < semanas.length; i++) {
       const s = semanas[i];
       const anterior = semanas[i - 1];
-      if (s.deporte_semana_nombre || hoy <= anterior.fecha_fin) continue;
+      if ((s.deporte_semana_nombre && s.deporte_semana_nombre_2) || hoy <= anterior.fecha_fin) continue;
 
-      const { rows: [ganador] } = await pool.query(
-        `SELECT d.id, d.nombre, d.ponderador_default, COUNT(*) AS votos
-         FROM votos_deporte_semana v
-         JOIN deportes d ON d.id = v.deporte_id
-         WHERE v.competencia_semana_id = $1
-         GROUP BY d.id, d.nombre, d.ponderador_default
-         ORDER BY COUNT(*) DESC, RANDOM() LIMIT 1`,
-        [s.id]
-      );
-      if (!ganador) continue;
+      let huboGanadorEnEstaSemana = false;
+      for (const [categoria, columna] of [['tranquilo', 'deporte_semana_nombre'], ['extremo', 'deporte_semana_nombre_2']]) {
+        if (s[columna]) continue; // esta categoría ya tiene ganador
+        const { rows: [ganador] } = await pool.query(
+          `SELECT d.id, d.nombre, COUNT(*) AS votos
+           FROM votos_deporte_semana v
+           JOIN deportes d ON d.id = v.deporte_id
+           WHERE v.competencia_semana_id = $1 AND v.categoria = $2
+           GROUP BY d.id, d.nombre
+           ORDER BY COUNT(*) DESC, RANDOM() LIMIT 1`,
+          [s.id, categoria]
+        );
+        if (!ganador) continue;
 
-      const ponderadorExtra = parseFloat(ganador.ponderador_default) + parseFloat(comp.bonus_deporte_semana_extra);
-      await pool.query(
-        `UPDATE competencia_semanas SET deporte_semana_nombre=$1, deporte_semana_ponderador_extra=$2, updated_at=NOW() WHERE id=$3`,
-        [ganador.nombre, ponderadorExtra, s.id]
-      );
-      huboResolucion = true;
+        await pool.query(
+          `UPDATE competencia_semanas SET ${columna}=$1, deporte_semana_ponderador_extra=$2, updated_at=NOW() WHERE id=$3`,
+          [ganador.nombre, parseFloat(comp.bonus_deporte_semana_extra), s.id]
+        );
+        huboGanadorEnEstaSemana = true;
+      }
+      if (huboGanadorEnEstaSemana) huboResolucion = true;
     }
 
     if (huboResolucion) {
@@ -121,7 +128,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
         `SELECT id, competencia_id, numero_semana,
                 TO_CHAR(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
                 TO_CHAR(fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
-                deporte_semana_nombre, deporte_semana_ponderador_extra
+                deporte_semana_nombre, deporte_semana_nombre_2, deporte_semana_ponderador_extra
          FROM competencia_semanas WHERE competencia_id=$1 ORDER BY numero_semana`,
         [id]
       ));
@@ -250,7 +257,7 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
       `SELECT id, competencia_id, numero_semana,
               TO_CHAR(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio,
               TO_CHAR(fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
-              deporte_semana_nombre, deporte_semana_ponderador_extra
+              deporte_semana_nombre, deporte_semana_nombre_2, deporte_semana_ponderador_extra
        FROM competencia_semanas WHERE competencia_id=$1 ORDER BY numero_semana`,
       [id]
     );
@@ -263,6 +270,7 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
       semanas,
       semana_actual_id: semanaActual?.id ?? null,
       deporte_semana_actual_nombre: semanaActual?.deporte_semana_nombre ?? null,
+      deporte_semana_actual_nombre_2: semanaActual?.deporte_semana_nombre_2 ?? null,
       deporte_semana_actual_ponderador_extra: semanaActual?.deporte_semana_ponderador_extra ?? null,
     });
   } catch (err) {
@@ -297,10 +305,10 @@ router.put('/:id/deportes', authMiddleware, async (req, res) => {
 
 // ── SEMANAS: CHALLENGES Y DEPORTE DE LA SEMANA ──────────────────────────────
 
-// PUT /competencias/:id/semanas — editar deporte de la semana 1 (admin del grupo)
+// PUT /competencias/:id/semanas — editar los dos deportes de la semana 1 (admin del grupo)
 router.put('/:id/semanas', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { semanas } = req.body; // [{ id, deporte_semana_nombre, deporte_semana_ponderador_extra }]
+  const { semanas } = req.body; // [{ id, deporte_semana_nombre, deporte_semana_nombre_2, deporte_semana_ponderador_extra }]
 
   try {
     const { rows: [comp] } = await pool.query('SELECT id FROM competencias WHERE id=$1', [id]);
@@ -327,10 +335,11 @@ router.put('/:id/semanas', authMiddleware, async (req, res) => {
       if (semana.numero_semana !== 1 && !esSemanaActual) continue;
       await pool.query(
         `UPDATE competencia_semanas
-         SET deporte_semana_nombre=$1, deporte_semana_ponderador_extra=$2, updated_at=NOW()
-         WHERE id=$3 AND competencia_id=$4`,
+         SET deporte_semana_nombre=$1, deporte_semana_nombre_2=$2, deporte_semana_ponderador_extra=$3, updated_at=NOW()
+         WHERE id=$4 AND competencia_id=$5`,
         [
           s.deporte_semana_nombre || null,
+          s.deporte_semana_nombre_2 || null,
           s.deporte_semana_ponderador_extra != null && s.deporte_semana_ponderador_extra !== '' ? parseFloat(s.deporte_semana_ponderador_extra) : null,
           parseInt(s.id), id,
         ]
@@ -344,14 +353,35 @@ router.put('/:id/semanas', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /competencias/:id/semanas/:semanaId/votacion — estado de la votación del deporte de una semana
+// Ponderador vigente de un deporte en una competencia: el override de competencia_deportes si
+// existe, si no el ponderador_default del catálogo general.
+async function ponderadorVigente(competenciaId, deporteNombre) {
+  const { rows: [r] } = await pool.query(
+    `SELECT COALESCE(
+       (SELECT cd.ponderador FROM competencia_deportes cd WHERE cd.competencia_id=$1 AND cd.deporte_nombre=$2),
+       (SELECT d.ponderador_default FROM deportes d WHERE d.nombre=$2)
+     ) AS ponderador`,
+    [competenciaId, deporteNombre]
+  );
+  return r?.ponderador != null ? parseFloat(r.ponderador) : null;
+}
+
+// Categoría de un deporte: "extremo" (ponderador > 1) o "tranquilo" (ponderador <= 1).
+function categoriaDePonderador(ponderador) {
+  return ponderador > 1 ? 'extremo' : 'tranquilo';
+}
+
+// GET /competencias/:id/semanas/:semanaId/votacion?categoria=tranquilo|extremo — estado de la
+// votación de una de las dos categorías de deporte de la semana.
 router.get('/:id/semanas/:semanaId/votacion', authMiddleware, async (req, res) => {
   const { id, semanaId } = req.params;
+  const categoria = req.query.categoria === 'extremo' ? 'extremo' : 'tranquilo';
+  const columnaGanador = categoria === 'extremo' ? 'deporte_semana_nombre_2' : 'deporte_semana_nombre';
   try {
     if (!(await esParticipanteDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
     const { rows: [semana] } = await pool.query(
-      `SELECT id, numero_semana, deporte_semana_nombre,
+      `SELECT id, numero_semana, deporte_semana_nombre, deporte_semana_nombre_2,
               TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
        FROM competencia_semanas WHERE id=$1 AND competencia_id=$2`,
       [semanaId, id]
@@ -365,41 +395,57 @@ router.get('/:id/semanas/:semanaId/votacion', authMiddleware, async (req, res) =
       [id, semana.numero_semana - 1]
     );
     const hoy = new Date().toISOString().slice(0, 10);
-    const cerrada = !!semana.deporte_semana_nombre || (anterior && hoy > anterior.fecha_fin);
+    const ganadorActual = semana[columnaGanador];
+    const cerrada = !!ganadorActual || (anterior && hoy > anterior.fecha_fin);
 
+    // Deportes ya usados como ganador en CUALQUIER semana de esta competencia, en CUALQUIER
+    // categoría (un deporte no se repite de una semana a otra, sin importar en qué categoría ganó).
     const { rows: usados } = await pool.query(
-      `SELECT DISTINCT deporte_semana_nombre AS nombre FROM competencia_semanas
-       WHERE competencia_id=$1 AND id != $2 AND deporte_semana_nombre IS NOT NULL`,
+      `SELECT DISTINCT nombre FROM (
+         SELECT deporte_semana_nombre AS nombre FROM competencia_semanas WHERE competencia_id=$1 AND id != $2
+         UNION
+         SELECT deporte_semana_nombre_2 AS nombre FROM competencia_semanas WHERE competencia_id=$1 AND id != $2
+       ) t WHERE nombre IS NOT NULL`,
       [id, semanaId]
     );
     const nombresUsados = new Set(usados.map(u => u.nombre));
 
     const { rows: deportesRaw } = await pool.query(
       `SELECT d.id, d.nombre, d.icono,
-              (SELECT COUNT(*) FROM votos_deporte_semana v WHERE v.competencia_semana_id=$1 AND v.deporte_id=d.id)::int AS votos,
+              COALESCE(
+                (SELECT cd.ponderador FROM competencia_deportes cd WHERE cd.competencia_id=$2 AND cd.deporte_nombre=d.nombre),
+                d.ponderador_default
+              ) AS ponderador,
+              (SELECT COUNT(*) FROM votos_deporte_semana v WHERE v.competencia_semana_id=$1 AND v.deporte_id=d.id AND v.categoria=$3)::int AS votos,
               COALESCE((
                 SELECT json_agg(COALESCE(u.apodo, u.nombre) ORDER BY COALESCE(u.apodo, u.nombre))
                 FROM votos_deporte_semana v JOIN users u ON u.id = v.user_id
-                WHERE v.competencia_semana_id=$1 AND v.deporte_id=d.id
+                WHERE v.competencia_semana_id=$1 AND v.deporte_id=d.id AND v.categoria=$3
               ), '[]') AS votantes
-       FROM deportes d ORDER BY d.nombre`,
-      [semanaId]
+       FROM deportes d
+       WHERE (CASE WHEN COALESCE(
+                (SELECT cd.ponderador FROM competencia_deportes cd WHERE cd.competencia_id=$2 AND cd.deporte_nombre=d.nombre),
+                d.ponderador_default
+              ) > 1 THEN 'extremo' ELSE 'tranquilo' END) = $3
+       ORDER BY d.nombre`,
+      [semanaId, id, categoria]
     );
     let deportes = deportesRaw.map(d => ({ ...d, ya_usado: nombresUsados.has(d.nombre) }));
-    // Si ya se usaron todos, se reabre el catálogo completo (ningún deporte queda marcado como usado).
-    if (deportes.every(d => d.ya_usado)) deportes = deportes.map(d => ({ ...d, ya_usado: false }));
+    // Si ya se usaron todos los de esta categoría, se reabre (ninguno queda marcado como usado).
+    if (deportes.length && deportes.every(d => d.ya_usado)) deportes = deportes.map(d => ({ ...d, ya_usado: false }));
 
     const { rows: [miVoto] } = await pool.query(
-      'SELECT deporte_id FROM votos_deporte_semana WHERE competencia_semana_id=$1 AND user_id=$2',
-      [semanaId, req.user.id]
+      'SELECT deporte_id FROM votos_deporte_semana WHERE competencia_semana_id=$1 AND user_id=$2 AND categoria=$3',
+      [semanaId, req.user.id, categoria]
     );
 
     let ganadorDeporteId = null;
-    if (semana.deporte_semana_nombre) {
-      ganadorDeporteId = deportesRaw.find(d => d.nombre === semana.deporte_semana_nombre)?.id ?? null;
+    if (ganadorActual) {
+      ganadorDeporteId = deportesRaw.find(d => d.nombre === ganadorActual)?.id ?? null;
     }
 
     res.json({
+      categoria,
       deportes,
       mi_voto_deporte_id: miVoto?.deporte_id ?? null,
       cerrada,
@@ -411,7 +457,9 @@ router.get('/:id/semanas/:semanaId/votacion', authMiddleware, async (req, res) =
   }
 });
 
-// POST /competencias/:id/semanas/:semanaId/votar — votar (o cambiar voto) por el deporte de una semana futura
+// POST /competencias/:id/semanas/:semanaId/votar — votar (o cambiar voto) por el deporte de una
+// semana futura, dentro de la categoría a la que pertenece el deporte elegido (se infiere del
+// ponderador del deporte, no se recibe del cliente, para que no se pueda votar "trucho").
 router.post('/:id/semanas/:semanaId/votar', authMiddleware, async (req, res) => {
   const { id, semanaId } = req.params;
   const { deporte_id } = req.body;
@@ -421,14 +469,13 @@ router.post('/:id/semanas/:semanaId/votar', authMiddleware, async (req, res) => 
     if (!deporte_id) return res.status(400).json({ error: 'deporte_id es obligatorio' });
 
     const { rows: [semana] } = await pool.query(
-      `SELECT id, numero_semana, deporte_semana_nombre,
+      `SELECT id, numero_semana, deporte_semana_nombre, deporte_semana_nombre_2,
               TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
        FROM competencia_semanas WHERE id=$1 AND competencia_id=$2`,
       [semanaId, id]
     );
     if (!semana) return res.status(404).json({ error: 'Semana no encontrada' });
     if (semana.numero_semana === 1) return res.status(400).json({ error: 'La semana 1 la define el creador, no se vota' });
-    if (semana.deporte_semana_nombre) return res.status(400).json({ error: 'La votación de esta semana ya cerró' });
 
     const { rows: [anterior] } = await pool.query(
       `SELECT TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
@@ -438,17 +485,22 @@ router.post('/:id/semanas/:semanaId/votar', authMiddleware, async (req, res) => 
     const hoy = new Date().toISOString().slice(0, 10);
     if (anterior && hoy > anterior.fecha_fin) return res.status(400).json({ error: 'La votación de esta semana ya cerró' });
 
-    const { rows: [deporte] } = await pool.query('SELECT id FROM deportes WHERE id=$1', [deporte_id]);
+    const { rows: [deporte] } = await pool.query('SELECT id, nombre FROM deportes WHERE id=$1', [deporte_id]);
     if (!deporte) return res.status(404).json({ error: 'Deporte no encontrado' });
 
+    const ponderador = await ponderadorVigente(id, deporte.nombre);
+    const categoria = categoriaDePonderador(ponderador ?? 1);
+    const columnaGanador = categoria === 'extremo' ? 'deporte_semana_nombre_2' : 'deporte_semana_nombre';
+    if (semana[columnaGanador]) return res.status(400).json({ error: 'La votación de esta categoría ya cerró' });
+
     await pool.query(
-      `INSERT INTO votos_deporte_semana (competencia_semana_id, user_id, deporte_id)
-       VALUES ($1,$2,$3)
-       ON CONFLICT (competencia_semana_id, user_id) DO UPDATE SET deporte_id=$3, created_at=NOW()`,
-      [semanaId, req.user.id, deporte_id]
+      `INSERT INTO votos_deporte_semana (competencia_semana_id, user_id, deporte_id, categoria)
+       VALUES ($1,$2,$3,$4)
+       ON CONFLICT (competencia_semana_id, user_id, categoria) DO UPDATE SET deporte_id=$3, created_at=NOW()`,
+      [semanaId, req.user.id, deporte_id, categoria]
     );
 
-    res.json({ ok: true });
+    res.json({ ok: true, categoria });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al votar' });
@@ -718,8 +770,8 @@ router.get('/:id/actividades', authMiddleware, async (req, res) => {
 
     const { rows: semanas } = await pool.query(
       `SELECT TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin,
-              deporte_semana_nombre, deporte_semana_ponderador_extra
-       FROM competencia_semanas WHERE competencia_id=$1 AND deporte_semana_nombre IS NOT NULL`,
+              deporte_semana_nombre, deporte_semana_nombre_2, deporte_semana_ponderador_extra
+       FROM competencia_semanas WHERE competencia_id=$1 AND (deporte_semana_nombre IS NOT NULL OR deporte_semana_nombre_2 IS NOT NULL)`,
       [id]
     );
 
@@ -742,14 +794,16 @@ router.get('/:id/actividades', authMiddleware, async (req, res) => {
       params
     );
 
-    // Aplicar ponderador de la competencia + multiplicador extra de deporte-de-la-semana si corresponde
+    // Aplicar ponderador de la competencia + extra aditivo de deporte-de-la-semana si corresponde
+    // (deporte_semana_ponderador_extra es un delta, ej. "+0.2" = 20% extra, no un multiplicador total).
     const actividades = rows.map(r => {
       const pondBase = pondMap[r.deporte_nombre] ?? parseFloat(r.ponderador_original);
       const semanaExtra = semanas.find(s =>
-        s.deporte_semana_nombre === r.deporte_nombre && r.fecha >= s.fecha_inicio && r.fecha <= s.fecha_fin
+        (s.deporte_semana_nombre === r.deporte_nombre || s.deporte_semana_nombre_2 === r.deporte_nombre)
+          && r.fecha >= s.fecha_inicio && r.fecha <= s.fecha_fin
       );
-      const extra = semanaExtra ? parseFloat(semanaExtra.deporte_semana_ponderador_extra) : 1;
-      return { ...r, ponderador: pondBase * extra, puntos: parseFloat(r.minutos) * pondBase * extra };
+      const factor = 1 + (semanaExtra ? parseFloat(semanaExtra.deporte_semana_ponderador_extra) : 0);
+      return { ...r, ponderador: pondBase * factor, puntos: parseFloat(r.minutos) * pondBase * factor };
     });
 
     res.json(actividades);

@@ -530,6 +530,42 @@ UPDATE challenges c
 SET fecha_inicio = cs.fecha_inicio, fecha_fin = cs.fecha_fin
 FROM competencia_semanas cs
 WHERE c.semana_id = cs.id AND c.fecha_inicio IS NULL AND c.fecha_fin IS NULL;
+
+-- Segundo deporte de la semana: ahora cada semana tiene dos ganadores en paralelo, uno por
+-- categoría — "deporte_semana_nombre" queda para la categoría tranquila (ponderador <= 1) y
+-- "deporte_semana_nombre_2" para la extrema (ponderador > 1). Ambas comparten el mismo
+-- deporte_semana_ponderador_extra: el bonus es el mismo sin importar cuál de los dos se practicó.
+-- La categoría se deriva en el momento (del ponderador vigente en competencia_deportes/deportes),
+-- no se guarda como columna — así nunca queda desincronizada si el ponderador cambia después.
+ALTER TABLE competencia_semanas ADD COLUMN IF NOT EXISTS deporte_semana_nombre_2 TEXT;
+
+-- Categoría del voto: antes había un solo voto por persona por semana; ahora hay dos categorías
+-- de votación independientes ("tranquilo" / "extremo"), cada una con su propio ganador. Se migra
+-- el voto existente (si lo hay) a la categoría que le corresponda según el ponderador del deporte
+-- votado en ese momento, para no perder votos ya emitidos.
+ALTER TABLE votos_deporte_semana ADD COLUMN IF NOT EXISTS categoria TEXT;
+UPDATE votos_deporte_semana v
+SET categoria = CASE
+  WHEN COALESCE(
+    (SELECT cd.ponderador FROM competencia_deportes cd
+     JOIN competencia_semanas cs ON cs.competencia_id = cd.competencia_id
+     JOIN deportes d2 ON d2.id = v.deporte_id
+     WHERE cs.id = v.competencia_semana_id AND cd.deporte_nombre = d2.nombre),
+    (SELECT d.ponderador_default FROM deportes d WHERE d.id = v.deporte_id)
+  ) > 1 THEN 'extremo'
+  ELSE 'tranquilo'
+END
+WHERE v.categoria IS NULL;
+ALTER TABLE votos_deporte_semana ALTER COLUMN categoria SET NOT NULL;
+
+-- El UNIQUE viejo (un voto por persona por semana) se reemplaza por uno por persona-semana-categoría.
+ALTER TABLE votos_deporte_semana DROP CONSTRAINT IF EXISTS votos_deporte_semana_competencia_semana_id_user_id_key;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'votos_deporte_semana_semana_user_categoria_key') THEN
+    ALTER TABLE votos_deporte_semana ADD CONSTRAINT votos_deporte_semana_semana_user_categoria_key UNIQUE (competencia_semana_id, user_id, categoria);
+  END IF;
+END $$;
 `;
 
 async function migrate() {

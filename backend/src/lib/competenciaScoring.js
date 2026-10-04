@@ -1,7 +1,10 @@
 const pool = require('../db/pool');
 
 // CTEs compartidos para calcular puntos por persona dentro de una competencia:
-// - acts_calc: puntos por actividad = minutos * ponderador_deporte_competencia * ponderador_extra_semana_si_aplica
+// - acts_calc: puntos por actividad = minutos * ponderador_deporte_competencia * (1 + extra_semana_si_aplica)
+//   deporte_semana_ponderador_extra es un delta aditivo ("+0.2" = 20% extra), no un multiplicador
+//   total — por eso se suma 1 antes de multiplicar, igual que lo muestra el formulario de registrar
+//   actividad ("1.10 +0.30").
 //   Solo considera actividades vinculadas a la competencia vía actividad_competencias (una actividad puede
 //   estar vinculada a varias competencias en curso a la vez — cambio de comportamiento respecto al ranking
 //   histórico, que sumaba todas las actividades del usuario sin filtrar).
@@ -17,7 +20,7 @@ function buildScoringCtes(mesFilter = '') {
     SELECT deporte_nombre, ponderador FROM competencia_deportes WHERE competencia_id = $1
   ),
   semanas AS (
-    SELECT numero_semana, fecha_inicio, fecha_fin, deporte_semana_nombre, deporte_semana_ponderador_extra
+    SELECT numero_semana, fecha_inicio, fecha_fin, deporte_semana_nombre, deporte_semana_nombre_2, deporte_semana_ponderador_extra
     FROM competencia_semanas WHERE competencia_id = $1
   ),
   comp_rango AS (
@@ -29,12 +32,12 @@ function buildScoringCtes(mesFilter = '') {
       a.minutos * COALESCE(
         (SELECT ponderador FROM comp_pond WHERE deporte_nombre = a.deporte_nombre),
         a.ponderador
-      ) * COALESCE(
+      ) * (1 + COALESCE(
         (SELECT s.deporte_semana_ponderador_extra FROM semanas s
          WHERE a.fecha BETWEEN s.fecha_inicio AND s.fecha_fin
-           AND s.deporte_semana_nombre = a.deporte_nombre),
-        1
-      ) AS puntos_actividad,
+           AND (s.deporte_semana_nombre = a.deporte_nombre OR s.deporte_semana_nombre_2 = a.deporte_nombre)),
+        0
+      )) AS puntos_actividad,
       a.minutos AS minutos,
       a.id AS actividad_id
     FROM actividades a

@@ -2699,6 +2699,14 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
 
   useEffect(() => { getAllDeportes().then(setDeportes).catch(() => {}); }, []);
 
+  // Ponderador vigente de un deporte en esta competencia (override si existe, si no el default del
+  // catálogo) — mismo criterio que usa el backend para separar "tranquilos" (<=1) de "extremos" (>1).
+  const pondPorNombre = {};
+  (competencia.deportes || []).forEach(cd => { pondPorNombre[cd.deporte_nombre] = parseFloat(cd.ponderador); });
+  function ponderadorVigente(d) { return pondPorNombre[d.nombre] ?? parseFloat(d.ponderador_default); }
+  const deportesTranquilos = deportes.filter(d => ponderadorVigente(d) <= 1);
+  const deportesExtremos   = deportes.filter(d => ponderadorVigente(d) > 1);
+
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
   function onTouchEnd(e) {
     if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 80) onClose();
@@ -2729,6 +2737,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
       await updateSemanas(competencia.id, semanas.filter(s => s.numero_semana === 1 || s.id === competencia.semana_actual_id).map(s => ({
         id: s.id,
         deporte_semana_nombre: s.deporte_semana_nombre,
+        deporte_semana_nombre_2: s.deporte_semana_nombre_2,
         deporte_semana_ponderador_extra: s.deporte_semana_ponderador_extra,
       })));
 
@@ -2851,20 +2860,23 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
             )}
           </div>
 
-          {/* ── Deporte de la semana editable a mano: siempre la semana 1, y además la semana actual
-              (sea cual sea su número) — así el admin puede corregirlo aunque ya haya votación. ── */}
+          {/* ── Deportes de la semana editables a mano: siempre la semana 1, y además la semana
+              actual (sea cual sea su número) — así el admin puede corregirlos aunque ya haya
+              votación. Hay dos categorías independientes: tranquilo (ponderador <=1) y extremo
+              (ponderador >1), cada una con su propio deporte ganador. Ambas comparten el mismo
+              ponderador extra. ── */}
           {semanas.some(s => s.numero_semana === 1 || s.id === competencia.semana_actual_id) && (
             <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deporte de la semana</div>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deportes de la semana</div>
               <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>
-                La semana 1 se fija a mano. De la semana 2 en adelante se decide por votación de los participantes, pero puedes sobreescribir la semana actual.
+                La semana 1 se fija a mano. De la semana 2 en adelante cada categoría se decide por votación de los participantes, pero puedes sobreescribir la semana actual.
               </div>
               {semanas.filter(s => s.numero_semana === 1 || s.id === competencia.semana_actual_id)
                 .sort((a, b) => a.numero_semana - b.numero_semana)
                 .map(s => {
                 const isOpen = abierta === s.id;
                 const isActual = s.id === competencia.semana_actual_id;
-                const tieneContenido = !!s.deporte_semana_nombre;
+                const tieneContenido = !!s.deporte_semana_nombre || !!s.deporte_semana_nombre_2;
                 return (
                   <div key={s.id} style={{ border: isActual ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)', borderRadius:12, overflow:'hidden', background:'var(--t-surface2)', flexShrink:0 }}>
                     <button onClick={() => setAbierta(isOpen ? null : s.id)}
@@ -2877,21 +2889,34 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
                       <span style={{ color:'var(--t-muted)' }}>{isOpen ? '▲' : '▼'}</span>
                     </button>
                     {isOpen && (
-                      <div style={{ padding:'0 12px 12px', display:'flex', gap:8 }}>
-                        <select
-                          value={s.deporte_semana_nombre || ''} disabled={readOnly}
-                          onChange={e => updateSemana(s.id, { deporte_semana_nombre: e.target.value })}
-                          style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', appearance:'none' }}
-                        >
-                          <option value="">Sin deporte de la semana</option>
-                          {deportes.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
-                        </select>
-                        <input
-                          type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="Extra" disabled={readOnly || !s.deporte_semana_nombre}
-                          value={s.deporte_semana_ponderador_extra ?? ''}
-                          onChange={e => updateSemana(s.id, { deporte_semana_ponderador_extra: e.target.value })}
-                          style={{ width:70, flexShrink:0, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', opacity: s.deporte_semana_nombre ? 1 : 0.5 }}
-                        />
+                      <div style={{ padding:'0 12px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+                        <div style={{ display:'flex', gap:8 }}>
+                          <select
+                            value={s.deporte_semana_nombre || ''} disabled={readOnly}
+                            onChange={e => updateSemana(s.id, { deporte_semana_nombre: e.target.value })}
+                            style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', appearance:'none' }}
+                          >
+                            <option value="">Sin deporte tranquilo</option>
+                            {deportesTranquilos.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
+                          </select>
+                          <select
+                            value={s.deporte_semana_nombre_2 || ''} disabled={readOnly}
+                            onChange={e => updateSemana(s.id, { deporte_semana_nombre_2: e.target.value })}
+                            style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', appearance:'none' }}
+                          >
+                            <option value="">Sin deporte extremo</option>
+                            {deportesExtremos.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
+                          </select>
+                        </div>
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <span style={{ fontSize:12, color:'var(--t-muted)', flex:1 }}>Extra compartido (ambos deportes)</span>
+                          <input
+                            type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="Extra" disabled={readOnly || (!s.deporte_semana_nombre && !s.deporte_semana_nombre_2)}
+                            value={s.deporte_semana_ponderador_extra ?? ''}
+                            onChange={e => updateSemana(s.id, { deporte_semana_ponderador_extra: e.target.value })}
+                            style={{ width:70, flexShrink:0, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', opacity: (s.deporte_semana_nombre || s.deporte_semana_nombre_2) ? 1 : 0.5 }}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>

@@ -86,7 +86,11 @@ function ChevronDown({ open }) {
   );
 }
 
-function VotacionDeporte({ competenciaId, semanaId }) {
+// categoria: 'tranquilo' (ponderador <= 1) o 'extremo' (ponderador > 1) — cada una vota y resuelve
+// su propio ganador, de forma independiente de la otra categoría.
+const ETIQUETA_CATEGORIA = { tranquilo: 'tranquilo', extremo: 'extremo' };
+
+function VotacionDeporte({ competenciaId, semanaId, categoria }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [votando, setVotando] = useState(null);
@@ -95,19 +99,19 @@ function VotacionDeporte({ competenciaId, semanaId }) {
   useEffect(() => {
     let cancelado = false;
     setLoading(true);
-    getVotacionSemana(competenciaId, semanaId)
+    getVotacionSemana(competenciaId, semanaId, categoria)
       .then(res => { if (!cancelado) setData(res); })
       .catch(err => { if (!cancelado) setError(err.message); })
       .finally(() => { if (!cancelado) setLoading(false); });
     return () => { cancelado = true; };
-  }, [competenciaId, semanaId]);
+  }, [competenciaId, semanaId, categoria]);
 
   async function handleVotar(deporteId) {
     if (votando || data?.cerrada) return;
     setVotando(deporteId); setError('');
     try {
       await votarDeporteSemana(competenciaId, semanaId, deporteId);
-      const fresh = await getVotacionSemana(competenciaId, semanaId);
+      const fresh = await getVotacionSemana(competenciaId, semanaId, categoria);
       setData(fresh);
     } catch (err) {
       setError(err.message);
@@ -139,7 +143,7 @@ function VotacionDeporte({ competenciaId, semanaId }) {
       }}>
         <div style={{ fontSize:40, lineHeight:1 }}>{sportIcon(ganador.nombre)}</div>
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Elegido por votación</div>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Elegido por votación · {ETIQUETA_CATEGORIA[categoria]}</div>
           <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, marginTop:2 }}>
             {ganador.nombre}
           </div>
@@ -158,7 +162,7 @@ function VotacionDeporte({ competenciaId, semanaId }) {
     <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
       <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between' }}>
         <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>
-          Votación: deporte de esta semana
+          Votación: deporte {ETIQUETA_CATEGORIA[categoria]} de esta semana
         </div>
         <div style={{ fontSize:11, color:'var(--t-muted)' }}>{totalVotos} voto{totalVotos === 1 ? '' : 's'}</div>
       </div>
@@ -221,13 +225,13 @@ function VotacionDeporte({ competenciaId, semanaId }) {
 
 // CTA que abre el sheet de votación — se entera de antemano si el usuario ya votó, para mostrarlo
 // ("Ya votaste por X") sin que haga falta abrir el sheet primero.
-function VotacionCTA({ competenciaId, semanaId, onOpen }) {
+function VotacionCTA({ competenciaId, semanaId, categoria, onOpen }) {
   const [miVoto, setMiVoto] = useState(undefined); // undefined = cargando, null = sin voto, {nombre} = votó
 
   useEffect(() => {
     let cancelado = false;
     setMiVoto(undefined);
-    getVotacionSemana(competenciaId, semanaId)
+    getVotacionSemana(competenciaId, semanaId, categoria)
       .then(res => {
         if (cancelado) return;
         const dep = res.mi_voto_deporte_id != null ? res.deportes.find(d => d.id === res.mi_voto_deporte_id) : null;
@@ -235,7 +239,7 @@ function VotacionCTA({ competenciaId, semanaId, onOpen }) {
       })
       .catch(() => { if (!cancelado) setMiVoto(null); });
     return () => { cancelado = true; };
-  }, [competenciaId, semanaId]);
+  }, [competenciaId, semanaId, categoria]);
 
   const cargando = miVoto === undefined;
 
@@ -255,7 +259,7 @@ function VotacionCTA({ competenciaId, semanaId, onOpen }) {
       </div>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
-          {cargando ? 'Cargando votación…' : (miVoto ? <>Ya votaste por {miVoto.nombre}</> : 'Vota por el deporte de la semana')}
+          {cargando ? 'Cargando votación…' : (miVoto ? <>Ya votaste por {miVoto.nombre}</> : `Vota por el deporte ${ETIQUETA_CATEGORIA[categoria]}`)}
         </div>
         {miVoto && !cargando && <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Toca para cambiar tu voto</div>}
       </div>
@@ -266,7 +270,7 @@ function VotacionCTA({ competenciaId, semanaId, onOpen }) {
 
 // Bottom sheet que aparece parcialmente desde abajo con el listado de votación — en vez de
 // desplegar la lista completa de deportes inline en la página (empujaba todo el resto del contenido).
-function VotacionSheet({ competenciaId, semanaId, onClose }) {
+function VotacionSheet({ competenciaId, semanaId, categoria, onClose }) {
   const startY = useRef(null);
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
   function onTouchEnd(e) {
@@ -283,24 +287,24 @@ function VotacionSheet({ competenciaId, semanaId, onClose }) {
           <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
         </div>
         <div style={{ overflowY:'auto', padding:'0 18px 8px' }}>
-          <VotacionDeporte competenciaId={competenciaId} semanaId={semanaId} />
+          <VotacionDeporte competenciaId={competenciaId} semanaId={semanaId} categoria={categoria} />
         </div>
       </div>
     </>
   );
 }
 
-function AvisoVotacionPendiente({ competenciaId, proximaSemana, onIrAVotar }) {
+function AvisoVotacionPendiente({ competenciaId, proximaSemana, categoria, onIrAVotar }) {
   const [mostrar, setMostrar] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
     setMostrar(false);
-    getVotacionSemana(competenciaId, proximaSemana.id)
+    getVotacionSemana(competenciaId, proximaSemana.id, categoria)
       .then(res => { if (!cancelado) setMostrar(!res.cerrada && res.mi_voto_deporte_id == null); })
       .catch(() => {});
     return () => { cancelado = true; };
-  }, [competenciaId, proximaSemana.id]);
+  }, [competenciaId, proximaSemana.id, categoria]);
 
   if (!mostrar) return null; // ya votó, la votación cerró, o todavía está cargando
 
@@ -314,7 +318,7 @@ function AvisoVotacionPendiente({ competenciaId, proximaSemana, onIrAVotar }) {
       <div style={{ fontSize:24, lineHeight:1, flexShrink:0 }}>🗳️</div>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
-          Todavía no votaste el deporte de la semana {proximaSemana.numero_semana}
+          Todavía no votaste el deporte {ETIQUETA_CATEGORIA[categoria]} de la semana {proximaSemana.numero_semana}
         </div>
         <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Toca para ir a votar</div>
       </div>
@@ -327,20 +331,26 @@ function AvisoVotacionPendiente({ competenciaId, proximaSemana, onIrAVotar }) {
 // pendientes); expandida muestra el contenido completo (igual que antes mostraba la semana única).
 function SemanaCard({
   competencia, semana, challenges, isActual, expanded, onToggle, onCompletado,
-  seVota, votacionSheetOpenId, onOpenVotacion, onCloseVotacion, votacionRefreshKey,
-  proximaSemana, avisarVotacion, onIrAVotar,
+  seVotaTranquilo, seVotaExtremo, votacionSheetOpen, onOpenVotacion, onCloseVotacion, votacionRefreshKey,
+  proximaSemana, avisarVotacionTranquilo, avisarVotacionExtremo, onIrAVotar,
 }) {
-  const tieneDeporte = !!semana.deporte_semana_nombre;
+  const tieneDeporteTranquilo = !!semana.deporte_semana_nombre;
+  const tieneDeporteExtremo = !!semana.deporte_semana_nombre_2;
   const vigentes = challenges.filter(ch =>
     (!ch.fecha_inicio || !ch.fecha_fin) ||
     (ch.fecha_inicio <= semana.fecha_fin && ch.fecha_fin >= semana.fecha_inicio)
   );
   const completados = vigentes.filter(ch => ch.completado).length;
+  const seVota = seVotaTranquilo || seVotaExtremo;
+  const tieneDeporte = tieneDeporteTranquilo || tieneDeporteExtremo;
 
   // Resumen de una línea para el estado colapsado.
   let resumen;
   if (tieneDeporte) {
-    resumen = <>{sportIcon(semana.deporte_semana_nombre)} {semana.deporte_semana_nombre}{vigentes.length > 0 && ` · ${completados}/${vigentes.length} challenges`}</>;
+    const partes = [];
+    if (tieneDeporteTranquilo) partes.push(`${sportIcon(semana.deporte_semana_nombre)} ${semana.deporte_semana_nombre}`);
+    if (tieneDeporteExtremo) partes.push(`${sportIcon(semana.deporte_semana_nombre_2)} ${semana.deporte_semana_nombre_2}`);
+    resumen = <>{partes.join(' · ')}{vigentes.length > 0 && ` · ${completados}/${vigentes.length} challenges`}</>;
   } else if (seVota) {
     resumen = '🗳️ Votación del deporte';
   } else if (vigentes.length > 0) {
@@ -374,39 +384,80 @@ function SemanaCard({
       {expanded && (
         <div style={{ padding:'0 16px 16px', display:'flex', flexDirection:'column', gap:12 }}>
 
-          {tieneDeporte && (
-            <div style={{
-              display:'flex', alignItems:'center', gap:14, padding:'16px 18px', borderRadius:16,
-              background:'linear-gradient(135deg, rgba(var(--t-accent-r),0.14), rgba(var(--t-accent-r),0.04))',
-              border:'1.5px solid rgba(var(--t-accent-r),0.3)',
-            }}>
-              <div style={{ fontSize:40, lineHeight:1 }}>{sportIcon(semana.deporte_semana_nombre)}</div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Deporte de la semana</div>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, marginTop:2 }}>
-                  {semana.deporte_semana_nombre}
+          {(tieneDeporteTranquilo || tieneDeporteExtremo) && (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {tieneDeporteTranquilo && (
+                <div style={{
+                  display:'flex', alignItems:'center', gap:14, padding:'16px 18px', borderRadius:16,
+                  background:'linear-gradient(135deg, rgba(var(--t-accent-r),0.14), rgba(var(--t-accent-r),0.04))',
+                  border:'1.5px solid rgba(var(--t-accent-r),0.3)',
+                }}>
+                  <div style={{ fontSize:40, lineHeight:1 }}>{sportIcon(semana.deporte_semana_nombre)}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Deporte tranquilo de la semana</div>
+                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, marginTop:2 }}>
+                      {semana.deporte_semana_nombre}
+                    </div>
+                    <div style={{ fontSize:12, color:'var(--t-accent)', fontWeight:700, marginTop:2 }}>
+                      +{semana.deporte_semana_ponderador_extra} puntos esta semana
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize:12, color:'var(--t-accent)', fontWeight:700, marginTop:2 }}>
-                  ×{semana.deporte_semana_ponderador_extra} puntos esta semana
+              )}
+              {tieneDeporteExtremo && (
+                <div style={{
+                  display:'flex', alignItems:'center', gap:14, padding:'16px 18px', borderRadius:16,
+                  background:'linear-gradient(135deg, rgba(var(--t-accent-r),0.14), rgba(var(--t-accent-r),0.04))',
+                  border:'1.5px solid rgba(var(--t-accent-r),0.3)',
+                }}>
+                  <div style={{ fontSize:40, lineHeight:1 }}>{sportIcon(semana.deporte_semana_nombre_2)}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Deporte extremo de la semana</div>
+                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, marginTop:2 }}>
+                      {semana.deporte_semana_nombre_2}
+                    </div>
+                    <div style={{ fontSize:12, color:'var(--t-accent)', fontWeight:700, marginTop:2 }}>
+                      +{semana.deporte_semana_ponderador_extra} puntos esta semana
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
-          {avisarVotacion && (
+          {avisarVotacionTranquilo && (
             <AvisoVotacionPendiente
               competenciaId={competencia.id}
               proximaSemana={proximaSemana}
-              onIrAVotar={onIrAVotar}
+              categoria="tranquilo"
+              onIrAVotar={() => onIrAVotar('tranquilo')}
+            />
+          )}
+          {avisarVotacionExtremo && (
+            <AvisoVotacionPendiente
+              competenciaId={competencia.id}
+              proximaSemana={proximaSemana}
+              categoria="extremo"
+              onIrAVotar={() => onIrAVotar('extremo')}
             />
           )}
 
-          {seVota && (
+          {seVotaTranquilo && (
             <VotacionCTA
-              key={votacionRefreshKey}
+              key={`tranquilo-${votacionRefreshKey}`}
               competenciaId={competencia.id}
               semanaId={semana.id}
-              onOpen={() => onOpenVotacion(semana.id)}
+              categoria="tranquilo"
+              onOpen={() => onOpenVotacion(semana.id, 'tranquilo')}
+            />
+          )}
+          {seVotaExtremo && (
+            <VotacionCTA
+              key={`extremo-${votacionRefreshKey}`}
+              competenciaId={competencia.id}
+              semanaId={semana.id}
+              categoria="extremo"
+              onOpen={() => onOpenVotacion(semana.id, 'extremo')}
             />
           )}
 
@@ -426,10 +477,11 @@ function SemanaCard({
             </div>
           )}
 
-          {votacionSheetOpenId === semana.id && seVota && createPortal(
+          {votacionSheetOpen?.semanaId === semana.id && createPortal(
             <VotacionSheet
               competenciaId={competencia.id}
               semanaId={semana.id}
+              categoria={votacionSheetOpen.categoria}
               onClose={onCloseVotacion}
             />,
             document.body
@@ -443,7 +495,7 @@ function SemanaCard({
 export default function SemanaPanel({ competencia, onOpenSelector }) {
   const [challenges, setChallenges] = useState(competencia?.challenges || []);
   const [expandedId, setExpandedId] = useState(competencia?.semana_actual_id ?? null);
-  const [votacionSheetOpenId, setVotacionSheetOpenId] = useState(null);
+  const [votacionSheetOpen, setVotacionSheetOpen] = useState(null); // { semanaId, categoria } | null
   const [votacionRefreshKey, setVotacionRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -470,7 +522,7 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
   }
 
   function handleToggle(semanaId) {
-    setVotacionSheetOpenId(null);
+    setVotacionSheetOpen(null);
     setExpandedId(prev => prev === semanaId ? null : semanaId);
   }
 
@@ -494,8 +546,8 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
         )}
         {semanasOrdenadas.map((semana) => {
           const isActual = semana.id === competencia.semana_actual_id;
-          const tieneDeporte = !!semana.deporte_semana_nombre;
-          const seVota = semana.numero_semana > 1 && !tieneDeporte;
+          const seVotaTranquilo = semana.numero_semana > 1 && !semana.deporte_semana_nombre;
+          const seVotaExtremo = semana.numero_semana > 1 && !semana.deporte_semana_nombre_2;
 
           // El aviso de "votación pendiente" se cuelga de la semana actual, apuntando a la próxima
           // en orden cronológico real (no en el orden de visualización, que la mueve al frente).
@@ -503,7 +555,8 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
           const proximaSemana = isActual && indiceCronologico < semanasCronologicas.length - 1
             ? semanasCronologicas[indiceCronologico + 1]
             : null;
-          const avisarVotacion = !!proximaSemana && !proximaSemana.deporte_semana_nombre;
+          const avisarVotacionTranquilo = !!proximaSemana && !proximaSemana.deporte_semana_nombre;
+          const avisarVotacionExtremo = !!proximaSemana && !proximaSemana.deporte_semana_nombre_2;
 
           return (
             <SemanaCard
@@ -515,14 +568,16 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
               expanded={expandedId === semana.id}
               onToggle={() => handleToggle(semana.id)}
               onCompletado={handleCompletado}
-              seVota={seVota}
-              votacionSheetOpenId={votacionSheetOpenId}
-              onOpenVotacion={setVotacionSheetOpenId}
-              onCloseVotacion={() => { setVotacionSheetOpenId(null); setVotacionRefreshKey(k => k + 1); }}
+              seVotaTranquilo={seVotaTranquilo}
+              seVotaExtremo={seVotaExtremo}
+              votacionSheetOpen={votacionSheetOpen}
+              onOpenVotacion={(semanaId, categoria) => setVotacionSheetOpen({ semanaId, categoria })}
+              onCloseVotacion={() => { setVotacionSheetOpen(null); setVotacionRefreshKey(k => k + 1); }}
               votacionRefreshKey={votacionRefreshKey}
               proximaSemana={proximaSemana}
-              avisarVotacion={avisarVotacion}
-              onIrAVotar={() => { setExpandedId(proximaSemana.id); setVotacionSheetOpenId(proximaSemana.id); }}
+              avisarVotacionTranquilo={avisarVotacionTranquilo}
+              avisarVotacionExtremo={avisarVotacionExtremo}
+              onIrAVotar={(categoria) => { setExpandedId(proximaSemana.id); setVotacionSheetOpen({ semanaId: proximaSemana.id, categoria }); }}
             />
           );
         })}

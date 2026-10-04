@@ -53,11 +53,12 @@ async function creaCompetenciaEnTransaccion(client, grupoId, body) {
       const { rows: [semanaRow] } = await client.query(
         `INSERT INTO competencia_semanas
            (competencia_id, numero_semana, fecha_inicio, fecha_fin,
-            deporte_semana_nombre, deporte_semana_ponderador_extra)
-         VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+            deporte_semana_nombre, deporte_semana_nombre_2, deporte_semana_ponderador_extra)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
         [
           comp.id, s.numero_semana, s.fecha_inicio, s.fecha_fin,
           input.deporte_semana_nombre || null,
+          input.deporte_semana_nombre_2 || null,
           input.deporte_semana_ponderador_extra != null ? parseFloat(input.deporte_semana_ponderador_extra) : null,
         ]
       );
@@ -119,7 +120,7 @@ router.get('/', authMiddleware, async (req, res) => {
     const { rows: semanasPorComp } = idsCompetenciasEnCurso.length
       ? await pool.query(
           `SELECT id, competencia_id, numero_semana, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio,
-                  TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin, deporte_semana_nombre, deporte_semana_ponderador_extra
+                  TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin, deporte_semana_nombre, deporte_semana_nombre_2, deporte_semana_ponderador_extra
            FROM competencia_semanas WHERE competencia_id = ANY($1::int[]) ORDER BY numero_semana`,
           [idsCompetenciasEnCurso]
         )
@@ -157,6 +158,7 @@ router.get('/', authMiddleware, async (req, res) => {
         challenges: challengesMap.get(c.id) ?? [],
         semana_actual_id: semanaActual?.id ?? null,
         deporte_semana_actual_nombre: semanaActual?.deporte_semana_nombre ?? null,
+        deporte_semana_actual_nombre_2: semanaActual?.deporte_semana_nombre_2 ?? null,
         deporte_semana_actual_ponderador_extra: semanaActual?.deporte_semana_ponderador_extra ?? null,
       };
       if (!enCursoPorGrupo.has(c.grupo_id)) enCursoPorGrupo.set(c.grupo_id, []);
@@ -314,7 +316,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const { rows: semanasPorComp } = idsCompetenciasEnCurso.length
       ? await pool.query(
           `SELECT id, competencia_id, numero_semana, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio,
-                  TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin, deporte_semana_nombre, deporte_semana_ponderador_extra
+                  TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin, deporte_semana_nombre, deporte_semana_nombre_2, deporte_semana_ponderador_extra
            FROM competencia_semanas WHERE competencia_id = ANY($1::int[]) ORDER BY numero_semana`,
           [idsCompetenciasEnCurso]
         )
@@ -351,6 +353,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
         challenges: challengesMap.get(c.id) ?? [],
         semana_actual_id: semanaActual?.id ?? null,
         deporte_semana_actual_nombre: semanaActual?.deporte_semana_nombre ?? null,
+        deporte_semana_actual_nombre_2: semanaActual?.deporte_semana_nombre_2 ?? null,
         deporte_semana_actual_ponderador_extra: semanaActual?.deporte_semana_ponderador_extra ?? null,
       };
     });

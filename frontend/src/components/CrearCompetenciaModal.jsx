@@ -196,7 +196,7 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
       const equipos_nombres = equiposNombres.map(n => n.trim()).filter(Boolean);
       const semanas = semanasCalculadas
         .map(s => ({ numero_semana: s.numero_semana, ...semanasData[s.numero_semana] }))
-        .filter(s => s.deporte_semana_nombre);
+        .filter(s => s.deporte_semana_nombre || s.deporte_semana_nombre_2);
       const challenges = challengesData
         .filter(c => c.texto?.trim())
         .map(c => ({ texto: c.texto.trim(), puntos: parseFloat(c.puntos) || 0, numero_semana: c.numero_semana ?? null }));
@@ -440,16 +440,21 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
               </button>
             </div>
 
-            {/* Deporte de la semana (solo si hay rango de fechas) */}
-            {semanasCalculadas.length > 0 && (
+            {/* Deportes de la semana (solo si hay rango de fechas) — dos categorías independientes:
+                tranquilo (ponderador <=1) y extremo (ponderador >1), con el mismo extra compartido. */}
+            {semanasCalculadas.length > 0 && (() => {
+              const pondVigente = d => parseFloat(ponders[d.nombre] ?? d.ponderador_default);
+              const deportesTranquilos = deportes.filter(d => pondVigente(d) <= 1);
+              const deportesExtremos   = deportes.filter(d => pondVigente(d) > 1);
+              return (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Deporte de la semana (opcional)</label>
-                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Puedes dejarlo vacío y completarlo después editando la competencia.</div>
+                <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)' }}>Deportes de la semana (opcional)</label>
+                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>Puedes dejarlos vacíos y completarlos después editando la competencia.</div>
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   {semanasCalculadas.map(s => {
                     const abierta = semanaAbierta === s.numero_semana;
                     const data = semanasData[s.numero_semana] || {};
-                    const tieneContenido = !!data.deporte_semana_nombre;
+                    const tieneContenido = !!data.deporte_semana_nombre || !!data.deporte_semana_nombre_2;
                     return (
                       <div key={s.numero_semana} style={{ border:'1px solid var(--t-dim)', borderRadius:12, overflow:'hidden', background:'var(--t-surface2)' }}>
                         <button type="button" onClick={() => setSemanaAbierta(abierta ? null : s.numero_semana)}
@@ -461,21 +466,31 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
                           <span style={{ color:'var(--t-muted)' }}>{abierta ? '▲' : '▼'}</span>
                         </button>
                         {abierta && (
-                          <div style={{ padding:'0 12px 12px', display:'flex', gap:8 }}>
-                            <select
-                              value={data.deporte_semana_nombre || ''}
-                              onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_nombre: e.target.value } }))}
-                              style={{ ...inputStyle, flex:1, appearance:'none' }}
-                            >
-                              <option value="">Sin deporte de la semana</option>
-                              {deportes.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
-                            </select>
+                          <div style={{ padding:'0 12px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+                            <div style={{ display:'flex', gap:8 }}>
+                              <select
+                                value={data.deporte_semana_nombre || ''}
+                                onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_nombre: e.target.value } }))}
+                                style={{ ...inputStyle, flex:1, appearance:'none' }}
+                              >
+                                <option value="">Sin deporte tranquilo</option>
+                                {deportesTranquilos.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
+                              </select>
+                              <select
+                                value={data.deporte_semana_nombre_2 || ''}
+                                onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_nombre_2: e.target.value } }))}
+                                style={{ ...inputStyle, flex:1, appearance:'none' }}
+                              >
+                                <option value="">Sin deporte extremo</option>
+                                {deportesExtremos.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
+                              </select>
+                            </div>
                             <input
-                              type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="Extra"
+                              type="number" inputMode="decimal" min="0.01" step="0.01" placeholder="Extra compartido"
                               value={data.deporte_semana_ponderador_extra ?? ''}
                               onChange={e => setSemanasData(prev => ({ ...prev, [s.numero_semana]: { ...prev[s.numero_semana], deporte_semana_ponderador_extra: e.target.value } }))}
-                              disabled={!data.deporte_semana_nombre}
-                              style={{ ...inputStyle, width:70, flexShrink:0, textAlign:'center', opacity: data.deporte_semana_nombre ? 1 : 0.5 }}
+                              disabled={!data.deporte_semana_nombre && !data.deporte_semana_nombre_2}
+                              style={{ ...inputStyle, width:'100%', textAlign:'center', opacity: (data.deporte_semana_nombre || data.deporte_semana_nombre_2) ? 1 : 0.5 }}
                             />
                           </div>
                         )}
@@ -484,7 +499,8 @@ export default function CrearCompetenciaModal({ open, onClose, onCreated }) {
                   })}
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* Bonus por actividad en compañía */}
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>

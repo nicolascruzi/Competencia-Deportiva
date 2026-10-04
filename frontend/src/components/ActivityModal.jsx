@@ -93,11 +93,15 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
   // Ponderador bloqueado solo si el deporte actual tiene un valor configurado en la competencia
   const pondBloqueado = compPondMap && form.deporte_nombre && compPondMap[form.deporte_nombre] != null && !isNaN(compPondMap[form.deporte_nombre]);
 
-  // Si el deporte elegido es el "deporte de la semana" vigente en la competencia activa, se suma un
-  // extra — se muestra desglosado ("1.10 +0.30") para que quede explícito de dónde sale el total.
+  // Si el deporte elegido es alguno de los dos "deporte de la semana" vigentes en la competencia
+  // activa (el tranquilo o el extremo — comparten el mismo extra), se suma un extra — se muestra
+  // desglosado ("1.10 +0.30") para que quede explícito de dónde sale el total.
   const extraSemana = (() => {
     if (!competenciaActiva || !form.deporte_nombre) return 0;
-    if (competenciaActiva.deporte_semana_actual_nombre !== form.deporte_nombre) return 0;
+    const esDeporteDeLaSemana =
+      competenciaActiva.deporte_semana_actual_nombre === form.deporte_nombre ||
+      competenciaActiva.deporte_semana_actual_nombre_2 === form.deporte_nombre;
+    if (!esDeporteDeLaSemana) return 0;
     const v = parseFloat(competenciaActiva.deporte_semana_actual_ponderador_extra);
     return !isNaN(v) ? v : 0;
   })();
