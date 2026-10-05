@@ -334,53 +334,11 @@ function VotacionSheet({ competenciaId, semanaId, seVotaTranquilo, seVotaExtremo
   );
 }
 
-function AvisoVotacionPendiente({ competenciaId, proximaSemana, seVotaTranquilo, seVotaExtremo, onIrAVotar }) {
-  const [mostrar, setMostrar] = useState(false);
-
-  useEffect(() => {
-    let cancelado = false;
-    setMostrar(false);
-    Promise.all([
-      seVotaTranquilo ? getVotacionSemana(competenciaId, proximaSemana.id, 'tranquilo') : Promise.resolve(null),
-      seVotaExtremo ? getVotacionSemana(competenciaId, proximaSemana.id, 'extremo') : Promise.resolve(null),
-    ])
-      .then(([tranquilo, extremo]) => {
-        if (cancelado) return;
-        const faltaTranquilo = tranquilo && !tranquilo.cerrada && tranquilo.mi_voto_deporte_id == null;
-        const faltaExtremo = extremo && !extremo.cerrada && extremo.mi_voto_deporte_id == null;
-        setMostrar(faltaTranquilo || faltaExtremo);
-      })
-      .catch(() => {});
-    return () => { cancelado = true; };
-  }, [competenciaId, proximaSemana.id, seVotaTranquilo, seVotaExtremo]);
-
-  if (!mostrar) return null; // ya votó ambas, la votación cerró, o todavía está cargando
-
-  return (
-    <button onClick={onIrAVotar}
-      style={{
-        display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderRadius:14, textAlign:'left',
-        border:'1.5px dashed rgba(var(--t-accent-r),0.45)', background:'rgba(var(--t-accent-r),0.08)',
-        cursor:'pointer', WebkitTapHighlightColor:'transparent', width:'100%',
-      }}>
-      <div style={{ fontSize:24, lineHeight:1, flexShrink:0 }}>🗳️</div>
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
-          Todavía no votaste el deporte de la semana {proximaSemana.numero_semana}
-        </div>
-        <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>Toca para ir a votar</div>
-      </div>
-      <div style={{ fontSize:18, color:'var(--t-accent)', flexShrink:0 }}>›</div>
-    </button>
-  );
-}
-
 // Una semana del timeline: colapsada muestra solo un resumen (deporte asignado / votación / challenges
 // pendientes); expandida muestra el contenido completo (igual que antes mostraba la semana única).
 function SemanaCard({
   competencia, semana, challenges, isActual, expanded, onToggle, onCompletado,
   seVotaTranquilo, seVotaExtremo, votacionSheetOpen, onOpenVotacion, onCloseVotacion, votacionRefreshKey,
-  proximaSemana, avisarVotacionPendiente, onIrAVotar,
 }) {
   const tieneDeporteTranquilo = !!semana.deporte_semana_nombre;
   const tieneDeporteExtremo = !!semana.deporte_semana_nombre_2;
@@ -471,16 +429,6 @@ function SemanaCard({
                 </div>
               )}
             </div>
-          )}
-
-          {avisarVotacionPendiente && (
-            <AvisoVotacionPendiente
-              competenciaId={competencia.id}
-              proximaSemana={proximaSemana}
-              seVotaTranquilo={!proximaSemana.deporte_semana_nombre}
-              seVotaExtremo={!proximaSemana.deporte_semana_nombre_2}
-              onIrAVotar={onIrAVotar}
-            />
           )}
 
           {(seVotaTranquilo || seVotaExtremo) && (
@@ -584,14 +532,6 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
           const seVotaTranquilo = semana.numero_semana > 1 && !semana.deporte_semana_nombre;
           const seVotaExtremo = semana.numero_semana > 1 && !semana.deporte_semana_nombre_2;
 
-          // El aviso de "votación pendiente" se cuelga de la semana actual, apuntando a la próxima
-          // en orden cronológico real (no en el orden de visualización, que la mueve al frente).
-          const indiceCronologico = semanasCronologicas.findIndex(s => s.id === semana.id);
-          const proximaSemana = isActual && indiceCronologico < semanasCronologicas.length - 1
-            ? semanasCronologicas[indiceCronologico + 1]
-            : null;
-          const avisarVotacionPendiente = !!proximaSemana && (!proximaSemana.deporte_semana_nombre || !proximaSemana.deporte_semana_nombre_2);
-
           return (
             <SemanaCard
               key={semana.id}
@@ -608,13 +548,6 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
               onOpenVotacion={(semanaId, categoria) => setVotacionSheetOpen({ semanaId, categoria })}
               onCloseVotacion={() => { setVotacionSheetOpen(null); setVotacionRefreshKey(k => k + 1); }}
               votacionRefreshKey={votacionRefreshKey}
-              proximaSemana={proximaSemana}
-              avisarVotacionPendiente={avisarVotacionPendiente}
-              onIrAVotar={() => {
-                const categoria = !proximaSemana.deporte_semana_nombre ? 'tranquilo' : 'extremo';
-                setExpandedId(proximaSemana.id);
-                setVotacionSheetOpen({ semanaId: proximaSemana.id, categoria });
-              }}
             />
           );
         })}
