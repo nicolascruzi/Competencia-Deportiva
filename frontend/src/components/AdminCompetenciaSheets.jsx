@@ -220,7 +220,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
     }
   }
 
-  const inputBase = { background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none', fontFamily:'inherit', boxSizing:'border-box', minWidth:0 };
+  const inputBase = { background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:16, outline:'none', fontFamily:'inherit', boxSizing:'border-box', minWidth:0 };
 
   return (
     <SheetShell embedded={embedded} onClose={onClose} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
@@ -355,7 +355,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
                         // Permitir escribir decimales libremente (ej: "1.", "1.2")
                         if (/^\d*\.?\d*$/.test(v)) setPonders(p => ({ ...p, [d.nombre]: v }));
                       }}
-                      style={{ width:58, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-accent)', padding:'5px 7px', borderRadius:8, fontSize:15, outline:'none', textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}
+                      style={{ width:58, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-accent)', padding:'5px 7px', borderRadius:8, fontSize:16, outline:'none', textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}
                       onFocus={e => { e.target.style.borderColor = 'var(--t-accent)'; }}
                       onBlur={e => { e.target.style.borderColor = 'var(--t-dim)'; }}
                     />
@@ -453,7 +453,7 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false, emb
             <input
               type="text" value={nombre} disabled={readOnly}
               onChange={e => setNombre(e.target.value)}
-              style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+              style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
             />
           </div>
 
@@ -469,12 +469,12 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false, emb
               <input
                 type="date" value={fechaInicio} disabled={readOnly}
                 onChange={e => setFechaInicio(e.target.value)}
-                style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
               />
               <input
                 type="date" value={fechaFin} min={fechaInicio || undefined} disabled={readOnly}
                 onChange={e => setFechaFin(e.target.value)}
-                style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
               />
             </div>
           </div>
@@ -496,7 +496,7 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false, emb
                   <input
                     type="number" inputMode="decimal" min="0" step="1" disabled={readOnly}
                     value={tier.value} onChange={e => tier.setValue(e.target.value)}
-                    style={{ width:80, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                    style={{ width:80, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:16, outline:'none' }}
                   />
                 </div>
               ))}
@@ -518,7 +518,7 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false, emb
                   const limpio = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
                   if (/^\d*\.?\d*$/.test(limpio)) setBonusDeporteSemana(limpio);
                 }}
-                style={{ width:80, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                style={{ width:80, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:16, outline:'none' }}
               />
             </div>
           </div>
@@ -583,28 +583,59 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false, em
 
       <div style={{ ...(embedded ? { padding:'14px 0 0' } : { overflowY:'auto', flex:1, padding:'10px 18px' }), display:'flex', flexDirection:'column', gap:16 }}>
 
+      {readOnly ? (
+        // Vista de solo consulta: equipos como grupos de personas, sin inputs ni selects deshabilitados.
+        (() => {
+          const equiposConId = equipos.filter(e => e.id != null);
+          const sinEquipo = (competencia.participantes || []).filter(p => asignaciones[p.id] == null);
+          if (equiposConId.length === 0) {
+            return (
+              <div style={{ textAlign:'center', padding:'30px 16px', color:'var(--t-muted)', fontSize:13 }}>
+                Esta competencia todavía no tiene equipos configurados.
+              </div>
+            );
+          }
+          return (
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {equiposConId.map(e => {
+                const miembros = (competencia.participantes || []).filter(p => asignaciones[p.id] === e.id);
+                return (
+                  <div key={e.id} style={{ border:'1px solid var(--t-dim)', borderRadius:12, padding:'12px 14px', background:'var(--t-surface2)' }}>
+                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', color:'var(--t-text)' }}>{e.nombre}</div>
+                    <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:4 }}>
+                      {miembros.length > 0 ? miembros.map(p => p.nombre_display || p.nombre).join(', ') : 'Sin integrantes'}
+                    </div>
+                  </div>
+                );
+              })}
+              {sinEquipo.length > 0 && (
+                <div style={{ fontSize:12, color:'var(--t-muted)', padding:'4px 2px' }}>
+                  Sin equipo: {sinEquipo.map(p => p.nombre_display || p.nombre).join(', ')}
+                </div>
+              )}
+            </div>
+          );
+        })()
+      ) : (
+        <>
           {/* Nombres de equipo */}
           <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Nombres</div>
             {equipos.map((e, i) => (
               <div key={e.id ?? `nuevo-${i}`} style={{ display:'flex', gap:8, flexShrink:0 }}>
                 <input
-                  type="text" value={e.nombre} disabled={readOnly}
+                  type="text" value={e.nombre}
                   onChange={ev => setEquipos(prev => prev.map((x, j) => j === i ? { ...x, nombre: ev.target.value } : x))}
-                  style={{ flex:1, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                  style={{ flex:1, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:16, outline:'none' }}
                 />
-                {!readOnly && (
-                  <button onClick={() => setEquipos(prev => prev.filter((_, j) => j !== i))}
-                    style={{ width:36, flexShrink:0, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer' }}>✕</button>
-                )}
+                <button onClick={() => setEquipos(prev => prev.filter((_, j) => j !== i))}
+                  style={{ width:36, flexShrink:0, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer' }}>✕</button>
               </div>
             ))}
-            {!readOnly && (
-              <button onClick={() => setEquipos(prev => [...prev, { id: null, nombre: `Equipo ${prev.length + 1}`, color: null }])}
-                style={{ padding:'8px', borderRadius:8, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13, fontWeight:600 }}>
-                + Agregar equipo
-              </button>
-            )}
+            <button onClick={() => setEquipos(prev => [...prev, { id: null, nombre: `Equipo ${prev.length + 1}`, color: null }])}
+              style={{ padding:'8px', borderRadius:8, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13, fontWeight:600 }}>
+              + Agregar equipo
+            </button>
           </div>
 
           {/* Asignación de participantes */}
@@ -614,9 +645,9 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false, em
               <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px', flexShrink:0 }}>
                 <span style={{ flex:1, fontSize:14, color:'var(--t-text)' }}>{p.nombre_display || p.nombre}</span>
                 <select
-                  value={asignaciones[p.id] ?? ''} disabled={readOnly}
+                  value={asignaciones[p.id] ?? ''}
                   onChange={e => setAsignaciones(prev => ({ ...prev, [p.id]: e.target.value ? parseInt(e.target.value) : null }))}
-                  style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'6px 8px', borderRadius:8, fontSize:13, outline:'none' }}
+                  style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'6px 8px', borderRadius:8, fontSize:16, outline:'none' }}
                 >
                   <option value="">Sin equipo</option>
                   {equipos.filter(e => e.id != null).map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
@@ -624,6 +655,8 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false, em
               </div>
             ))}
           </div>
+        </>
+      )}
       </div>
     </SheetShell>
   );
@@ -734,6 +767,55 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
 
       <div style={{ ...(embedded ? { padding:'14px 0 0' } : { overflowY:'auto', flex:1, padding:'10px 18px' }), display:'flex', flexDirection:'column', gap:18 }}>
 
+      {readOnly ? (
+        <>
+          {/* Vista de solo consulta: lista simple de challenges y el deporte vigente de la semana
+              actual, sin inputs/selects deshabilitados ni acordeones de edición. */}
+          <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Challenges</div>
+            {challenges.length === 0 ? (
+              <div style={{ textAlign:'center', padding:'20px 16px', color:'var(--t-muted)', fontSize:13 }}>
+                Esta competencia todavía no tiene challenges configurados.
+              </div>
+            ) : challenges.map(c => (
+              <div key={c.id ?? c._key} style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid var(--t-dim)', borderRadius:10, padding:'9px 12px', background:'var(--t-surface2)', flexShrink:0 }}>
+                <span style={{ flex:1, minWidth:0, fontSize:14, color:'var(--t-text)' }}>{c.texto}</span>
+                <span style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)', flexShrink:0 }}>+{Math.round(c.puntos ?? 0)}</span>
+              </div>
+            ))}
+          </div>
+
+          {(() => {
+            const semanaActual = semanas.find(s => s.id === competencia.semana_actual_id);
+            if (!semanaActual || (!semanaActual.deporte_semana_nombre && !semanaActual.deporte_semana_nombre_2)) return null;
+            return (
+              <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
+                <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deporte de esta semana</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  {semanaActual.deporte_semana_nombre && (
+                    <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid var(--t-dim)', borderRadius:10, padding:'9px 12px', background:'var(--t-surface2)' }}>
+                      <span style={{ fontSize:12, color:'var(--t-muted)', flex:1 }}>Tranquilo</span>
+                      <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)' }}>{semanaActual.deporte_semana_nombre}</span>
+                    </div>
+                  )}
+                  {semanaActual.deporte_semana_nombre_2 && (
+                    <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid var(--t-dim)', borderRadius:10, padding:'9px 12px', background:'var(--t-surface2)' }}>
+                      <span style={{ fontSize:12, color:'var(--t-muted)', flex:1 }}>Extremo</span>
+                      <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)' }}>{semanaActual.deporte_semana_nombre_2}</span>
+                    </div>
+                  )}
+                  {semanaActual.deporte_semana_ponderador_extra > 0 && (
+                    <div style={{ fontSize:12, color:'var(--t-muted)' }}>
+                      Extra: <span style={{ color:'var(--t-accent)', fontWeight:600 }}>+{semanaActual.deporte_semana_ponderador_extra}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+        </>
+      ) : (
+        <>
           {/* ── Challenges ──────────────────────────────────────────── */}
           <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Challenges</div>
@@ -743,60 +825,52 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
                 <div key={key} style={{ border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 12px', display:'flex', flexDirection:'column', gap:8, background:'var(--t-surface2)', flexShrink:0 }}>
                   <div style={{ display:'flex', gap:8 }}>
                     <input
-                      type="text" placeholder="Challenge" disabled={readOnly}
+                      type="text" placeholder="Challenge"
                       value={c.texto || ''}
                       onChange={e => updateChallengeLocal(key, { texto: e.target.value })}
-                      style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                      style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
                     />
-                    {!readOnly && (
-                      <button onClick={() => removeChallengeLocal(key)}
-                        style={{ width:36, flexShrink:0, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer' }}>✕</button>
-                    )}
+                    <button onClick={() => removeChallengeLocal(key)}
+                      style={{ width:36, flexShrink:0, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer' }}>✕</button>
                   </div>
                   <input
-                    type="number" inputMode="decimal" min="0" step="1" placeholder="Puntos" disabled={readOnly}
+                    type="number" inputMode="decimal" min="0" step="1" placeholder="Puntos"
                     value={c.puntos ?? ''}
                     onChange={e => updateChallengeLocal(key, { puntos: e.target.value })}
-                    style={{ width:80, flexShrink:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+                    style={{ width:80, flexShrink:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
                   />
                   {c.fecha_inicio || c.fecha_fin ? (
                     <div style={{ display:'flex', gap:8, alignItems:'center' }}>
                       <input
-                        type="date" disabled={readOnly}
+                        type="date"
                         value={c.fecha_inicio || ''}
                         onChange={e => updateChallengeLocal(key, { fecha_inicio: e.target.value })}
-                        style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:13, outline:'none' }}
+                        style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
                       />
                       <span style={{ color:'var(--t-muted)', fontSize:12 }}>al</span>
                       <input
-                        type="date" disabled={readOnly} min={c.fecha_inicio || undefined}
+                        type="date" min={c.fecha_inicio || undefined}
                         value={c.fecha_fin || ''}
                         onChange={e => updateChallengeLocal(key, { fecha_fin: e.target.value })}
-                        style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:13, outline:'none' }}
+                        style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
                       />
-                      {!readOnly && (
-                        <button onClick={() => updateChallengeLocal(key, { fecha_inicio: '', fecha_fin: '' })}
-                          title="Quitar fechas (siempre vigente)"
-                          style={{ flexShrink:0, width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13 }}>✕</button>
-                      )}
+                      <button onClick={() => updateChallengeLocal(key, { fecha_inicio: '', fecha_fin: '' })}
+                        title="Quitar fechas (siempre vigente)"
+                        style={{ flexShrink:0, width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13 }}>✕</button>
                     </div>
                   ) : (
-                    !readOnly && (
-                      <button onClick={() => updateChallengeLocal(key, { fecha_inicio: competencia.fecha_inicio || '', fecha_fin: competencia.fecha_fin || '' })}
-                        style={{ alignSelf:'flex-start', padding:'6px 10px', borderRadius:8, border:'1px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:12 }}>
-                        + Acotar a un rango de fechas (hoy: siempre vigente)
-                      </button>
-                    )
+                    <button onClick={() => updateChallengeLocal(key, { fecha_inicio: competencia.fecha_inicio || '', fecha_fin: competencia.fecha_fin || '' })}
+                      style={{ alignSelf:'flex-start', padding:'6px 10px', borderRadius:8, border:'1px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:12 }}>
+                      + Acotar a un rango de fechas (hoy: siempre vigente)
+                    </button>
                   )}
                 </div>
               );
             })}
-            {!readOnly && (
-              <button onClick={addChallenge}
-                style={{ padding:'8px', borderRadius:8, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13, fontWeight:600 }}>
-                + Agregar challenge
-              </button>
-            )}
+            <button onClick={addChallenge}
+              style={{ padding:'8px', borderRadius:8, border:'1.5px dashed var(--t-dim)', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:13, fontWeight:600 }}>
+              + Agregar challenge
+            </button>
           </div>
 
           {/* ── Deportes de la semana editables a mano: siempre la semana 1, y además la semana
@@ -831,17 +905,17 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
                       <div style={{ padding:'0 12px 12px', display:'flex', flexDirection:'column', gap:8 }}>
                         <div style={{ display:'flex', gap:8 }}>
                           <select
-                            value={s.deporte_semana_nombre || ''} disabled={readOnly}
+                            value={s.deporte_semana_nombre || ''}
                             onChange={e => updateSemana(s.id, { deporte_semana_nombre: e.target.value })}
-                            style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', appearance:'none' }}
+                            style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none', appearance:'none' }}
                           >
                             <option value="">Sin deporte tranquilo</option>
                             {deportesTranquilos.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
                           </select>
                           <select
-                            value={s.deporte_semana_nombre_2 || ''} disabled={readOnly}
+                            value={s.deporte_semana_nombre_2 || ''}
                             onChange={e => updateSemana(s.id, { deporte_semana_nombre_2: e.target.value })}
-                            style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', appearance:'none' }}
+                            style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none', appearance:'none' }}
                           >
                             <option value="">Sin deporte extremo</option>
                             {deportesExtremos.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
@@ -850,13 +924,13 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
                         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                           <span style={{ fontSize:12, color:'var(--t-muted)', flex:1 }}>Extra compartido (ambos deportes)</span>
                           <input
-                            type="text" inputMode="decimal" placeholder="0.0" disabled={readOnly || (!s.deporte_semana_nombre && !s.deporte_semana_nombre_2)}
+                            type="text" inputMode="decimal" placeholder="0.0" disabled={!s.deporte_semana_nombre && !s.deporte_semana_nombre_2}
                             value={s.deporte_semana_ponderador_extra ?? ''}
                             onChange={e => {
                               const limpio = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
                               if (/^\d*\.?\d*$/.test(limpio)) updateSemana(s.id, { deporte_semana_ponderador_extra: limpio });
                             }}
-                            style={{ width:70, flexShrink:0, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none', opacity: (s.deporte_semana_nombre || s.deporte_semana_nombre_2) ? 1 : 0.5 }}
+                            style={{ width:70, flexShrink:0, textAlign:'center', background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none', opacity: (s.deporte_semana_nombre || s.deporte_semana_nombre_2) ? 1 : 0.5 }}
                           />
                         </div>
                       </div>
@@ -866,6 +940,8 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
               })}
             </div>
           )}
+        </>
+      )}
       </div>
     </SheetShell>
   );

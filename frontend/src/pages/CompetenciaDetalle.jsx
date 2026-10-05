@@ -1863,7 +1863,13 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
   // allData: actividades acumuladas del jugador (todas sus competencias si isOwnProfile, o de esta competencia) para stats/evolución/posts
   const [allData, setAllData] = useState(null); // null = cargando
 
-  const displayNombre = isOwnProfile ? (user?.nombre_display || user?.apodo || user?.nombre || '') : nombre;
+  // El título del perfil muestra nombre + apellido reales (no el apodo, a diferencia del resto de
+  // la app) — se arma con los datos del propio usuario autenticado, o con los que trae la primera
+  // actividad cargada de la persona que se está mirando (ambas fuentes incluyen apellido).
+  const nombreCompleto = isOwnProfile
+    ? [user?.nombre, user?.apellido].filter(Boolean).join(' ')
+    : [allData?.[0]?.nombre, allData?.[0]?.apellido].filter(Boolean).join(' ');
+  const displayNombre = nombreCompleto || (isOwnProfile ? (user?.nombre_display || user?.apodo || user?.nombre || '') : nombre);
 
   // allData: TODO el historial de la persona (todas sus competencias/períodos), sin filtrar por la
   // competencia que se esté mirando — alimenta publicaciones, calendario y evolución.
