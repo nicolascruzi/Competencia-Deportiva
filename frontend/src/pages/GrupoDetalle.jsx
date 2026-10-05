@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   getParticipantesGrupo, sacarParticipante, renombrarGrupo,
@@ -363,7 +362,7 @@ function TabCompetencias({ grupo, isAdmin, onAbrirCompetencia }) {
 function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack }) {
   const [compConDeportes, setCompConDeportes] = useState(competenciaResumen);
   const [detalleCompletoId, setDetalleCompletoId] = useState(null);
-  const [sheetAbierto, setSheetAbierto] = useState(null); // 'ponderadores' | 'equipos' | 'semanas' | 'config' | null
+  const [seccion, setSeccion] = useState('ponderadores'); // 'ponderadores' | 'equipos' | 'semanas' | 'config'
   const [ranking, setRanking] = useState(null);
 
   useEffect(() => {
@@ -433,43 +432,34 @@ function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack })
       ) : (
         <>
           <div style={{ marginTop:14 }}>
-            <SubTabs tabs={SECCIONES} active={null} onChange={id => setSheetAbierto(id)} />
+            <SubTabs tabs={SECCIONES} active={seccion} onChange={setSeccion} />
           </div>
-          <div style={{ padding:'20px', fontSize:13, color:'var(--t-muted)' }}>
-            Toca una sección arriba para ver o editar sus detalles.
+          <div style={{ padding:'16px 20px' }}>
+            {!detalleListo ? (
+              <AdminSheetLoading embedded onClose={() => {}} />
+            ) : seccion === 'ponderadores' ? (
+              <AdminPonderadoresSheet
+                embedded competencia={compConDeportes} readOnly={!isAdmin} onClose={() => {}}
+                onSaved={deps => setCompConDeportes(prev => ({ ...prev, deportes: deps }))}
+              />
+            ) : seccion === 'equipos' ? (
+              <AdminEquiposSheet
+                embedded competencia={compConDeportes} readOnly={!isAdmin} onClose={() => {}}
+                onSaved={updated => setCompConDeportes(prev => ({ ...prev, equipos: updated }))}
+              />
+            ) : seccion === 'semanas' ? (
+              <AdminSemanasSheet
+                embedded competencia={compConDeportes} readOnly={!isAdmin} onClose={() => {}}
+                onSaved={(semanas, challenges) => setCompConDeportes(prev => ({ ...prev, semanas, challenges }))}
+              />
+            ) : (
+              <AdminConfigSheet
+                embedded competencia={compConDeportes} readOnly={!isAdmin} onClose={() => {}}
+                onSaved={actualizada => setCompConDeportes(prev => ({ ...prev, ...actualizada }))}
+              />
+            )}
           </div>
         </>
-      )}
-
-      {sheetAbierto && createPortal(
-        detalleListo ? (
-          sheetAbierto === 'ponderadores' ? (
-            <AdminPonderadoresSheet
-              competencia={compConDeportes} readOnly={!isAdmin}
-              onClose={() => setSheetAbierto(null)}
-              onSaved={deps => setCompConDeportes(prev => ({ ...prev, deportes: deps }))}
-            />
-          ) : sheetAbierto === 'equipos' ? (
-            <AdminEquiposSheet
-              competencia={compConDeportes} readOnly={!isAdmin}
-              onClose={() => setSheetAbierto(null)}
-              onSaved={updated => setCompConDeportes(prev => ({ ...prev, equipos: updated }))}
-            />
-          ) : sheetAbierto === 'semanas' ? (
-            <AdminSemanasSheet
-              competencia={compConDeportes} readOnly={!isAdmin}
-              onClose={() => setSheetAbierto(null)}
-              onSaved={(semanas, challenges) => setCompConDeportes(prev => ({ ...prev, semanas, challenges }))}
-            />
-          ) : (
-            <AdminConfigSheet
-              competencia={compConDeportes} readOnly={!isAdmin}
-              onClose={() => setSheetAbierto(null)}
-              onSaved={actualizada => setCompConDeportes(prev => ({ ...prev, ...actualizada }))}
-            />
-          )
-        ) : <AdminSheetLoading onClose={() => setSheetAbierto(null)} />,
-        document.body
       )}
 
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>

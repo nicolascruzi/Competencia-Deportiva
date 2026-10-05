@@ -7,15 +7,60 @@ import { updateEquiposGrupo, updateAsignacionesGrupo } from '../api/grupos';
 import { useLoading } from '../context/LoadingContext';
 import { getDeportes as getAllDeportes, createDeporte } from '../api/actividades';
 
-function AdminSheetLoading({ onClose }) {
+function AdminSheetLoading({ onClose, embedded = false }) {
+  const body = (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, padding:'48px 20px' }}>
+      <div style={{ width:28, height:28, borderRadius:'50%', border:'3px solid var(--t-dim)', borderTopColor:'var(--t-accent)', animation:'spin 0.8s linear infinite' }} />
+      <div style={{ fontSize:13, color:'var(--t-muted)' }}>Cargando…</div>
+    </div>
+  );
+  if (embedded) return body;
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
       <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, padding:'48px 20px' }}>
-          <div style={{ width:28, height:28, borderRadius:'50%', border:'3px solid var(--t-dim)', borderTopColor:'var(--t-accent)', animation:'spin 0.8s linear infinite' }} />
-          <div style={{ fontSize:13, color:'var(--t-muted)' }}>Cargando…</div>
+        {body}
+      </div>
+    </>
+  );
+}
+
+// Envoltorio compartido por los 4 paneles admin: en modo modal (embedded=false, el default) se
+// comporta como bottom-sheet con backdrop, swipe-down y botón ✕, exactamente como antes. En modo
+// embedded=true (usado desde la pantalla de detalle de competencia) se renderiza como un bloque de
+// contenido normal, sin backdrop ni posicionamiento fijo, para que viva dentro de esa misma pantalla
+// en vez de abrirse como un sheet aparte.
+function SheetShell({ embedded, onClose, onTouchStart, onTouchEnd, title, meta, children, footer }) {
+  if (embedded) {
+    return (
+      <div style={{ display:'flex', flexDirection:'column' }}>
+        {children}
+        {footer}
+      </div>
+    );
+  }
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'90dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
+        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+          style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0, cursor:'grab' }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
         </div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
+          <div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
+              {title}
+            </div>
+            {meta && <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>{meta}</div>}
+          </div>
+          <button onClick={onClose}
+            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            ✕
+          </button>
+        </div>
+        {children}
+        {footer}
       </div>
     </>
   );
@@ -25,7 +70,7 @@ function AdminSheetLoading({ onClose }) {
 
 // ─── SHEET ADMIN: editar ponderadores ────────────────────────────────────────
 
-function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = false }) {
+function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = false, embedded = false }) {
   const [deportes, setDeportes]   = useState([]);
   const [ponders, setPonders]     = useState({});
   const [saving, setSaving]       = useState(false);
@@ -109,130 +154,104 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
   const inputBase = { background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-text)', padding:'7px 10px', borderRadius:8, fontSize:14, outline:'none', fontFamily:'inherit', boxSizing:'border-box', minWidth:0 };
 
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
-      <div
-        style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'90dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
-
-        {/* Handle — único punto donde el gesto de swipe-down cierra el sheet */}
-        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-          style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0, cursor:'grab' }}>
-          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
-        </div>
-
-        {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
-          <div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
-              Ponderadores
-            </div>
-            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>
-              {competencia.nombre}{readOnly && <span style={{ marginLeft:6, color:'var(--t-dim2)', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em' }}>· Solo lectura</span>}
-            </div>
-          </div>
-          <button onClick={onClose}
-            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-            ✕
+    <SheetShell embedded={embedded} onClose={onClose} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+      title="Ponderadores"
+      meta={<>{competencia.nombre}{readOnly && <span style={{ marginLeft:6, color:'var(--t-dim2)', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em' }}>· Solo lectura</span>}</>}
+      footer={!readOnly && (
+        <div style={{ padding: embedded ? '16px 0 0' : '12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
+          <button onClick={handleSave} disabled={saving}
+            style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Guardar cambios'}
           </button>
         </div>
+      )}>
 
-        {error && (
-          <div style={{ margin:'8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>
-            {error}
-          </div>
-        )}
+      {error && (
+        <div style={{ margin: embedded ? '12px 0 0' : '8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>
+          {error}
+        </div>
+      )}
 
-        {/* Lista scrollable */}
-        <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:6 }}>
-          <div style={{ fontSize:11, color:'var(--t-muted)', marginBottom:4 }}>
-            Puntos = minutos × ponderador. Los cambios afectan el cálculo desde ahora.
-          </div>
-
-          {/* Agregar nuevo deporte — solo admin */}
-          {!readOnly && (
-            <div style={{ marginBottom:4, border:'1px dashed var(--t-dim)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, boxSizing:'border-box', width:'100%', flexShrink:0 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>
-                Nuevo deporte
-              </div>
-              <div style={{ display:'flex', gap:8, width:'100%', flexShrink:0 }}>
-                {/* Emoji */}
-                <input
-                  type="text"
-                  value={nuevoIcono}
-                  onChange={e => setNuevoIcono(e.target.value)}
-                  maxLength={4}
-                  style={{ ...inputBase, width:48, flexShrink:0, textAlign:'center', fontSize:20, padding:'5px 6px' }}
-                />
-                {/* Nombre */}
-                <input
-                  type="text"
-                  placeholder="Nombre"
-                  value={nuevoNombre}
-                  onChange={e => { setNuevoNombre(e.target.value); setAddError(''); setAddSuccess(''); }}
-                  style={{ ...inputBase, flex:1, minWidth:0 }}
-                />
-                {/* Ponderador */}
-                <input
-                  type="text" inputMode="decimal"
-                  value={nuevoPond}
-                  onChange={e => {
-                    const v = e.target.value;
-                    if (/^\d*\.?\d*$/.test(v)) setNuevoPond(v);
-                  }}
-                  style={{ ...inputBase, width:54, flexShrink:0, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}
-                />
-              </div>
-              {addError && (
-                <div style={{ fontSize:12, color:'#F87171' }}>{addError}</div>
-              )}
-              {addSuccess && (
-                <div style={{ fontSize:12, color:'var(--t-accent)' }}>✓ {addSuccess}</div>
-              )}
-              <button
-                onClick={handleAddDeporte}
-                disabled={addingDeporte || !nuevoNombre.trim()}
-                style={{ alignSelf:'flex-start', padding:'7px 16px', borderRadius:8, border:'1.5px solid var(--t-accent)', background:'transparent', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', cursor: nuevoNombre.trim() ? 'pointer' : 'default', opacity: nuevoNombre.trim() ? 1 : 0.5, WebkitTapHighlightColor:'transparent' }}>
-                {addingDeporte ? 'Agregando…' : '+ Agregar'}
-              </button>
-            </div>
-          )}
-
-          {deportes.map(d => (
-            <div key={d.nombre} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px', flexShrink:0 }}>
-              <span style={{ fontSize:18, flexShrink:0 }}>{d.icono}</span>
-              <span style={{ flex:1, fontSize:14, fontWeight:500, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.nombre}</span>
-              {readOnly
-                ? <span style={{ width:58, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)' }}>
-                    {ponders[d.nombre] ?? d.ponderador_default}
-                  </span>
-                : <input
-                    type="text" inputMode="decimal"
-                    value={ponders[d.nombre] ?? d.ponderador_default}
-                    onChange={e => {
-                      const v = e.target.value;
-                      // Permitir escribir decimales libremente (ej: "1.", "1.2")
-                      if (/^\d*\.?\d*$/.test(v)) setPonders(p => ({ ...p, [d.nombre]: v }));
-                    }}
-                    style={{ width:58, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-accent)', padding:'5px 7px', borderRadius:8, fontSize:15, outline:'none', textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}
-                    onFocus={e => { e.target.style.borderColor = 'var(--t-accent)'; }}
-                    onBlur={e => { e.target.style.borderColor = 'var(--t-dim)'; }}
-                  />
-              }
-            </div>
-          ))}
+      {/* Lista — en modo modal scrollea sola (flex:1 + overflow), en modo embebido sigue el scroll de la página */}
+      <div style={{ ...(embedded ? { padding:'14px 0 0' } : { overflowY:'auto', flex:1, padding:'10px 18px' }), display:'flex', flexDirection:'column', gap:6 }}>
+        <div style={{ fontSize:11, color:'var(--t-muted)', marginBottom:4 }}>
+          Puntos = minutos × ponderador. Los cambios afectan el cálculo desde ahora.
         </div>
 
-        {/* Guardar — solo admin */}
+        {/* Agregar nuevo deporte — solo admin */}
         {!readOnly && (
-          <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
-            <button onClick={handleSave} disabled={saving}
-              style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
-              {saving ? 'Guardando…' : 'Guardar cambios'}
+          <div style={{ marginBottom:4, border:'1px dashed var(--t-dim)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, boxSizing:'border-box', width:'100%', flexShrink:0 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>
+              Nuevo deporte
+            </div>
+            <div style={{ display:'flex', gap:8, width:'100%', flexShrink:0 }}>
+              {/* Emoji */}
+              <input
+                type="text"
+                value={nuevoIcono}
+                onChange={e => setNuevoIcono(e.target.value)}
+                maxLength={4}
+                style={{ ...inputBase, width:48, flexShrink:0, textAlign:'center', fontSize:20, padding:'5px 6px' }}
+              />
+              {/* Nombre */}
+              <input
+                type="text"
+                placeholder="Nombre"
+                value={nuevoNombre}
+                onChange={e => { setNuevoNombre(e.target.value); setAddError(''); setAddSuccess(''); }}
+                style={{ ...inputBase, flex:1, minWidth:0 }}
+              />
+              {/* Ponderador */}
+              <input
+                type="text" inputMode="decimal"
+                value={nuevoPond}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (/^\d*\.?\d*$/.test(v)) setNuevoPond(v);
+                }}
+                style={{ ...inputBase, width:54, flexShrink:0, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}
+              />
+            </div>
+            {addError && (
+              <div style={{ fontSize:12, color:'#F87171' }}>{addError}</div>
+            )}
+            {addSuccess && (
+              <div style={{ fontSize:12, color:'var(--t-accent)' }}>✓ {addSuccess}</div>
+            )}
+            <button
+              onClick={handleAddDeporte}
+              disabled={addingDeporte || !nuevoNombre.trim()}
+              style={{ alignSelf:'flex-start', padding:'7px 16px', borderRadius:8, border:'1.5px solid var(--t-accent)', background:'transparent', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', cursor: nuevoNombre.trim() ? 'pointer' : 'default', opacity: nuevoNombre.trim() ? 1 : 0.5, WebkitTapHighlightColor:'transparent' }}>
+              {addingDeporte ? 'Agregando…' : '+ Agregar'}
             </button>
           </div>
         )}
+
+        {deportes.map(d => (
+          <div key={d.nombre} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px', flexShrink:0 }}>
+            <span style={{ fontSize:18, flexShrink:0 }}>{d.icono}</span>
+            <span style={{ flex:1, fontSize:14, fontWeight:500, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.nombre}</span>
+            {readOnly
+              ? <span style={{ width:58, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)' }}>
+                  {ponders[d.nombre] ?? d.ponderador_default}
+                </span>
+              : <input
+                  type="text" inputMode="decimal"
+                  value={ponders[d.nombre] ?? d.ponderador_default}
+                  onChange={e => {
+                    const v = e.target.value;
+                    // Permitir escribir decimales libremente (ej: "1.", "1.2")
+                    if (/^\d*\.?\d*$/.test(v)) setPonders(p => ({ ...p, [d.nombre]: v }));
+                  }}
+                  style={{ width:58, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-accent)', padding:'5px 7px', borderRadius:8, fontSize:15, outline:'none', textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--t-accent)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--t-dim)'; }}
+                />
+            }
+          </div>
+        ))}
       </div>
-    </>
+    </SheetShell>
   );
 }
 
@@ -240,7 +259,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
 
 // ─── SHEET ADMIN: configuración general (fechas + bonus por compañía) ────────
 
-function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
+function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false, embedded = false }) {
   const [fechaInicio, setFechaInicio] = useState(competencia.fecha_inicio || '');
   const [fechaFin, setFechaFin]       = useState(competencia.fecha_fin || '');
   const [bonus1, setBonus1]         = useState(String(parseFloat(competencia.bonus_1_companero_pts) || 0));
@@ -280,28 +299,23 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
   }
 
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
-      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'90dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
-
-        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0, cursor:'grab' }}>
-          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+    <SheetShell embedded={embedded} onClose={onClose} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+      title="Configuración general"
+      meta={competencia.nombre}
+      footer={!readOnly && (
+        <div style={{ padding: embedded ? '16px 0 0' : '12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
+          <button onClick={handleSave} disabled={saving}
+            style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Guardar cambios'}
+          </button>
         </div>
+      )}>
 
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
-          <div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>Configuración general</div>
-            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>{competencia.nombre}</div>
-          </div>
-          <button onClick={onClose}
-            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>✕</button>
-        </div>
+      {error && (
+        <div style={{ margin: embedded ? '12px 0 0' : '8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>{error}</div>
+      )}
 
-        {error && (
-          <div style={{ margin:'8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>{error}</div>
-        )}
-
-        <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:18 }}>
+      <div style={{ ...(embedded ? { padding:'14px 0 0' } : { overflowY:'auto', flex:1, padding:'10px 18px' }), display:'flex', flexDirection:'column', gap:18 }}>
 
           {/* Fechas */}
           <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
@@ -368,22 +382,12 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false }) {
               />
             </div>
           </div>
-        </div>
-
-        {!readOnly && (
-          <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
-            <button onClick={handleSave} disabled={saving}
-              style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
-              {saving ? 'Guardando…' : 'Guardar cambios'}
-            </button>
-          </div>
-        )}
       </div>
-    </>
+    </SheetShell>
   );
 }
 
-function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false }) {
+function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false, embedded = false }) {
   const [equipos, setEquipos] = useState((competencia.equipos || []).map(e => ({ id: e.id, nombre: e.nombre, color: e.color })));
   const [asignaciones, setAsignaciones] = useState(() => {
     const map = {};
@@ -421,28 +425,23 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false }) 
   }
 
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
-      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'90dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
-
-        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0, cursor:'grab' }}>
-          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+    <SheetShell embedded={embedded} onClose={onClose} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+      title="Equipos"
+      meta={competencia.nombre}
+      footer={!readOnly && (
+        <div style={{ padding: embedded ? '16px 0 0' : '12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
+          <button onClick={handleSave} disabled={saving}
+            style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Guardar cambios'}
+          </button>
         </div>
+      )}>
 
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
-          <div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>Equipos</div>
-            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>{competencia.nombre}</div>
-          </div>
-          <button onClick={onClose}
-            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>✕</button>
-        </div>
+      {error && (
+        <div style={{ margin: embedded ? '12px 0 0' : '8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>{error}</div>
+      )}
 
-        {error && (
-          <div style={{ margin:'8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>{error}</div>
-        )}
-
-        <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:16 }}>
+      <div style={{ ...(embedded ? { padding:'14px 0 0' } : { overflowY:'auto', flex:1, padding:'10px 18px' }), display:'flex', flexDirection:'column', gap:16 }}>
 
           {/* Nombres de equipo */}
           <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
@@ -485,24 +484,14 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false }) 
               </div>
             ))}
           </div>
-        </div>
-
-        {!readOnly && (
-          <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
-            <button onClick={handleSave} disabled={saving}
-              style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
-              {saving ? 'Guardando…' : 'Guardar cambios'}
-            </button>
-          </div>
-        )}
       </div>
-    </>
+    </SheetShell>
   );
 }
 
 // ─── SHEET ADMIN: challenges semanales + deporte de la semana ────────────────
 
-function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) {
+function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, embedded = false }) {
   const [deportes, setDeportes]   = useState([]);
   const [semanas, setSemanas]     = useState(competencia.semanas || []);
   const [challenges, setChallenges] = useState((competencia.challenges || []).map(c => ({ ...c, _isNew: false })));
@@ -587,28 +576,23 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
   }
 
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)' }} />
-      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:251, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'90dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
-
-        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ display:'flex', justifyContent:'center', padding:'14px 0 10px', flexShrink:0, cursor:'grab' }}>
-          <div style={{ width:36, height:4, borderRadius:2, background:'var(--t-dim)' }} />
+    <SheetShell embedded={embedded} onClose={onClose} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+      title="Challenges semanales"
+      meta={competencia.nombre}
+      footer={!readOnly && (
+        <div style={{ padding: embedded ? '16px 0 0' : '12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
+          <button onClick={handleSave} disabled={saving}
+            style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Guardar cambios'}
+          </button>
         </div>
+      )}>
 
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
-          <div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>Challenges semanales</div>
-            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:2 }}>{competencia.nombre}</div>
-          </div>
-          <button onClick={onClose}
-            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>✕</button>
-        </div>
+      {error && (
+        <div style={{ margin: embedded ? '12px 0 0' : '8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>{error}</div>
+      )}
 
-        {error && (
-          <div style={{ margin:'8px 18px 0', borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171', flexShrink:0 }}>{error}</div>
-        )}
-
-        <div style={{ overflowY:'auto', flex:1, padding:'10px 18px', display:'flex', flexDirection:'column', gap:18 }}>
+      <div style={{ ...(embedded ? { padding:'14px 0 0' } : { overflowY:'auto', flex:1, padding:'10px 18px' }), display:'flex', flexDirection:'column', gap:18 }}>
 
           {/* ── Challenges ──────────────────────────────────────────── */}
           <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
@@ -742,18 +726,8 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false }) 
               })}
             </div>
           )}
-        </div>
-
-        {!readOnly && (
-          <div style={{ padding:'12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
-            <button onClick={handleSave} disabled={saving}
-              style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:16, textTransform:'uppercase', letterSpacing:'0.05em', background:'var(--t-accent)', color:'var(--t-ground)', opacity: saving ? 0.7 : 1, cursor: saving ? 'default' : 'pointer' }}>
-              {saving ? 'Guardando…' : 'Guardar cambios'}
-            </button>
-          </div>
-        )}
       </div>
-    </>
+    </SheetShell>
   );
 }
 
