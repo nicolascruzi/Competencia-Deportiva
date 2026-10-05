@@ -394,37 +394,37 @@ function SemanaCard({
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {tieneDeporteTranquilo && (
                 <div style={{
-                  display:'flex', alignItems:'center', gap:14, padding:'16px 18px', borderRadius:16,
+                  display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12,
                   background:'linear-gradient(135deg, rgba(var(--t-accent-r),0.14), rgba(var(--t-accent-r),0.04))',
-                  border:'1.5px solid rgba(var(--t-accent-r),0.3)',
+                  border:'1px solid rgba(var(--t-accent-r),0.3)',
                 }}>
-                  <div style={{ fontSize:40, lineHeight:1 }}>{sportIcon(semana.deporte_semana_nombre)}</div>
+                  <div style={{ fontSize:26, lineHeight:1, flexShrink:0 }}>{sportIcon(semana.deporte_semana_nombre)}</div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Deporte tranquilo de la semana</div>
-                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, marginTop:2 }}>
+                    <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Tranquilo de la semana</div>
+                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
                       {semana.deporte_semana_nombre}
                     </div>
-                    <div style={{ fontSize:12, color:'var(--t-accent)', fontWeight:700, marginTop:2 }}>
-                      +{semana.deporte_semana_ponderador_extra} puntos esta semana
-                    </div>
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--t-accent)', fontWeight:700, flexShrink:0, whiteSpace:'nowrap' }}>
+                    +{semana.deporte_semana_ponderador_extra}
                   </div>
                 </div>
               )}
               {tieneDeporteExtremo && (
                 <div style={{
-                  display:'flex', alignItems:'center', gap:14, padding:'16px 18px', borderRadius:16,
+                  display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12,
                   background:'linear-gradient(135deg, rgba(var(--t-accent-r),0.14), rgba(var(--t-accent-r),0.04))',
-                  border:'1.5px solid rgba(var(--t-accent-r),0.3)',
+                  border:'1px solid rgba(var(--t-accent-r),0.3)',
                 }}>
-                  <div style={{ fontSize:40, lineHeight:1 }}>{sportIcon(semana.deporte_semana_nombre_2)}</div>
+                  <div style={{ fontSize:26, lineHeight:1, flexShrink:0 }}>{sportIcon(semana.deporte_semana_nombre_2)}</div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>Deporte extremo de la semana</div>
-                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, marginTop:2 }}>
+                    <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Extremo de la semana</div>
+                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
                       {semana.deporte_semana_nombre_2}
                     </div>
-                    <div style={{ fontSize:12, color:'var(--t-accent)', fontWeight:700, marginTop:2 }}>
-                      +{semana.deporte_semana_ponderador_extra} puntos esta semana
-                    </div>
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--t-accent)', fontWeight:700, flexShrink:0, whiteSpace:'nowrap' }}>
+                    +{semana.deporte_semana_ponderador_extra}
                   </div>
                 </div>
               )}
