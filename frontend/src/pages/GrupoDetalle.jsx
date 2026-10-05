@@ -72,7 +72,6 @@ function TabIntegrantes({ grupo, isAdmin, onSalirGrupo, onBorrarGrupo }) {
   const [sacandoId, setSacandoId] = useState(null);
   const [borrando, setBorrando] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
-  const [pinCopied, setPinCopied] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -169,25 +168,6 @@ function TabIntegrantes({ grupo, isAdmin, onSalirGrupo, onBorrarGrupo }) {
       </div>
 
       {error && <div style={{ fontSize:12, color:'var(--t-danger)' }}>{error}</div>}
-
-      {grupo.pin && (
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(grupo.pin).then(() => {
-              setPinCopied(true);
-              setTimeout(() => setPinCopied(false), 2000);
-            });
-          }}
-          style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 14px', borderRadius:12, border:'1px solid var(--t-dim)', background:'var(--t-surface2)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--t-muted)' }}>PIN de acceso</div>
-            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:18, fontWeight:700, color:'var(--t-accent)', letterSpacing:'0.12em', marginTop:2 }}>{grupo.pin}</div>
-          </div>
-          <span style={{ fontSize:11, fontWeight:700, color: pinCopied ? 'var(--t-accent)' : 'var(--t-muted)', flexShrink:0 }}>
-            {pinCopied ? '✓ Copiado' : 'Copiar'}
-          </span>
-        </button>
-      )}
 
       <div style={{ display:'flex', flexDirection:'column', gap:8, paddingTop:8, borderTop:'1px solid var(--t-dim)' }}>
         <button
@@ -508,7 +488,6 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
   const [guardandoNombre, setGuardandoNombre] = useState(false);
   const [errorNombre, setErrorNombre] = useState('');
   const [pinHeaderCopied, setPinHeaderCopied] = useState(false);
-  const [pinCardCopied, setPinCardCopied] = useState(false);
 
   useEffect(() => {
     setPinActual(grupo.pin || '');
@@ -627,33 +606,6 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
           <div style={{ marginTop:10, fontSize:12, color:'var(--t-danger)', position:'relative' }}>{errorNombre}</div>
         )}
       </div>
-
-      {pinActual && (
-        <div style={{ padding:'0 20px 12px' }}>
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard?.writeText(pinActual).then(() => {
-                setPinCardCopied(true);
-                setTimeout(() => setPinCardCopied(false), 1800);
-              });
-            }}
-            style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'13px 14px', borderRadius:14, border:'1.5px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.1)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}
-          >
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>
-                PIN para unirse al grupo
-              </div>
-              <div style={{ marginTop:3, fontFamily:"'JetBrains Mono', monospace", fontSize:24, fontWeight:800, letterSpacing:'0.18em', color:'var(--t-accent)', lineHeight:1 }}>
-                {pinActual}
-              </div>
-            </div>
-            <span style={{ padding:'7px 10px', borderRadius:9, border:'1px solid rgba(var(--t-accent-r),0.3)', background:'var(--t-surface)', color: pinCardCopied ? 'var(--t-accent)' : 'var(--t-muted)', fontSize:11, fontWeight:800, flexShrink:0 }}>
-              {pinCardCopied ? 'Copiado' : 'Copiar'}
-            </span>
-          </button>
-        </div>
-      )}
 
       <SubTabs tabs={TABS} active={tab} onChange={setTab} />
 

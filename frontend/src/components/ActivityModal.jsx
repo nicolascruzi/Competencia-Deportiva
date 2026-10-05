@@ -263,57 +263,53 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
             </div>
           )}
 
-          {/* Fecha + Compañeros en la misma fila para ahorrar espacio vertical */}
-          <div style={{ display:'grid', gridTemplateColumns: mostrarSelectorCompaneros || cargandoCompetencias ? 'minmax(0,1fr) minmax(0,1.4fr)' : 'minmax(0,1fr)', gap:10, minWidth:0 }}>
-            <Field label="Fecha">
-              <Input type="date" required
-                max={hoyLocal()}
-                value={form.fecha}
-                onChange={e => {
-                  const today = hoyLocal();
-                  const val = e.target.value > today ? today : e.target.value;
-                  setForm(f => ({ ...f, fecha: val }));
-                }} />
-            </Field>
+          <Field label="Fecha">
+            <Input type="date" required
+              max={hoyLocal()}
+              value={form.fecha}
+              onChange={e => {
+                const today = hoyLocal();
+                const val = e.target.value > today ? today : e.target.value;
+                setForm(f => ({ ...f, fecha: val }));
+              }} />
+          </Field>
 
-            {/* Hecho en compañía. Mientras se determina si corresponde mostrarlo, se reserva el
-                espacio con un skeleton para que no "salte" el resto del formulario. */}
-            {cargandoCompetencias && (
-              <Field label="Compañeros">
-                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                  {[0, 1, 2, 3].map(i => (
-                    <div key={i} style={{ width: i === 0 ? 50 : 32, height:34, borderRadius:16, background:'var(--t-dim)', opacity:0.5, flexShrink:0 }} />
-                  ))}
-                </div>
-              </Field>
-            )}
-            {!cargandoCompetencias && mostrarSelectorCompaneros && (
-              <Field label="Compañeros">
-                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                  {[
-                    { value: 0, label: 'Solo' },
-                    { value: 1, label: '1' },
-                    { value: 2, label: '2' },
-                    { value: 3, label: '3+' },
-                  ].map(opt => {
-                    const selected = cantidadCompaneros === opt.value;
-                    return (
-                      <button key={opt.value} type="button" onClick={() => setCantidadCompaneros(opt.value)}
-                        style={{
-                          padding:'8px 12px', borderRadius:10, flexShrink:0,
-                          border: selected ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)',
-                          background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'var(--t-surface2)',
-                          color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
-                          cursor:'pointer', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent',
-                        }}>
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Field>
-            )}
-          </div>
+          {/* Hecho en compañía. Va en una fila independiente para que no se cruce con la fecha en móvil. */}
+          {cargandoCompetencias && (
+            <Field label="Compañeros">
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:6, minWidth:0 }}>
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i} style={{ height:38, borderRadius:10, background:'var(--t-dim)', opacity:0.5 }} />
+                ))}
+              </div>
+            </Field>
+          )}
+          {!cargandoCompetencias && mostrarSelectorCompaneros && (
+            <Field label="Compañeros">
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:6, minWidth:0 }}>
+                {[
+                  { value: 0, label: 'Solo' },
+                  { value: 1, label: '1' },
+                  { value: 2, label: '2' },
+                  { value: 3, label: '3+' },
+                ].map(opt => {
+                  const selected = cantidadCompaneros === opt.value;
+                  return (
+                    <button key={opt.value} type="button" onClick={() => setCantidadCompaneros(opt.value)}
+                      style={{
+                        width:'100%', height:38, padding:'0 8px', borderRadius:10,
+                        border: selected ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)',
+                        background: selected ? 'rgba(var(--t-accent-r),0.12)' : 'var(--t-surface2)',
+                        color: selected ? 'var(--t-accent)' : 'var(--t-muted)',
+                        cursor:'pointer', fontSize:13, fontWeight:600, WebkitTapHighlightColor:'transparent',
+                      }}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
           {!cargandoCompetencias && mostrarSelectorCompaneros && cantidadCompaneros > 0 && bonusCompaneros[cantidadCompaneros] > 0 && (
             <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:-6 }}>
               Sumas <span style={{ color:'var(--t-accent)', fontWeight:600 }}>+{bonusCompaneros[cantidadCompaneros]} pts</span> extra por hacerlo con compañeros.

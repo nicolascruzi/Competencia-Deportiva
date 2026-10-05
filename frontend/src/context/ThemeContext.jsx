@@ -113,7 +113,7 @@ export const PALETTES = {
   },
 };
 
-const DEFAULT = 'tierra';
+const DEFAULT = 'summa';
 const LS_KEY  = 'nanao_theme';
 
 const ThemeContext = createContext(null);
