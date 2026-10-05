@@ -3,6 +3,7 @@ const pool    = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
 const { getPuntosPorPersona } = require('../lib/competenciaScoring');
 const { esAdminDeCompetencia, esParticipanteDeCompetencia } = require('../lib/permisos');
+const { hoyChile } = require('../lib/fecha');
 
 const router = express.Router();
 
@@ -87,7 +88,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       [id]
     );
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyChile();
 
     // Resuelve la votación de cualquier semana (2+) cuya semana previa ya terminó: hay dos
     // categorías de votación independientes (tranquila y extrema, cada una con su propio ganador
@@ -262,7 +263,7 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
       [id]
     );
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyChile();
     const semanaActual = semanas.find(s => s.fecha_inicio <= hoy && hoy <= s.fecha_fin);
 
     res.json({
@@ -317,7 +318,7 @@ router.put('/:id/semanas', authMiddleware, async (req, res) => {
 
     if (!Array.isArray(semanas)) return res.status(400).json({ error: 'semanas debe ser un array' });
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyChile();
 
     for (const s of semanas) {
       if (s.id == null) continue;
@@ -394,7 +395,7 @@ router.get('/:id/semanas/:semanaId/votacion', authMiddleware, async (req, res) =
        FROM competencia_semanas WHERE competencia_id=$1 AND numero_semana=$2`,
       [id, semana.numero_semana - 1]
     );
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyChile();
     const ganadorActual = semana[columnaGanador];
     const cerrada = !!ganadorActual || (anterior && hoy > anterior.fecha_fin);
 
@@ -482,7 +483,7 @@ router.post('/:id/semanas/:semanaId/votar', authMiddleware, async (req, res) => 
        FROM competencia_semanas WHERE competencia_id=$1 AND numero_semana=$2`,
       [id, semana.numero_semana - 1]
     );
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyChile();
     if (anterior && hoy > anterior.fecha_fin) return res.status(400).json({ error: 'La votación de esta semana ya cerró' });
 
     const { rows: [deporte] } = await pool.query('SELECT id, nombre FROM deportes WHERE id=$1', [deporte_id]);
@@ -606,7 +607,7 @@ router.post('/:id/challenges/:challengeId/completar', authMiddleware, async (req
     // Si el challenge está atado a una semana, solo se puede completar dentro de su rango.
     // Si no tiene semana asociada (challenge libre), está siempre disponible.
     if (challenge.fecha_inicio && challenge.fecha_fin) {
-      const hoy = new Date().toISOString().slice(0, 10);
+      const hoy = hoyChile();
       if (hoy < challenge.fecha_inicio || hoy > challenge.fecha_fin)
         return res.status(400).json({ error: 'Este challenge no está disponible esta semana' });
     }

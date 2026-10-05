@@ -3,6 +3,7 @@ const pool    = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
 const { esAdminDeGrupo, esParticipanteDeGrupo } = require('../lib/permisos');
 const { calcularSemanas } = require('./competencias');
+const { hoyChile } = require('../lib/fecha');
 
 const router = express.Router();
 
@@ -146,7 +147,7 @@ router.get('/', authMiddleware, async (req, res) => {
       challengesMap.get(ch.competencia_id).push(ch);
     }
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyChile();
     const enCursoPorGrupo = new Map();
     for (const c of competenciasEnCurso) {
       const semanas = semanasMap.get(c.id) ?? [];
@@ -342,7 +343,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       challengesMap.get(ch.competencia_id).push(ch);
     }
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyChile();
     const competenciasEnCursoConExtra = competenciasEnCurso.map(c => {
       const semanas = semanasMap.get(c.id) ?? [];
       const semanaActual = semanas.find(s => s.fecha_inicio <= hoy && hoy <= s.fecha_fin);

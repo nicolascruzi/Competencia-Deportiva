@@ -12,6 +12,7 @@ import { sportIcon } from '../lib/sportIcons';
 import PageHeader from '../components/PageHeader';
 import SubTabs from '../components/SubTabs';
 import { AdminSheetLoading, AdminPonderadoresSheet, AdminEquiposSheet, AdminSemanasSheet, AdminConfigSheet } from '../components/AdminCompetenciaSheets';
+import { hoyLocal } from '../lib/fecha';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -819,7 +820,7 @@ function RankingEquipos({ data, rankingData }) {
 function calcularProgresoCompetencia(fechaInicio, fechaFin) {
   if (!fechaInicio || !fechaFin) return null;
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyLocal();
   const totalDias = Math.round((new Date(fechaFin + 'T00:00:00Z') - new Date(fechaInicio + 'T00:00:00Z')) / 86400000) + 1;
   if (totalDias <= 0) return null;
 

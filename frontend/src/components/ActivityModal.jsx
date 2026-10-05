@@ -4,6 +4,7 @@ import { getGrupos } from '../api/grupos';
 import { uploadFoto } from '../api/fotos';
 import { useLoading } from '../context/LoadingContext';
 import { useAuth } from '../context/AuthContext';
+import { hoyLocal } from '../lib/fecha';
 
 const S = {
   input: {
@@ -118,7 +119,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
 
   useEffect(() => {
     if (open) {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = hoyLocal();
       setForm(f => ({ ...f, fecha: today, notas: '', minutos: '' }));
       setError('');
       setFoto(null);
@@ -159,7 +160,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyLocal();
     if (form.fecha > today) {
       setError('No puedes registrar actividades en fechas futuras.');
       return;
@@ -266,10 +267,10 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
           <div style={{ display:'grid', gridTemplateColumns: mostrarSelectorCompaneros || cargandoCompetencias ? 'minmax(0,1fr) minmax(0,1.4fr)' : 'minmax(0,1fr)', gap:10, minWidth:0 }}>
             <Field label="Fecha">
               <Input type="date" required
-                max={new Date().toISOString().slice(0, 10)}
+                max={hoyLocal()}
                 value={form.fecha}
                 onChange={e => {
-                  const today = new Date().toISOString().slice(0, 10);
+                  const today = hoyLocal();
                   const val = e.target.value > today ? today : e.target.value;
                   setForm(f => ({ ...f, fecha: val }));
                 }} />

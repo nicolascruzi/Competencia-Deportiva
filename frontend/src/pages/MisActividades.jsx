@@ -7,6 +7,7 @@ import Calendario from './Calendario';
 import PageHeader from '../components/PageHeader';
 import SubTabs from '../components/SubTabs';
 import { sportIcon } from '../lib/sportIcons';
+import { hoyLocal } from '../lib/fecha';
 
 const IconCamera = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -21,7 +22,7 @@ const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
 // ─── Panel de detalle (bottom sheet) ─────────────────────────────────────────
 
 function EditModal({ actividad, deportes, onClose, onSaved, onFotoUploaded, onFotoDeleted }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = hoyLocal();
   const [form, setForm] = useState({
     deporte_nombre: actividad.deporte_nombre,
     minutos:        String(Math.round(parseFloat(actividad.minutos))),
@@ -65,7 +66,7 @@ function EditModal({ actividad, deportes, onClose, onSaved, onFotoUploaded, onFo
 
   async function handleSave(e) {
     e.preventDefault();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyLocal();
     if (form.fecha > today) {
       setError('No puedes registrar actividades en fechas futuras.');
       return;
