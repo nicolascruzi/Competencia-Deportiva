@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 
 const S = {
   input: {
-    width: '100%', background: 'var(--t-surface2)', border: '1px solid var(--t-dim)',
+    width: '100%', maxWidth: '100%', background: 'var(--t-surface2)', border: '1px solid var(--t-dim)',
     color: 'var(--t-text)', padding: '9px 12px', borderRadius: '10px',
     fontSize: '16px', outline: 'none', boxSizing: 'border-box',
   },
@@ -35,7 +35,7 @@ function Select({ children, style, ...props }) {
 
 function Field({ label, children }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
       <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--t-muted)' }}>
         {label}
       </label>
@@ -235,7 +235,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
           </Field>
 
           {/* Minutos + Ponderador en la misma fila, como antes */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, minWidth:0 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)', gap:10, minWidth:0 }}>
             <Field label="Minutos">
               <Input type="number" inputMode="numeric" min="1" required placeholder="60"
                 value={form.minutos} onChange={e => setForm(f => ({ ...f, minutos: e.target.value }))} />
@@ -263,7 +263,7 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
           )}
 
           {/* Fecha + Compañeros en la misma fila para ahorrar espacio vertical */}
-          <div style={{ display:'grid', gridTemplateColumns: mostrarSelectorCompaneros || cargandoCompetencias ? '1fr 1.4fr' : '1fr', gap:10, minWidth:0 }}>
+          <div style={{ display:'grid', gridTemplateColumns: mostrarSelectorCompaneros || cargandoCompetencias ? 'minmax(0,1fr) minmax(0,1.4fr)' : 'minmax(0,1fr)', gap:10, minWidth:0 }}>
             <Field label="Fecha">
               <Input type="date" required
                 max={new Date().toISOString().slice(0, 10)}
