@@ -13,6 +13,7 @@ import PageHeader from '../components/PageHeader';
 import SubTabs from '../components/SubTabs';
 import { AdminSheetLoading, AdminPonderadoresSheet, AdminEquiposSheet, AdminSemanasSheet, AdminConfigSheet } from '../components/AdminCompetenciaSheets';
 import { hoyLocal } from '../lib/fecha';
+import { DaySheet, DetallePanel } from '../components/DetalleDiaCalendario';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -1736,6 +1737,8 @@ function PlayerCalendar({ acts }) {
   const now = new Date();
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
+  const [selectedDate, setSelectedDate] = useState(null); // Date del día tocado, o null
+  const [detalle, setDetalle] = useState(null); // actividad elegida dentro del día, o null
 
   const byDate = {};
   acts.forEach(a => {
@@ -1830,11 +1833,14 @@ function PlayerCalendar({ acts }) {
           }
 
           return (
-            <div key={key}
+            <button key={key}
+              onClick={() => hasActs && setSelectedDate(new Date(year, month, d))}
+              disabled={!hasActs}
               style={{
                 position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                aspectRatio:'1', borderRadius:12, gap:1,
+                aspectRatio:'1', borderRadius:12, gap:1, border:'none',
                 background: isToday ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
+                cursor: hasActs ? 'pointer' : 'default', WebkitTapHighlightColor:'transparent',
               }}>
               <span style={{
                 fontFamily:"'Barlow Condensed', sans-serif",
@@ -1845,10 +1851,28 @@ function PlayerCalendar({ acts }) {
                 {d}
               </span>
               {emojiNode}
-            </div>
+            </button>
           );
         })}
       </div>
+
+      {selectedDate && !detalle && createPortal(
+        <DaySheet
+          fecha={selectedDate}
+          acts={(byDate[`${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`] || []).filter(Boolean)}
+          onClose={() => setSelectedDate(null)}
+          onSelectAct={a => setDetalle(a)}
+        />,
+        document.body
+      )}
+      {detalle && createPortal(
+        <DetallePanel
+          actividad={detalle}
+          readOnly
+          onClose={() => setDetalle(null)}
+        />,
+        document.body
+      )}
     </div>
   );
 }
