@@ -187,8 +187,10 @@ export function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onF
   );
 }
 
-// ─── Bottom sheet con actividades del día ─────────────────────────────────────
-export function DaySheet({ fecha, acts, onClose, onSelectAct }) {
+// ─── Bottom sheet con actividades del día — con readOnly=true, la lista es puramente informativa:
+// no hay forma de entrar al detalle individual de cada actividad (no aplica en el calendario de
+// otra persona). ────────────────────────────────────────────────────────────────────────────────
+export function DaySheet({ fecha, acts, onClose, onSelectAct, readOnly = false }) {
   const startY = useRef(null);
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
   function onTouchEnd(e) {
@@ -218,8 +220,8 @@ export function DaySheet({ fecha, acts, onClose, onSelectAct }) {
         {/* Lista */}
         <div style={{ overflowY:'auto', padding:'10px 16px', display:'flex', flexDirection:'column', gap:8 }}>
           {acts.map(a => (
-            <div key={a.id} onClick={() => onSelectAct(a)}
-              style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+            <div key={a.id} onClick={readOnly ? undefined : () => onSelectAct(a)}
+              style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, cursor: readOnly ? 'default' : 'pointer', WebkitTapHighlightColor:'transparent' }}>
               {a.foto_url && (
                 <div style={{ width:44, height:44, borderRadius:10, overflow:'hidden', flexShrink:0 }}>
                   <img src={a.foto_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -239,9 +241,11 @@ export function DaySheet({ fecha, acts, onClose, onSelectAct }) {
                 </div>
                 <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>pts</div>
               </div>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
-                <path d="M9 18l6-6-6-6"/>
-              </svg>
+              {!readOnly && (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              )}
             </div>
           ))}
         </div>
