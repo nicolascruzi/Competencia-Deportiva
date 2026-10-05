@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
+  getGrupo,
   getParticipantesGrupo, sacarParticipante, renombrarGrupo,
   getCompetenciasGrupo, cerrarCompetenciaGrupo, borrarCompetenciaGrupo,
 } from '../api/grupos';
@@ -503,9 +504,21 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
   const [editandoNombre, setEditandoNombre] = useState(false);
   const [nombreDraft, setNombreDraft] = useState(grupo.nombre);
   const [nombreActual, setNombreActual] = useState(grupo.nombre);
+  const [pinActual, setPinActual] = useState(grupo.pin || '');
   const [guardandoNombre, setGuardandoNombre] = useState(false);
   const [errorNombre, setErrorNombre] = useState('');
   const [pinHeaderCopied, setPinHeaderCopied] = useState(false);
+  const [pinCardCopied, setPinCardCopied] = useState(false);
+
+  useEffect(() => {
+    setPinActual(grupo.pin || '');
+    if (grupo.pin) return undefined;
+    let cancelado = false;
+    getGrupo(grupo.id)
+      .then(detalle => { if (!cancelado) setPinActual(detalle.pin || ''); })
+      .catch(() => {});
+    return () => { cancelado = true; };
+  }, [grupo.id, grupo.pin]);
 
   async function handleGuardarNombre() {
     const nombreLimpio = nombreDraft.trim();
@@ -590,18 +603,18 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
               <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)' }}>
                 Grupo
               </span>
-              {grupo.pin && (
+              {pinActual && (
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard?.writeText(grupo.pin).then(() => {
+                    navigator.clipboard?.writeText(pinActual).then(() => {
                       setPinHeaderCopied(true);
                       setTimeout(() => setPinHeaderCopied(false), 1800);
                     });
                   }}
                   style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 7px', borderRadius:8, border:'1px solid rgba(var(--t-accent-r),0.25)', background:'rgba(var(--t-accent-r),0.08)', color:'var(--t-accent)', cursor:'pointer', fontSize:10.5, fontWeight:800, letterSpacing:'0.06em', fontFamily:"'JetBrains Mono', monospace", WebkitTapHighlightColor:'transparent' }}
                 >
-                  PIN {grupo.pin}
+                  PIN {pinActual}
                   <span style={{ color: pinHeaderCopied ? 'var(--t-accent)' : 'var(--t-muted)', fontFamily:'inherit', fontSize:9.5, letterSpacing:0 }}>
                     {pinHeaderCopied ? 'Copiado' : 'Copiar'}
                   </span>
@@ -615,10 +628,37 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
         )}
       </div>
 
+      {pinActual && (
+        <div style={{ padding:'0 20px 12px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard?.writeText(pinActual).then(() => {
+                setPinCardCopied(true);
+                setTimeout(() => setPinCardCopied(false), 1800);
+              });
+            }}
+            style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'13px 14px', borderRadius:14, border:'1.5px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.1)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}
+          >
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)' }}>
+                PIN para unirse al grupo
+              </div>
+              <div style={{ marginTop:3, fontFamily:"'JetBrains Mono', monospace", fontSize:24, fontWeight:800, letterSpacing:'0.18em', color:'var(--t-accent)', lineHeight:1 }}>
+                {pinActual}
+              </div>
+            </div>
+            <span style={{ padding:'7px 10px', borderRadius:9, border:'1px solid rgba(var(--t-accent-r),0.3)', background:'var(--t-surface)', color: pinCardCopied ? 'var(--t-accent)' : 'var(--t-muted)', fontSize:11, fontWeight:800, flexShrink:0 }}>
+              {pinCardCopied ? 'Copiado' : 'Copiar'}
+            </span>
+          </button>
+        </div>
+      )}
+
       <SubTabs tabs={TABS} active={tab} onChange={setTab} />
 
       {tab === 'integrantes' && (
-        <TabIntegrantes grupo={{ ...grupo, nombre: nombreActual }} isAdmin={isAdmin} onSalirGrupo={onSalirGrupo} onBorrarGrupo={onBorrarGrupo} />
+        <TabIntegrantes grupo={{ ...grupo, nombre: nombreActual, pin: pinActual }} isAdmin={isAdmin} onSalirGrupo={onSalirGrupo} onBorrarGrupo={onBorrarGrupo} />
       )}
       {tab === 'competencias' && (
         <TabCompetencias grupo={{ ...grupo, nombre: nombreActual }} isAdmin={isAdmin} onAbrirCompetencia={setCompetenciaAbierta} />
