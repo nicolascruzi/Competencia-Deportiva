@@ -280,6 +280,11 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
                         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', letterSpacing:'0.03em', color: isGrupoActivo ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                           {g.nombre}
                         </div>
+                        {g.pin && (
+                          <div style={{ marginTop:2, fontFamily:"'JetBrains Mono', monospace", fontSize:10.5, fontWeight:700, letterSpacing:'0.08em', color:'var(--t-muted)' }}>
+                            PIN {g.pin}
+                          </div>
+                        )}
                       </div>
                       {isGrupoActivo && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
                       <span style={{ color:'var(--t-muted)', flexShrink:0 }}><IconChevronRight /></span>

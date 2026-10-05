@@ -1,8 +1,9 @@
 const express = require('express');
 const pool    = require('../db/pool');
-const { authMiddleware, adminOnly } = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 const { comparteGrupoCon } = require('../lib/permisos');
 const { sendPushToUser } = require('./push');
+const { actualizarDeporteCatalogo, eliminarDeporteCatalogo } = require('../lib/deportesCatalogo');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -311,6 +312,34 @@ router.post('/deportes', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al crear deporte' });
+  }
+});
+
+// PUT /actividades/deportes/:id — editar nombre/ícono/ponderador por defecto de un deporte del
+// catálogo. Como varias tablas guardan deporte_nombre como texto, el renombre se propaga para que
+// ponderadores, deportes de la semana y actividades sigan apuntando al mismo deporte.
+router.put('/deportes/:id', async (req, res) => {
+  try {
+    const updated = await actualizarDeporteCatalogo(req.params.id, req.body);
+    res.json(updated);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Error al editar el deporte' });
+  }
+});
+
+// DELETE /actividades/deportes/:id — elimina un deporte del catálogo global. Las actividades ya
+// registradas con este deporte conservan su deporte_nombre de texto intacto (deporte_id pasa a NULL
+// por ON DELETE SET NULL); los votos de deporte-de-la-semana pendientes sobre este deporte sí se
+// pierden en cascada.
+router.delete('/deportes/:id', async (req, res) => {
+  try {
+    res.json(await eliminarDeporteCatalogo(req.params.id));
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar el deporte' });
   }
 });
 

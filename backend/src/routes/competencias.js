@@ -159,7 +159,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // PUT /competencias/:id/configuracion — editar fechas y bonus (admin del grupo)
 router.put('/:id/configuracion', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { fecha_inicio, fecha_fin, bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts, bonus_deporte_semana_extra } = req.body;
+  const { nombre, fecha_inicio, fecha_fin, bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts, bonus_deporte_semana_extra } = req.body;
 
   try {
     const { rows: [comp] } = await pool.query(
@@ -169,6 +169,7 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
     );
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
     if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede editar la configuración' });
+    if (nombre !== undefined && !nombre.trim()) return res.status(400).json({ error: 'El nombre no puede estar vacío' });
 
     const nuevaFechaInicio = fecha_inicio !== undefined ? (fecha_inicio || null) : comp.fecha_inicio;
     const nuevaFechaFin    = fecha_fin    !== undefined ? (fecha_fin    || null) : comp.fecha_fin;
@@ -180,6 +181,7 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
 
     const sets = [];
     const params = [];
+    if (nombre !== undefined) { params.push(nombre.trim()); sets.push(`nombre=$${params.length}`); }
     if (fecha_inicio !== undefined) { params.push(nuevaFechaInicio); sets.push(`fecha_inicio=$${params.length}`); }
     if (fecha_fin !== undefined)    { params.push(nuevaFechaFin);    sets.push(`fecha_fin=$${params.length}`); }
     if (bonus_1_companero_pts !== undefined)     { params.push(parseFloat(bonus_1_companero_pts) || 0);     sets.push(`bonus_1_companero_pts=$${params.length}`); }
@@ -249,7 +251,7 @@ router.put('/:id/configuracion', authMiddleware, async (req, res) => {
     }
 
     const { rows: [actualizada] } = await pool.query(
-      `SELECT id, bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts, bonus_deporte_semana_extra,
+      `SELECT id, nombre, bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts, bonus_deporte_semana_extra,
               TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
        FROM competencias WHERE id=$1`,
       [id]

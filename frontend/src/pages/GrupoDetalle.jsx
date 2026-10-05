@@ -71,6 +71,7 @@ function TabIntegrantes({ grupo, isAdmin, onSalirGrupo, onBorrarGrupo }) {
   const [sacandoId, setSacandoId] = useState(null);
   const [borrando, setBorrando] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
+  const [pinCopied, setPinCopied] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -167,6 +168,25 @@ function TabIntegrantes({ grupo, isAdmin, onSalirGrupo, onBorrarGrupo }) {
       </div>
 
       {error && <div style={{ fontSize:12, color:'var(--t-danger)' }}>{error}</div>}
+
+      {grupo.pin && (
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(grupo.pin).then(() => {
+              setPinCopied(true);
+              setTimeout(() => setPinCopied(false), 2000);
+            });
+          }}
+          style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 14px', borderRadius:12, border:'1px solid var(--t-dim)', background:'var(--t-surface2)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--t-muted)' }}>PIN de acceso</div>
+            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:18, fontWeight:700, color:'var(--t-accent)', letterSpacing:'0.12em', marginTop:2 }}>{grupo.pin}</div>
+          </div>
+          <span style={{ fontSize:11, fontWeight:700, color: pinCopied ? 'var(--t-accent)' : 'var(--t-muted)', flexShrink:0 }}>
+            {pinCopied ? '✓ Copiado' : 'Copiar'}
+          </span>
+        </button>
+      )}
 
       <div style={{ display:'flex', flexDirection:'column', gap:8, paddingTop:8, borderTop:'1px solid var(--t-dim)' }}>
         <button
@@ -359,7 +379,7 @@ function TabCompetencias({ grupo, isAdmin, onAbrirCompetencia }) {
 
 // ─── Sub-pantalla: detalle administrable de una competencia ──────────────────
 
-function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack }) {
+function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack, onRenombrada }) {
   const [compConDeportes, setCompConDeportes] = useState(competenciaResumen);
   const [detalleCompletoId, setDetalleCompletoId] = useState(null);
   const [seccion, setSeccion] = useState('ponderadores'); // 'ponderadores' | 'equipos' | 'semanas' | 'config'
@@ -401,7 +421,7 @@ function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack })
           <IconBack /> Volver a {grupo.nombre}
         </button>
         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, textTransform:'uppercase', color:'var(--t-text)', marginTop:8, lineHeight:1 }}>
-          {competenciaResumen.nombre}
+          {compConDeportes.nombre}
         </div>
         <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:4 }}>
           {competenciaResumen.estado === 'en_curso' ? 'En curso' : 'Finalizada'}
@@ -455,7 +475,10 @@ function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack })
             ) : (
               <AdminConfigSheet
                 embedded competencia={compConDeportes} readOnly={!isAdmin} onClose={() => {}}
-                onSaved={actualizada => setCompConDeportes(prev => ({ ...prev, ...actualizada }))}
+                onSaved={actualizada => {
+                  setCompConDeportes(prev => ({ ...prev, ...actualizada }));
+                  onRenombrada?.(actualizada.nombre);
+                }}
               />
             )}
           </div>
@@ -482,6 +505,7 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
   const [nombreActual, setNombreActual] = useState(grupo.nombre);
   const [guardandoNombre, setGuardandoNombre] = useState(false);
   const [errorNombre, setErrorNombre] = useState('');
+  const [pinHeaderCopied, setPinHeaderCopied] = useState(false);
 
   async function handleGuardarNombre() {
     const nombreLimpio = nombreDraft.trim();
@@ -507,6 +531,7 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
           competenciaResumen={competenciaAbierta}
           isAdmin={isAdmin}
           onBack={() => setCompetenciaAbierta(null)}
+          onRenombrada={nombreNuevo => setCompetenciaAbierta(prev => prev ? { ...prev, nombre: nombreNuevo } : prev)}
         />
       </div>
     );
@@ -561,8 +586,27 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
                 )}
               </div>
             )}
-            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)', marginTop:3 }}>
-              Grupo
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginTop:5 }}>
+              <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-accent)' }}>
+                Grupo
+              </span>
+              {grupo.pin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(grupo.pin).then(() => {
+                      setPinHeaderCopied(true);
+                      setTimeout(() => setPinHeaderCopied(false), 1800);
+                    });
+                  }}
+                  style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 7px', borderRadius:8, border:'1px solid rgba(var(--t-accent-r),0.25)', background:'rgba(var(--t-accent-r),0.08)', color:'var(--t-accent)', cursor:'pointer', fontSize:10.5, fontWeight:800, letterSpacing:'0.06em', fontFamily:"'JetBrains Mono', monospace", WebkitTapHighlightColor:'transparent' }}
+                >
+                  PIN {grupo.pin}
+                  <span style={{ color: pinHeaderCopied ? 'var(--t-accent)' : 'var(--t-muted)', fontFamily:'inherit', fontSize:9.5, letterSpacing:0 }}>
+                    {pinHeaderCopied ? 'Copiado' : 'Copiar'}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 const express = require('express');
 const pool    = require('../db/pool');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
+const { actualizarDeporteCatalogo, eliminarDeporteCatalogo } = require('../lib/deportesCatalogo');
 
 const router = express.Router();
 router.use(authMiddleware, adminOnly);
@@ -160,20 +161,11 @@ router.get('/deportes', async (req, res) => {
 });
 
 router.put('/deportes/:id', async (req, res) => {
-  const { nombre, icono, ponderador_default } = req.body;
   try {
-    const { rows } = await pool.query(
-      `UPDATE deportes SET
-        nombre = COALESCE($1, nombre),
-        icono  = COALESCE($2, icono),
-        ponderador_default = COALESCE($3, ponderador_default)
-       WHERE id = $4
-       RETURNING *`,
-      [nombre || null, icono || null, ponderador_default ?? null, req.params.id]
-    );
-    if (!rows.length) return res.status(404).json({ error: 'Deporte no encontrado' });
-    res.json(rows[0]);
+    const updated = await actualizarDeporteCatalogo(req.params.id, req.body);
+    res.json(updated);
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     console.error(err);
     res.status(500).json({ error: 'Error interno' });
   }
@@ -181,9 +173,9 @@ router.put('/deportes/:id', async (req, res) => {
 
 router.delete('/deportes/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM deportes WHERE id = $1', [req.params.id]);
-    res.json({ ok: true });
+    res.json(await eliminarDeporteCatalogo(req.params.id));
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     console.error(err);
     res.status(500).json({ error: 'Error interno' });
   }

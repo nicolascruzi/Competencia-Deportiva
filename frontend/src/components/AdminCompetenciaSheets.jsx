@@ -5,7 +5,19 @@ import {
 } from '../api/competencias';
 import { updateEquiposGrupo, updateAsignacionesGrupo } from '../api/grupos';
 import { useLoading } from '../context/LoadingContext';
-import { getDeportes as getAllDeportes, createDeporte } from '../api/actividades';
+import { getDeportes as getAllDeportes, createDeporte, updateDeporte, deleteDeporte } from '../api/actividades';
+
+const IconEditDeporte = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+);
+const IconTrashDeporte = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+  </svg>
+);
 
 function AdminSheetLoading({ onClose, embedded = false }) {
   const body = (
@@ -82,6 +94,12 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
   const [addingDeporte, setAddingDeporte] = useState(false);
   const [addSuccess, setAddSuccess]     = useState('');
   const [addError, setAddError]         = useState('');
+  // Edición inline de un deporte existente (nombre/ícono/ponderador por defecto del catálogo)
+  const [editandoId, setEditandoId]     = useState(null);
+  const [editDraft, setEditDraft]       = useState({ nombre: '', icono: '', ponderador_default: '' });
+  const [editSaving, setEditSaving]     = useState(false);
+  const [editError, setEditError]       = useState('');
+  const [borrandoId, setBorrandoId]     = useState(null);
   const startY = useRef(null);
   const { withLoading } = useLoading();
 
@@ -132,6 +150,57 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
       setAddError(err.message || 'Error al crear deporte');
     } finally {
       setAddingDeporte(false);
+    }
+  }
+
+  function empezarEdicion(d) {
+    setEditandoId(d.id);
+    setEditDraft({ nombre: d.nombre, icono: d.icono, ponderador_default: String(d.ponderador_default) });
+    setEditError('');
+  }
+
+  async function handleGuardarEdicion(deporteOriginal) {
+    const nombre = editDraft.nombre.trim();
+    if (!nombre) { setEditError('El nombre es obligatorio'); return; }
+    const pond = parseFloat(editDraft.ponderador_default) || 1;
+    setEditSaving(true); setEditError('');
+    try {
+      await updateDeporte(deporteOriginal.id, { nombre, icono: editDraft.icono || '🏅', ponderador_default: pond });
+      const deps = await getAllDeportes();
+      setDeportes(deps);
+      // El ponderador tipeado por el usuario para este deporte en esta sesión vive bajo la key del
+      // nombre viejo — si cambió el nombre, se migra a la key nueva para no perderlo.
+      setPonders(prev => {
+        const map = { ...prev };
+        if (deporteOriginal.nombre !== nombre && deporteOriginal.nombre in map) {
+          map[nombre] = map[deporteOriginal.nombre];
+          delete map[deporteOriginal.nombre];
+        }
+        return map;
+      });
+      setEditandoId(null);
+    } catch (err) {
+      setEditError(err.message || 'Error al editar el deporte');
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function handleBorrarDeporte(d) {
+    if (!confirm(`¿Eliminar "${d.nombre}" del catálogo? Las actividades ya registradas con este deporte no se borran, pero dejará de estar disponible para elegir en nuevas actividades.`)) return;
+    setBorrandoId(d.id); setEditError('');
+    try {
+      await deleteDeporte(d.id);
+      setDeportes(prev => prev.filter(x => x.id !== d.id));
+      setPonders(prev => {
+        const map = { ...prev };
+        delete map[d.nombre];
+        return map;
+      });
+    } catch (err) {
+      setEditError(err.message || 'Error al eliminar el deporte');
+    } finally {
+      setBorrandoId(null);
     }
   }
 
@@ -227,29 +296,86 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
           </div>
         )}
 
-        {deportes.map(d => (
-          <div key={d.nombre} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px', flexShrink:0 }}>
-            <span style={{ fontSize:18, flexShrink:0 }}>{d.icono}</span>
-            <span style={{ flex:1, fontSize:14, fontWeight:500, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.nombre}</span>
-            {readOnly
-              ? <span style={{ width:58, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)' }}>
-                  {ponders[d.nombre] ?? d.ponderador_default}
-                </span>
-              : <input
-                  type="text" inputMode="decimal"
-                  value={ponders[d.nombre] ?? d.ponderador_default}
-                  onChange={e => {
-                    const v = e.target.value;
-                    // Permitir escribir decimales libremente (ej: "1.", "1.2")
-                    if (/^\d*\.?\d*$/.test(v)) setPonders(p => ({ ...p, [d.nombre]: v }));
-                  }}
-                  style={{ width:58, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-accent)', padding:'5px 7px', borderRadius:8, fontSize:15, outline:'none', textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}
-                  onFocus={e => { e.target.style.borderColor = 'var(--t-accent)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'var(--t-dim)'; }}
-                />
-            }
-          </div>
-        ))}
+        {editError && (
+          <div style={{ fontSize:12, color:'#F87171' }}>{editError}</div>
+        )}
+
+        {deportes.map(d => {
+          if (editandoId === d.id) {
+            return (
+              <div key={d.nombre} style={{ border:'1.5px solid var(--t-accent)', borderRadius:12, padding:'10px 12px', display:'flex', flexDirection:'column', gap:8, background:'var(--t-surface2)', flexShrink:0 }}>
+                <div style={{ display:'flex', gap:8 }}>
+                  <input
+                    type="text" value={editDraft.icono} maxLength={4}
+                    onChange={e => setEditDraft(prev => ({ ...prev, icono: e.target.value }))}
+                    style={{ ...inputBase, width:48, flexShrink:0, textAlign:'center', fontSize:20, padding:'5px 6px' }}
+                  />
+                  <input
+                    type="text" value={editDraft.nombre}
+                    onChange={e => setEditDraft(prev => ({ ...prev, nombre: e.target.value }))}
+                    style={{ ...inputBase, flex:1, minWidth:0 }}
+                  />
+                  <input
+                    type="text" inputMode="decimal" value={editDraft.ponderador_default}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (/^\d*\.?\d*$/.test(v)) setEditDraft(prev => ({ ...prev, ponderador_default: v }));
+                    }}
+                    style={{ ...inputBase, width:54, flexShrink:0, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, color:'var(--t-accent)' }}
+                  />
+                </div>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={() => handleGuardarEdicion(d)} disabled={editSaving}
+                    style={{ padding:'7px 16px', borderRadius:8, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.05em', cursor: editSaving ? 'default' : 'pointer', opacity: editSaving ? 0.7 : 1 }}>
+                    {editSaving ? 'Guardando…' : 'Guardar'}
+                  </button>
+                  <button onClick={() => setEditandoId(null)} disabled={editSaving}
+                    style={{ padding:'7px 16px', borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:13, fontWeight:600, cursor: editSaving ? 'default' : 'pointer' }}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={d.nombre} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px', flexShrink:0 }}>
+              <span style={{ fontSize:18, flexShrink:0 }}>{d.icono}</span>
+              <span style={{ flex:1, fontSize:14, fontWeight:500, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.nombre}</span>
+              {readOnly
+                ? <span style={{ width:58, textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)' }}>
+                    {ponders[d.nombre] ?? d.ponderador_default}
+                  </span>
+                : (
+                  <>
+                    <input
+                      type="text" inputMode="decimal"
+                      value={ponders[d.nombre] ?? d.ponderador_default}
+                      onChange={e => {
+                        const v = e.target.value;
+                        // Permitir escribir decimales libremente (ej: "1.", "1.2")
+                        if (/^\d*\.?\d*$/.test(v)) setPonders(p => ({ ...p, [d.nombre]: v }));
+                      }}
+                      style={{ width:58, background:'var(--t-ground)', border:'1.5px solid var(--t-dim)', color:'var(--t-accent)', padding:'5px 7px', borderRadius:8, fontSize:15, outline:'none', textAlign:'center', fontFamily:"'JetBrains Mono', monospace", fontWeight:700 }}
+                      onFocus={e => { e.target.style.borderColor = 'var(--t-accent)'; }}
+                      onBlur={e => { e.target.style.borderColor = 'var(--t-dim)'; }}
+                    />
+                    <button onClick={() => empezarEdicion(d)} aria-label={`Editar ${d.nombre}`}
+                      style={{ width:30, height:30, flexShrink:0, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                      <IconEditDeporte />
+                    </button>
+                    <button onClick={() => handleBorrarDeporte(d)} disabled={borrandoId === d.id} aria-label={`Eliminar ${d.nombre}`}
+                      style={{ width:30, height:30, flexShrink:0, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-danger)', display:'flex', alignItems:'center', justifyContent:'center', cursor: borrandoId === d.id ? 'default' : 'pointer', opacity: borrandoId === d.id ? 0.5 : 1 }}>
+                      {borrandoId === d.id
+                        ? <div style={{ width:12, height:12, border:'2px solid rgba(185,28,28,0.3)', borderTopColor:'var(--t-danger)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+                        : <IconTrashDeporte />
+                      }
+                    </button>
+                  </>
+                )
+              }
+            </div>
+          );
+        })}
       </div>
     </SheetShell>
   );
@@ -260,6 +386,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
 // ─── SHEET ADMIN: configuración general (fechas + bonus por compañía) ────────
 
 function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false, embedded = false }) {
+  const [nombre, setNombre] = useState(competencia.nombre || '');
   const [fechaInicio, setFechaInicio] = useState(competencia.fecha_inicio || '');
   const [fechaFin, setFechaFin]       = useState(competencia.fecha_fin || '');
   const [bonus1, setBonus1]         = useState(String(parseFloat(competencia.bonus_1_companero_pts) || 0));
@@ -279,9 +406,12 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false, emb
   }
 
   async function handleSave() {
+    const nombreLimpio = nombre.trim();
+    if (!nombreLimpio) { setError('El nombre no puede estar vacío'); return; }
     setSaving(true); setError('');
     try {
       const actualizada = await updateConfiguracion(competencia.id, {
+        nombre: nombreLimpio,
         fecha_inicio: fechaInicio || null,
         fecha_fin: fechaFin || null,
         bonus_1_companero_pts: parseFloat(bonus1) || 0,
@@ -301,7 +431,7 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false, emb
   return (
     <SheetShell embedded={embedded} onClose={onClose} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
       title="Configuración general"
-      meta={competencia.nombre}
+      meta={readOnly ? competencia.nombre : null}
       footer={!readOnly && (
         <div style={{ padding: embedded ? '16px 0 0' : '12px 18px 0', flexShrink:0, borderTop:'1px solid var(--t-dim)' }}>
           <button onClick={handleSave} disabled={saving}
@@ -316,6 +446,16 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false, emb
       )}
 
       <div style={{ ...(embedded ? { padding:'14px 0 0' } : { overflowY:'auto', flex:1, padding:'10px 18px' }), display:'flex', flexDirection:'column', gap:18 }}>
+
+          {/* Nombre */}
+          <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Nombre de la competencia</div>
+            <input
+              type="text" value={nombre} disabled={readOnly}
+              onChange={e => setNombre(e.target.value)}
+              style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:14, outline:'none' }}
+            />
+          </div>
 
           {/* Fechas */}
           <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
