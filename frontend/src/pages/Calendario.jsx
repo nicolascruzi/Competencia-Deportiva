@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getActividades, deleteActividad } from '../api/actividades';
+import { getActividades, getChallengesCompletados, deleteActividad } from '../api/actividades';
 import { SPORT_ICONS } from '../lib/sportIcons';
 import { DetallePanel, DaySheet } from '../components/DetalleDiaCalendario';
 
@@ -23,12 +23,19 @@ export default function Calendario() {
   }
 
   const [acts, setActs]   = useState([]);
+  const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [detalle, setDetalle] = useState(null);
 
   useEffect(() => {
-    getActividades().then(data => setActs((Array.isArray(data) ? data : []).filter(Boolean))).finally(() => setLoading(false));
+    Promise.all([
+      getActividades(),
+      getChallengesCompletados(),
+    ]).then(([actsData, chData]) => {
+      setActs((Array.isArray(actsData) ? actsData : []).filter(Boolean));
+      setChallenges((Array.isArray(chData) ? chData : []).filter(Boolean));
+    }).finally(() => setLoading(false));
   }, []);
 
   // Mapa fecha → actividades
@@ -37,6 +44,14 @@ export default function Calendario() {
     const key = a.fecha.slice(0, 10);
     if (!byDate[key]) byDate[key] = [];
     byDate[key].push(a);
+  });
+
+  // Mapa fecha → challenges completados ese día
+  const challengesByDate = {};
+  challenges.forEach(c => {
+    const key = c.fecha;
+    if (!challengesByDate[key]) challengesByDate[key] = [];
+    challengesByDate[key].push(c);
   });
 
   // Días del mes
@@ -57,7 +72,7 @@ export default function Calendario() {
   function handleDayClick(d) {
     if (!d) return;
     const key = dayKey(d);
-    if (byDate[key]?.length) {
+    if (byDate[key]?.length || challengesByDate[key]?.length) {
       setSelectedDate(new Date(year, month, d));
     }
   }
@@ -122,6 +137,7 @@ export default function Calendario() {
             const hasActs  = !!byDate[key]?.length;
             const count    = byDate[key]?.length || 0;
             const isSel    = selectedKey === key;
+            const hasChallenge = !!challengesByDate[key]?.length;
 
             // Emojis del día
             const dayActs  = (byDate[key] || []).filter(Boolean);
@@ -159,14 +175,21 @@ export default function Calendario() {
               );
             }
 
+            const clickable = hasActs || hasChallenge;
+
             return (
               <button key={key} onClick={() => handleDayClick(d)}
                 style={{
                   position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                  aspectRatio:'1', borderRadius:12, border:'none', cursor: hasActs ? 'pointer' : 'default',
+                  aspectRatio:'1', borderRadius:12, border:'none', cursor: clickable ? 'pointer' : 'default',
                   background: isSel ? 'var(--t-accent)' : isToday ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
                   WebkitTapHighlightColor:'transparent', gap:1,
                 }}>
+                {hasChallenge && (
+                  <span style={{ position:'absolute', top:3, right:5, fontSize:9, lineHeight:1, filter: isSel ? 'brightness(0) invert(1)' : 'none' }}>
+                    🎯
+                  </span>
+                )}
                 <span style={{
                   fontFamily:"'Barlow Condensed', sans-serif", fontWeight: isToday || isSel ? 900 : 600,
                   fontSize: hasActs ? 13 : 16, lineHeight:1,
@@ -187,6 +210,7 @@ export default function Calendario() {
         <DaySheet
           fecha={selectedDate}
           acts={selectedActs}
+          challenges={challengesByDate[selectedKey] || []}
           onClose={() => setSelectedDate(null)}
           onSelectAct={a => setDetalle(a)}
         />,

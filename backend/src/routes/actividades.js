@@ -80,6 +80,38 @@ async function calcularExtraSemana(actividadId, deporteNombre, fecha) {
   return parseFloat(r.extra);
 }
 
+// GET /actividades/challenges-completados — challenges completados por un usuario, con fecha, a
+// través de todas sus competencias. Mismo criterio de permisos que GET /actividades (propio, o de
+// un compañero de algún grupo en común) — alimenta el calendario personal/ajeno.
+// Query params: ?user_id=3 (si se omite, el propio)
+router.get('/challenges-completados', async (req, res) => {
+  const { user_id } = req.query;
+  const isAdmin = req.user.role === 'admin';
+  let targetUserId = req.user.id;
+
+  if (user_id && parseInt(user_id) !== req.user.id) {
+    if (!isAdmin && !(await comparteGrupoCon(req.user.id, parseInt(user_id))))
+      return res.status(403).json({ error: 'No compartes ningún grupo con ese usuario' });
+    targetUserId = parseInt(user_id);
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT ch.id AS challenge_id, ch.texto, ch.puntos,
+              TO_CHAR(cc.completed_at, 'YYYY-MM-DD') AS fecha, cc.completed_at
+       FROM challenge_completados cc
+       JOIN challenges ch ON ch.id = cc.challenge_id
+       WHERE cc.user_id = $1
+       ORDER BY cc.completed_at DESC`,
+      [targetUserId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener challenges completados' });
+  }
+});
+
 // GET /actividades — lista actividades (historial completo, sin filtro de competencia/fechas)
 // Admin ve todas; usuario normal ve las suyas, o las de un compañero de algún grupo en común
 // (para ver su perfil/calendario completo, no solo lo vinculado a una competencia puntual).

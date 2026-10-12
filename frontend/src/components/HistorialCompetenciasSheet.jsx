@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { getCompetenciasGrupo, cerrarCompetenciaGrupo, borrarCompetenciaGrupo } from '../api/grupos';
-import { getRankingComp } from '../api/competencias';
+import { getRankingComp, getChallengesCompletadosComp } from '../api/competencias';
 import NuevaCompetenciaSheet from './NuevaCompetenciaSheet';
+import SubTabs from './SubTabs';
 
 function fmtFecha(iso) {
   if (!iso) return '';
@@ -9,9 +10,68 @@ function fmtFecha(iso) {
   return `${d}/${m}/${y}`;
 }
 
+const TABS_RANKING = [
+  { id: 'ranking', label: 'Ranking' },
+  { id: 'challenges', label: 'Challenges' },
+];
+
+// Lista completa de challenges de la competencia, cada uno con quién lo completó y cuándo —
+// complementa el conteo "X/Y" del ranking con el detalle de qué challenge era y la fecha.
+function ChallengesCompletadosLista({ competenciaId }) {
+  const [challenges, setChallenges] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelado = false;
+    getChallengesCompletadosComp(competenciaId)
+      .then(rows => { if (!cancelado) setChallenges(Array.isArray(rows) ? rows : []); })
+      .catch(err => { if (!cancelado) setError(err.message); });
+    return () => { cancelado = true; };
+  }, [competenciaId]);
+
+  if (error) return <div style={{ fontSize:13, color:'#F87171' }}>{error}</div>;
+  if (challenges === null) {
+    return (
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'30px 0', color:'var(--t-muted)', fontSize:13, gap:8 }}>
+        <div style={{ width:14, height:14, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+        Cargando…
+      </div>
+    );
+  }
+  if (challenges.length === 0) {
+    return <div style={{ textAlign:'center', padding:'20px 0', color:'var(--t-muted)', fontSize:13 }}>Esta competencia no tuvo challenges.</div>;
+  }
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+      {challenges.map(c => (
+        <div key={c.id} style={{ border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 12px', background:'var(--t-surface2)' }}>
+          <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:8 }}>
+            <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)' }}>{c.texto}</span>
+            <span style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)', flexShrink:0 }}>+{Math.round(c.puntos)}</span>
+          </div>
+          {c.completados.length > 0 ? (
+            <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:6, display:'flex', flexDirection:'column', gap:3 }}>
+              {c.completados.map(p => (
+                <div key={p.user_id} style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
+                  <span>✓ {p.nombre_display}</span>
+                  <span style={{ flexShrink:0 }}>{fmtFecha(p.fecha)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize:12, color:'var(--t-muted2)', marginTop:6 }}>Nadie lo completó.</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function RankingCongelado({ competencia, onBack }) {
   const [ranking, setRanking] = useState(null);
   const [error, setError] = useState('');
+  const [tab, setTab] = useState('ranking');
 
   useEffect(() => {
     let cancelado = false;
@@ -38,9 +98,15 @@ function RankingCongelado({ competencia, onBack }) {
         </div>
       </div>
 
+      <div style={{ margin:'0 -18px' }}>
+        <SubTabs tabs={TABS_RANKING} active={tab} onChange={setTab} />
+      </div>
+
       {error && <div style={{ fontSize:13, color:'#F87171' }}>{error}</div>}
 
-      {ranking === null && !error ? (
+      {tab === 'challenges' ? (
+        <ChallengesCompletadosLista competenciaId={competencia.id} />
+      ) : ranking === null && !error ? (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'30px 0', color:'var(--t-muted)', fontSize:13, gap:8 }}>
           <div style={{ width:14, height:14, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
           Cargando…
@@ -52,9 +118,16 @@ function RankingCongelado({ competencia, onBack }) {
               <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color:'var(--t-muted)', width:18, textAlign:'center', flexShrink:0 }}>
                 {i + 1}
               </span>
-              <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                {p.nombre_display}
-              </span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:14, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {p.nombre_display}
+                </div>
+                {p.challenges_total > 0 && (
+                  <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>
+                    🎯 {p.challenges_completados}/{p.challenges_total} challenges
+                  </div>
+                )}
+              </div>
               <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)', flexShrink:0 }}>
                 {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
               </span>

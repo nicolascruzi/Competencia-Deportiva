@@ -6,7 +6,7 @@ import {
 } from '../api/competencias';
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
-import { getActividades } from '../api/actividades';
+import { getActividades, getChallengesCompletados } from '../api/actividades';
 import { FeedCard } from '../components/FeedCard';
 import { sportIcon } from '../lib/sportIcons';
 import PageHeader from '../components/PageHeader';
@@ -1733,7 +1733,7 @@ const SPORT_ICONS_CAL = {
 };
 function sportIconCal(s) { return SPORT_ICONS_CAL[s] || '🏅'; }
 
-function PlayerCalendar({ acts }) {
+function PlayerCalendar({ acts, challenges = [] }) {
   const now = new Date();
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -1744,6 +1744,13 @@ function PlayerCalendar({ acts }) {
     const key = (a.fecha || '').slice(0, 10);
     if (!byDate[key]) byDate[key] = [];
     byDate[key].push(a);
+  });
+
+  const challengesByDate = {};
+  challenges.forEach(c => {
+    const key = c.fecha;
+    if (!challengesByDate[key]) challengesByDate[key] = [];
+    challengesByDate[key].push(c);
   });
 
   const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -1805,6 +1812,8 @@ function PlayerCalendar({ acts }) {
           const isToday = key === todayKey;
           const dayActs = (byDate[key] || []).filter(Boolean);
           const hasActs = dayActs.length > 0;
+          const hasChallenge = !!challengesByDate[key]?.length;
+          const clickable = hasActs || hasChallenge;
           const count   = dayActs.length;
           const sportIcon = s => SPORT_ICONS_CAL[s] || '🏅';
 
@@ -1833,14 +1842,17 @@ function PlayerCalendar({ acts }) {
 
           return (
             <button key={key}
-              onClick={() => hasActs && setSelectedDate(new Date(year, month, d))}
-              disabled={!hasActs}
+              onClick={() => clickable && setSelectedDate(new Date(year, month, d))}
+              disabled={!clickable}
               style={{
                 position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                 aspectRatio:'1', borderRadius:12, gap:1, border:'none',
                 background: isToday ? 'rgba(var(--t-accent-r),0.12)' : 'transparent',
-                cursor: hasActs ? 'pointer' : 'default', WebkitTapHighlightColor:'transparent',
+                cursor: clickable ? 'pointer' : 'default', WebkitTapHighlightColor:'transparent',
               }}>
+              {hasChallenge && (
+                <span style={{ position:'absolute', top:3, right:5, fontSize:9, lineHeight:1 }}>🎯</span>
+              )}
               <span style={{
                 fontFamily:"'Barlow Condensed', sans-serif",
                 fontWeight: isToday ? 900 : 600,
@@ -1859,6 +1871,7 @@ function PlayerCalendar({ acts }) {
         <DaySheet
           fecha={selectedDate}
           acts={(byDate[`${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`] || []).filter(Boolean)}
+          challenges={challengesByDate[`${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`] || []}
           onClose={() => setSelectedDate(null)}
           readOnly
         />,
@@ -1877,6 +1890,7 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
   const postRefs = useRef({});
   // allData: actividades acumuladas del jugador (todas sus competencias si isOwnProfile, o de esta competencia) para stats/evolución/posts
   const [allData, setAllData] = useState(null); // null = cargando
+  const [challengesData, setChallengesData] = useState([]);
 
   // El título del perfil muestra nombre + apellido reales (no el apodo, a diferencia del resto de
   // la app) — se arma con los datos del propio usuario autenticado, o con los que trae la primera
@@ -1891,10 +1905,12 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
   useEffect(() => {
     if (isOwnProfile) {
       getActividades().then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
+      getChallengesCompletados().then(rows => setChallengesData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setChallengesData([]));
       return;
     }
     if (userId == null) { setAllData([]); return; }
     getActividades({ user_id: userId }).then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
+    getChallengesCompletados({ user_id: userId }).then(rows => setChallengesData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setChallengesData([]));
   }, [isOwnProfile, userId]);
 
   // Filtrar acts del período visible (fallback mientras carga allData)
@@ -2093,7 +2109,7 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
           {allData !== null && profileTab === 'calendar' && (
             <div style={{ padding:'16px 0 32px' }}>
               {allData.length > 0
-                ? <PlayerCalendar acts={allData} />
+                ? <PlayerCalendar acts={allData} challenges={challengesData} />
                 : <EmptyState icon="📅" title="Sin actividades" />
               }
             </div>

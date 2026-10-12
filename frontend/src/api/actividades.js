@@ -4,6 +4,10 @@ export const getActividades  = (params = {}) => {
   const qs = new URLSearchParams(params).toString();
   return apiFetch('/actividades' + (qs ? '?' + qs : ''));
 };
+export const getChallengesCompletados = (params = {}) => {
+  const qs = new URLSearchParams(params).toString();
+  return apiFetch('/actividades/challenges-completados' + (qs ? '?' + qs : ''));
+};
 export const createActividad = (body)        => apiFetch('/actividades',      { method: 'POST',   body: JSON.stringify(body) });
 export const updateActividad = (id, body)    => apiFetch(`/actividades/${id}`,{ method: 'PUT',    body: JSON.stringify(body) });
 export const deleteActividad = (id)          => apiFetch(`/actividades/${id}`,{ method: 'DELETE' });

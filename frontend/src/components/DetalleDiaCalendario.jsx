@@ -190,7 +190,7 @@ export function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onF
 // ─── Bottom sheet con actividades del día — con readOnly=true, la lista es puramente informativa:
 // no hay forma de entrar al detalle individual de cada actividad (no aplica en el calendario de
 // otra persona). ────────────────────────────────────────────────────────────────────────────────
-export function DaySheet({ fecha, acts, onClose, onSelectAct, readOnly = false }) {
+export function DaySheet({ fecha, acts, onClose, onSelectAct, readOnly = false, challenges = [] }) {
   const startY = useRef(null);
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
   function onTouchEnd(e) {
@@ -219,6 +219,22 @@ export function DaySheet({ fecha, acts, onClose, onSelectAct, readOnly = false }
         </div>
         {/* Lista */}
         <div style={{ overflowY:'auto', padding:'10px 16px', display:'flex', flexDirection:'column', gap:8 }}>
+          {challenges.length > 0 && (
+            <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:4 }}>
+              {challenges.map(c => (
+                <div key={c.challenge_id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'rgba(var(--t-accent-r),0.08)', border:'1px solid rgba(var(--t-accent-r),0.25)', borderRadius:14 }}>
+                  <span style={{ fontSize:18, lineHeight:1 }}>🎯</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, color:'var(--t-text)', fontWeight:600 }}>{c.texto}</div>
+                    <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>Challenge completado</div>
+                  </div>
+                  <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)', lineHeight:1, flexShrink:0 }}>
+                    +{Math.round(parseFloat(c.puntos))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {acts.map(a => (
             <div key={a.id} onClick={readOnly ? undefined : () => onSelectAct(a)}
               style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:14, cursor: readOnly ? 'default' : 'pointer', WebkitTapHighlightColor:'transparent' }}>

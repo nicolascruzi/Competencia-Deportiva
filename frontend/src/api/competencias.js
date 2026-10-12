@@ -2,6 +2,7 @@ import { apiFetch } from './client';
 
 export const getCompetencia       = (id)     => apiFetch(`/competencias/${id}`);
 export const getRankingComp       = (id, mes) => apiFetch(`/competencias/${id}/ranking${mes ? `?mes=${mes}` : ''}`);
+export const getChallengesCompletadosComp = (id) => apiFetch(`/competencias/${id}/challenges-completados`);
 export const getMesesComp         = (id)     => apiFetch(`/competencias/${id}/meses`);
 export const updatePonderadores   = (id, ponderadores) => apiFetch(`/competencias/${id}/deportes`, { method: 'PUT', body: JSON.stringify({ ponderadores }) });
 export const getActividadesComp   = (id, mes) => apiFetch(`/competencias/${id}/actividades${mes ? `?mes=${mes}` : ''}`);

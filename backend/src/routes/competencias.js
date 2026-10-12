@@ -669,6 +669,40 @@ router.get('/:id/challenges/:challengeId/completados', authMiddleware, async (re
   }
 });
 
+// GET /competencias/:id/challenges-completados — todos los challenges de la competencia, cada uno
+// con la lista de quién lo completó y cuándo. Para la vista de "lista completa" del historial —
+// a diferencia de GET /:id/challenges/:challengeId/completados (uno por uno), trae todo junto.
+router.get('/:id/challenges-completados', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!(await esParticipanteDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+
+    const { rows: challenges } = await pool.query(
+      `SELECT id, texto, puntos, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
+       FROM challenges WHERE competencia_id=$1 ORDER BY created_at ASC`,
+      [id]
+    );
+    const { rows: completados } = await pool.query(
+      `SELECT cc.challenge_id, u.id AS user_id, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url,
+              TO_CHAR(cc.completed_at, 'YYYY-MM-DD') AS fecha, cc.completed_at
+       FROM challenge_completados cc
+       JOIN users u ON u.id = cc.user_id
+       JOIN challenges ch ON ch.id = cc.challenge_id
+       WHERE ch.competencia_id=$1
+       ORDER BY cc.completed_at ASC`,
+      [id]
+    );
+
+    const porChallenge = new Map(challenges.map(c => [c.id, { ...c, completados: [] }]));
+    completados.forEach(c => { porChallenge.get(c.challenge_id)?.completados.push(c); });
+
+    res.json([...porChallenge.values()]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener challenges completados' });
+  }
+});
+
 // GET /competencias/:id/ranking — ranking individual de la competencia
 // Solo cuentan actividades vinculadas a esta competencia (no todas las del usuario).
 router.get('/:id/ranking', authMiddleware, async (req, res) => {
@@ -690,9 +724,30 @@ router.get('/:id/ranking', authMiddleware, async (req, res) => {
 
     const puntosMap = await getPuntosPorPersona(parseInt(id), mes || null);
 
+    // Challenges completados por persona — no filtra por mes (igual criterio que challenge_pts en
+    // competenciaScoring: un challenge completado cuenta para el total general de la competencia).
+    const { rows: totalChallenges } = await pool.query(
+      `SELECT COUNT(*)::int AS total FROM challenges WHERE competencia_id=$1`,
+      [id]
+    );
+    const { rows: completadosRows } = await pool.query(
+      `SELECT cc.user_id, COUNT(*)::int AS completados
+       FROM challenge_completados cc
+       JOIN challenges ch ON ch.id = cc.challenge_id
+       WHERE ch.competencia_id=$1
+       GROUP BY cc.user_id`,
+      [id]
+    );
+    const completadosMap = new Map(completadosRows.map(r => [r.user_id, r.completados]));
+    const totalChallengesComp = totalChallenges[0]?.total ?? 0;
+
     const rows = participantes.map(p => {
       const calc = puntosMap.get(p.id) ?? { actividades: 0, minutos: 0, puntos: 0 };
-      return { ...p, actividades: calc.actividades, minutos: calc.minutos, puntos: calc.puntos };
+      return {
+        ...p, actividades: calc.actividades, minutos: calc.minutos, puntos: calc.puntos,
+        challenges_completados: completadosMap.get(p.id) ?? 0,
+        challenges_total: totalChallengesComp,
+      };
     }).sort((a, b) => b.puntos - a.puntos || b.minutos - a.minutos);
 
     res.json(rows);
