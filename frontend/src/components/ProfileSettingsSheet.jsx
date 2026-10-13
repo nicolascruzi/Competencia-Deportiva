@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { updatePerfil, uploadFotoPerfil, deleteFotoPerfil } from '../api/perfil';
+import { changePassword } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
@@ -159,6 +160,79 @@ function PushToggle() {
         </div>
       )}
     </div>
+  );
+}
+
+function ChangePasswordCard() {
+  const [open, setOpen] = useState(false);
+  const [actual, setActual] = useState('');
+  const [nueva, setNueva]   = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState('');
+  const [done, setDone]     = useState(false);
+
+  function reset() {
+    setOpen(false); setActual(''); setNueva(''); setError(''); setDone(false);
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setError(''); setSaving(true);
+    try {
+      await changePassword(actual, nueva);
+      setDone(true);
+      setActual(''); setNueva('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)}
+        style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-text)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
+        Cambiar contraseña
+      </button>
+    );
+  }
+
+  if (done) {
+    return (
+      <div style={{ borderRadius:12, border:'1px solid var(--t-dim)', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+        <div style={{ fontSize:13, color:'var(--t-text)' }}>Contraseña actualizada correctamente.</div>
+        <button onClick={reset}
+          style={{ alignSelf:'flex-start', background:'none', border:'none', color:'var(--t-accent)', fontSize:13, fontWeight:600, cursor:'pointer', padding:0 }}>
+          Listo
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSave} style={{ background:'var(--t-surface2)', border:'1.5px solid var(--t-accent)', borderRadius:12, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
+      <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-accent)' }}>Cambiar contraseña</div>
+      {error && (
+        <div style={{ fontSize:12, color:'#F87171', background:'rgba(248,113,113,0.06)', border:'1px solid rgba(248,113,113,0.2)', borderRadius:8, padding:'8px 10px' }}>
+          {error}
+        </div>
+      )}
+      <input type="password" required placeholder="Contraseña actual" value={actual} onChange={e => setActual(e.target.value)}
+        style={{ width:'100%', padding:'9px 12px', borderRadius:10, border:'1.5px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-text)', fontSize:15, outline:'none', boxSizing:'border-box' }} />
+      <input type="password" required minLength={6} placeholder="Contraseña nueva (mínimo 6 caracteres)" value={nueva} onChange={e => setNueva(e.target.value)}
+        style={{ width:'100%', padding:'9px 12px', borderRadius:10, border:'1.5px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-text)', fontSize:15, outline:'none', boxSizing:'border-box' }} />
+      <div style={{ display:'flex', gap:8 }}>
+        <button type="submit" disabled={saving}
+          style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 16px', borderRadius:8, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontSize:13, fontWeight:700, cursor:'pointer', opacity: saving ? 0.65 : 1 }}>
+          {saving ? 'Guardando…' : 'Guardar'}
+        </button>
+        <button type="button" onClick={reset}
+          style={{ padding:'7px 12px', borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+          Cancelar
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -322,6 +396,7 @@ export default function ProfileSettingsSheet({ onClose }) {
           {/* Opciones */}
           <div style={{ padding:'16px 20px 32px', display:'flex', flexDirection:'column', gap:8 }}>
             <PushToggle />
+            <ChangePasswordCard />
             <button onClick={logout}
               style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer' }}>
               Cerrar sesión

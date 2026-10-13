@@ -1,8 +1,10 @@
 const express = require('express');
+const crypto  = require('crypto');
 const bcrypt  = require('bcrypt');
 const jwt     = require('jsonwebtoken');
 const pool    = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
+const { enviarPasswordTemporal } = require('../lib/mailer');
 
 const router = express.Router();
 const SALT_ROUNDS = 12;
@@ -73,6 +75,62 @@ router.post('/login', async (req, res) => {
 
     delete user.password_hash;
     res.json({ token: makeToken(user), user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+function generarPasswordTemporal() {
+  // 8 caracteres alfanuméricos, sin ambiguos (0/O, 1/l/I) para que se puedan transcribir a mano.
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from({ length: 8 }, () => chars[crypto.randomInt(chars.length)]).join('');
+}
+
+// POST /auth/forgot-password — genera una contraseña temporal, la guarda hasheada y la manda por mail.
+// Responde siempre 200 con el mismo mensaje genérico exista o no la cuenta, para no filtrar qué
+// emails están registrados.
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'email es requerido' });
+
+  const mensaje = { message: 'Si el email está registrado, vas a recibir una contraseña temporal.' };
+
+  try {
+    const { rows } = await pool.query('SELECT id, email FROM users WHERE email = $1', [email.toLowerCase()]);
+    if (!rows.length) return res.json(mensaje);
+
+    const user = rows[0];
+    const passwordTemporal = generarPasswordTemporal();
+    const hash = await bcrypt.hash(passwordTemporal, SALT_ROUNDS);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, user.id]);
+    await enviarPasswordTemporal(user.email, passwordTemporal);
+
+    res.json(mensaje);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// PUT /auth/change-password — cambiar la contraseña estando logueado (ej. tras entrar con la temporal).
+router.put('/change-password', authMiddleware, async (req, res) => {
+  const { passwordActual, passwordNueva } = req.body;
+  if (!passwordActual || !passwordNueva)
+    return res.status(400).json({ error: 'passwordActual y passwordNueva son requeridos' });
+  if (passwordNueva.length < 6)
+    return res.status(400).json({ error: 'La contraseña nueva debe tener al menos 6 caracteres' });
+
+  try {
+    const { rows } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const match = await bcrypt.compare(passwordActual, rows[0].password_hash);
+    if (!match) return res.status(401).json({ error: 'La contraseña actual no es correcta' });
+
+    const hash = await bcrypt.hash(passwordNueva, SALT_ROUNDS);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, req.user.id]);
+    res.json({ message: 'Contraseña actualizada' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor' });

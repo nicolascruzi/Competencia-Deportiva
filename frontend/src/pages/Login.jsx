@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { login, register } from '../api/auth';
+import { login, register, forgotPassword } from '../api/auth';
 
 export default function Login() {
   const { saveLogin } = useAuth();
-  const [tab, setTab]     = useState('login');
+  const [tab, setTab]     = useState('login'); // 'login' | 'register' | 'forgot'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   const [loginForm, setLoginForm]       = useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ nombre: '', apellido: '', email: '', password: '' });
+  const [forgotEmail, setForgotEmail]   = useState('');
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -17,6 +19,19 @@ export default function Login() {
     try {
       const data = await login(loginForm.email, loginForm.password);
       saveLogin(data.token, data.user);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleForgot(e) {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      await forgotPassword(forgotEmail);
+      setForgotSent(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -77,27 +92,29 @@ export default function Login() {
         }}>
 
           {/* Tabs */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: 'var(--t-surface2)', borderBottom: '1px solid var(--t-dim)' }}>
-            {[{ id: 'login', label: 'Ingresar' }, { id: 'register', label: 'Registrarse' }].map(t => (
-              <button key={t.id} onClick={() => { setTab(t.id); setError(''); }}
-                style={{
-                  padding: '14px 0',
-                  border: 'none',
-                  borderBottom: tab === t.id ? '2px solid var(--t-accent)' : '2px solid transparent',
-                  background: tab === t.id ? 'var(--t-surface)' : 'transparent',
-                  color: tab === t.id ? 'var(--t-accent)' : 'var(--t-muted)',
-                  fontFamily: "'Barlow Condensed', sans-serif",
-                  fontWeight: 700,
-                  fontSize: 15,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  cursor: 'pointer',
-                  transition: 'color 0.15s, border-color 0.15s, background 0.15s',
-                }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+          {tab !== 'forgot' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: 'var(--t-surface2)', borderBottom: '1px solid var(--t-dim)' }}>
+              {[{ id: 'login', label: 'Ingresar' }, { id: 'register', label: 'Registrarse' }].map(t => (
+                <button key={t.id} onClick={() => { setTab(t.id); setError(''); }}
+                  style={{
+                    padding: '14px 0',
+                    border: 'none',
+                    borderBottom: tab === t.id ? '2px solid var(--t-accent)' : '2px solid transparent',
+                    background: tab === t.id ? 'var(--t-surface)' : 'transparent',
+                    color: tab === t.id ? 'var(--t-accent)' : 'var(--t-muted)',
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 15,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    cursor: 'pointer',
+                    transition: 'color 0.15s, border-color 0.15s, background 0.15s',
+                  }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div style={{ padding: '28px 24px 28px' }}>
             {/* Error */}
@@ -107,7 +124,37 @@ export default function Login() {
               </div>
             )}
 
-            {tab === 'login' ? (
+            {tab === 'forgot' ? (
+              forgotSent ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', textAlign: 'center' }}>
+                  <div style={{ fontSize: 14, color: 'var(--t-text)', lineHeight: 1.6 }}>
+                    Si el email está registrado, te enviamos una contraseña temporal. Revisá tu bandeja de entrada.
+                  </div>
+                  <button onClick={() => { setTab('login'); setForgotSent(false); setForgotEmail(''); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--t-accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    Volver a Ingresar
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgot} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  <div style={{ fontSize: 13, color: 'var(--t-muted)', lineHeight: 1.5, marginBottom: -6 }}>
+                    Ingresá tu email y te mandamos una contraseña temporal.
+                  </div>
+                  <Field label="Email">
+                    <input
+                      type="email" required placeholder="tu@email.com"
+                      value={forgotEmail}
+                      onChange={e => setForgotEmail(e.target.value)}
+                    />
+                  </Field>
+                  <SubmitBtn loading={loading}>Enviar contraseña temporal</SubmitBtn>
+                  <button type="button" onClick={() => { setTab('login'); setError(''); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--t-muted)', fontSize: 13, cursor: 'pointer' }}>
+                    Volver a Ingresar
+                  </button>
+                </form>
+              )
+            ) : tab === 'login' ? (
               <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <Field label="Email">
                   <input
@@ -123,6 +170,10 @@ export default function Login() {
                     onChange={e => setLoginForm(f => ({ ...f, password: e.target.value }))}
                   />
                 </Field>
+                <button type="button" onClick={() => { setTab('forgot'); setError(''); }}
+                  style={{ alignSelf: 'flex-end', background: 'none', border: 'none', color: 'var(--t-muted)', fontSize: 12.5, cursor: 'pointer', marginTop: -8 }}>
+                  ¿Olvidaste tu contraseña?
+                </button>
                 <SubmitBtn loading={loading}>Entrar</SubmitBtn>
               </form>
             ) : (
