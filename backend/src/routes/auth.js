@@ -102,9 +102,13 @@ router.post('/forgot-password', async (req, res) => {
 
     const user = rows[0];
     const passwordTemporal = generarPasswordTemporal();
+
+    // Se manda el mail ANTES de tocar la contraseña: si el envío falla (ej. timeout de SMTP), la
+    // contraseña actual del usuario queda intacta en vez de quedar cambiada a un valor que nunca le llegó.
+    await enviarPasswordTemporal(user.email, passwordTemporal);
+
     const hash = await bcrypt.hash(passwordTemporal, SALT_ROUNDS);
     await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, user.id]);
-    await enviarPasswordTemporal(user.email, passwordTemporal);
 
     res.json(mensaje);
   } catch (err) {
