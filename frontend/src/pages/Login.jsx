@@ -1,17 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { login, register, forgotPassword } from '../api/auth';
+import { login, register } from '../api/auth';
 
 export default function Login() {
   const { saveLogin } = useAuth();
   const [tab, setTab]     = useState('login'); // 'login' | 'register' | 'forgot'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [forgotSent, setForgotSent] = useState(false);
 
   const [loginForm, setLoginForm]       = useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ nombre: '', apellido: '', email: '', password: '' });
-  const [forgotEmail, setForgotEmail]   = useState('');
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -19,19 +17,6 @@ export default function Login() {
     try {
       const data = await login(loginForm.email, loginForm.password);
       saveLogin(data.token, data.user);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleForgot(e) {
-    e.preventDefault();
-    setError(''); setLoading(true);
-    try {
-      await forgotPassword(forgotEmail);
-      setForgotSent(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -125,35 +110,15 @@ export default function Login() {
             )}
 
             {tab === 'forgot' ? (
-              forgotSent ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', textAlign: 'center' }}>
-                  <div style={{ fontSize: 14, color: 'var(--t-text)', lineHeight: 1.6 }}>
-                    Si el email está registrado, te enviamos una contraseña temporal. Revisá tu bandeja de entrada.
-                  </div>
-                  <button onClick={() => { setTab('login'); setForgotSent(false); setForgotEmail(''); }}
-                    style={{ background: 'none', border: 'none', color: 'var(--t-accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                    Volver a Ingresar
-                  </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', textAlign: 'center' }}>
+                <div style={{ fontSize: 14, color: 'var(--t-text)', lineHeight: 1.6 }}>
+                  Contactá al administrador de tu grupo para que te genere una contraseña temporal.
                 </div>
-              ) : (
-                <form onSubmit={handleForgot} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  <div style={{ fontSize: 13, color: 'var(--t-muted)', lineHeight: 1.5, marginBottom: -6 }}>
-                    Ingresá tu email y te mandamos una contraseña temporal.
-                  </div>
-                  <Field label="Email">
-                    <input
-                      type="email" required placeholder="tu@email.com"
-                      value={forgotEmail}
-                      onChange={e => setForgotEmail(e.target.value)}
-                    />
-                  </Field>
-                  <SubmitBtn loading={loading}>Enviar contraseña temporal</SubmitBtn>
-                  <button type="button" onClick={() => { setTab('login'); setError(''); }}
-                    style={{ background: 'none', border: 'none', color: 'var(--t-muted)', fontSize: 13, cursor: 'pointer' }}>
-                    Volver a Ingresar
-                  </button>
-                </form>
-              )
+                <button onClick={() => { setTab('login'); setError(''); }}
+                  style={{ background: 'none', border: 'none', color: 'var(--t-accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  Volver a Ingresar
+                </button>
+              </div>
             ) : tab === 'login' ? (
               <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <Field label="Email">

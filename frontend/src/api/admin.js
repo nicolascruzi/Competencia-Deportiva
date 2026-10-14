@@ -4,6 +4,7 @@ export const getAdminStats        = ()           => apiFetch('/admin/stats');
 export const getAdminUsers        = ()           => apiFetch('/admin/users');
 export const updateAdminUser      = (id, body)   => apiFetch(`/admin/users/${id}`,        { method: 'PUT',    body: JSON.stringify(body) });
 export const deleteAdminUser      = (id)         => apiFetch(`/admin/users/${id}`,        { method: 'DELETE' });
+export const resetAdminUserPassword = (id)       => apiFetch(`/admin/users/${id}/reset-password`, { method: 'POST' });
 export const getAdminGrupos       = ()           => apiFetch('/admin/grupos');
 export const deleteAdminGrupo     = (id)         => apiFetch(`/admin/grupos/${id}`,       { method: 'DELETE' });
 export const getAdminActividades  = ()           => apiFetch('/admin/actividades');

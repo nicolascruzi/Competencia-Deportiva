@@ -1,7 +1,11 @@
 const express = require('express');
+const bcrypt  = require('bcrypt');
 const pool    = require('../db/pool');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { actualizarDeporteCatalogo, eliminarDeporteCatalogo } = require('../lib/deportesCatalogo');
+const { generarPasswordTemporal } = require('../lib/password');
+
+const SALT_ROUNDS = 12;
 
 const router = express.Router();
 router.use(authMiddleware, adminOnly);
@@ -52,6 +56,25 @@ router.delete('/users/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
     res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+// POST /admin/users/:id/reset-password — genera una contraseña temporal y la devuelve en la
+// respuesta para que el admin se la pase a la persona a mano (WhatsApp, etc). No se manda por mail:
+// Railway bloquea SMTP saliente en el plan actual, así que el envío de mail no es viable.
+router.post('/users/:id/reset-password', async (req, res) => {
+  try {
+    const passwordTemporal = generarPasswordTemporal();
+    const hash = await bcrypt.hash(passwordTemporal, SALT_ROUNDS);
+    const { rows } = await pool.query(
+      'UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING id',
+      [hash, req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
+    res.json({ passwordTemporal });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno' });

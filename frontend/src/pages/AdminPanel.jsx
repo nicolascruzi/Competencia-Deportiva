@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  getAdminStats, getAdminUsers, updateAdminUser, deleteAdminUser,
+  getAdminStats, getAdminUsers, updateAdminUser, deleteAdminUser, resetAdminUserPassword,
   getAdminGrupos, deleteAdminGrupo,
   getAdminActividades, deleteAdminActividad,
   getAdminDeportes, updateAdminDeporte, deleteAdminDeporte,
@@ -88,6 +88,8 @@ function TabUsuarios() {
   const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // { id, nombre, apodo, role }
+  const [resetResult, setResetResult] = useState(null); // { nombre, passwordTemporal }
+  const [resetting, setResetting] = useState(null); // id en curso
 
   function load() {
     setLoading(true);
@@ -98,6 +100,16 @@ function TabUsuarios() {
   async function handleDelete(id) {
     await deleteAdminUser(id);
     setUsers(u => u.filter(x => x.id !== id));
+  }
+
+  async function handleReset(u) {
+    setResetting(u.id);
+    try {
+      const { passwordTemporal } = await resetAdminUserPassword(u.id);
+      setResetResult({ nombre: u.nombre_display, passwordTemporal });
+    } finally {
+      setResetting(null);
+    }
   }
 
   async function handleSave() {
@@ -141,6 +153,7 @@ function TabUsuarios() {
                   style={{ padding:'4px 10px', borderRadius:6, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:11, cursor:'pointer' }}>
                   Editar
                 </button>
+                <ConfirmBtn label={resetting === u.id ? 'Generando…' : 'Resetear'} danger={false} onConfirm={() => handleReset(u)} />
                 <ConfirmBtn label="Eliminar" onConfirm={() => handleDelete(u.id)} />
               </div>
             </div>
@@ -182,6 +195,28 @@ function TabUsuarios() {
                 Guardar
               </button>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* Modal resultado de reset */}
+      {resetResult && (
+        <>
+          <div onClick={() => setResetResult(null)} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.5)' }} />
+          <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:301, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', padding:'20px 20px calc(env(safe-area-inset-bottom) + 24px)', display:'flex', flexDirection:'column', gap:14 }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)' }}>
+              Contraseña temporal — {resetResult.nombre}
+            </div>
+            <div style={{ fontSize:13, color:'var(--t-muted)', lineHeight:1.5 }}>
+              Pasale esta contraseña a la persona (WhatsApp, en mano, etc). Puede cambiarla desde su perfil apenas entre.
+            </div>
+            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, letterSpacing:'0.1em', textAlign:'center', color:'var(--t-accent)', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'14px 0' }}>
+              {resetResult.passwordTemporal}
+            </div>
+            <button onClick={() => setResetResult(null)}
+              style={{ padding:'12px', borderRadius:12, border:'none', background:'var(--t-accent)', color:'var(--t-ground)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', cursor:'pointer' }}>
+              Listo
+            </button>
           </div>
         </>
       )}
