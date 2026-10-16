@@ -433,9 +433,11 @@ router.get('/:id/semanas/:semanaId/votacion', authMiddleware, async (req, res) =
        ORDER BY d.nombre`,
       [semanaId, id, categoria]
     );
-    let deportes = deportesRaw.map(d => ({ ...d, ya_usado: nombresUsados.has(d.nombre) }));
-    // Si ya se usaron todos los de esta categoría, se reabre (ninguno queda marcado como usado).
-    if (deportes.length && deportes.every(d => d.ya_usado)) deportes = deportes.map(d => ({ ...d, ya_usado: false }));
+    // Los deportes ya usados en otra semana se sacan de la lista — no tiene sentido volver a votar
+    // por un deporte que ya fue el de la semana antes. Si ya se usaron TODOS los de esta categoría
+    // (no queda ninguno nuevo), se reabre la lista completa para que la votación pueda seguir.
+    const disponibles = deportesRaw.filter(d => !nombresUsados.has(d.nombre));
+    let deportes = (disponibles.length ? disponibles : deportesRaw).map(d => ({ ...d, ya_usado: false }));
 
     const { rows: [miVoto] } = await pool.query(
       'SELECT deporte_id FROM votos_deporte_semana WHERE competencia_semana_id=$1 AND user_id=$2 AND categoria=$3',
@@ -495,6 +497,30 @@ router.post('/:id/semanas/:semanaId/votar', authMiddleware, async (req, res) => 
     const categoria = categoriaDePonderador(ponderador ?? 1);
     const columnaGanador = categoria === 'extremo' ? 'deporte_semana_nombre_2' : 'deporte_semana_nombre';
     if (semana[columnaGanador]) return res.status(400).json({ error: 'La votación de esta categoría ya cerró' });
+
+    // No se puede votar por un deporte ya usado como ganador en otra semana de esta competencia —
+    // salvo que esa categoría ya se haya agotado por completo (ver misma lógica en GET votacion).
+    const { rows: usados } = await pool.query(
+      `SELECT DISTINCT nombre FROM (
+         SELECT deporte_semana_nombre AS nombre FROM competencia_semanas WHERE competencia_id=$1 AND id != $2
+         UNION
+         SELECT deporte_semana_nombre_2 AS nombre FROM competencia_semanas WHERE competencia_id=$1 AND id != $2
+       ) t WHERE nombre IS NOT NULL`,
+      [id, semanaId]
+    );
+    const nombresUsados = new Set(usados.map(u => u.nombre));
+    if (nombresUsados.has(deporte.nombre)) {
+      const { rows: todosDeCategoria } = await pool.query(
+        `SELECT d.nombre FROM deportes d
+         WHERE (CASE WHEN COALESCE(
+                  (SELECT cd.ponderador FROM competencia_deportes cd WHERE cd.competencia_id=$1::int AND cd.deporte_nombre=d.nombre),
+                  d.ponderador_default
+                ) > 1 THEN 'extremo' ELSE 'tranquilo' END) = $2`,
+        [id, categoria]
+      );
+      const categoriaAgotada = todosDeCategoria.every(d => nombresUsados.has(d.nombre));
+      if (!categoriaAgotada) return res.status(400).json({ error: 'Ese deporte ya fue elegido en otra semana' });
+    }
 
     await pool.query(
       `INSERT INTO votos_deporte_semana (competencia_semana_id, user_id, deporte_id, categoria)

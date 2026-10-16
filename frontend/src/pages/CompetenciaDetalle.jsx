@@ -14,6 +14,7 @@ import SubTabs from '../components/SubTabs';
 import { AdminSheetLoading, AdminPonderadoresSheet, AdminEquiposSheet, AdminSemanasSheet, AdminConfigSheet } from '../components/AdminCompetenciaSheets';
 import { hoyLocal } from '../lib/fecha';
 import { DaySheet } from '../components/DetalleDiaCalendario';
+import VotacionReminderBanner from '../components/VotacionReminderBanner';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -2229,7 +2230,7 @@ function EmptyState({ icon, title, text }) {
     </div>
   );
 }
-export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, onSemanasSaved, configSheetOpen, onConfigSheetClose, onConfigSaved, navYear, navMonth, onNavYear, onNavMonth }) {
+export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNewActivity, onNavigateToCalendario, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, onSemanasSaved, configSheetOpen, onConfigSheetClose, onConfigSaved, navYear, navMonth, onNavYear, onNavMonth }) {
   const { user } = useAuth();
   const { withLoading } = useLoading();
   const now = new Date();
@@ -2431,6 +2432,9 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
 
       {/* Contenido */}
       <div style={{ padding: tab === 'ranking' ? '4px 16px 32px' : '12px 16px 32px' }}>
+        {tab === 'ranking' && detalleListo && (
+          <VotacionReminderBanner competencia={compConDeportes} onOpenCalendario={onNavigateToCalendario} />
+        )}
         {renderTab()}
       </div>
 
