@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getVotacionSemana } from '../api/competencias';
 
-// Recordatorio sobrio de que falta votar el deporte de la semana siguiente — vive en el home
-// (Ranking) para que se vea sin tener que navegar al calendario. Desaparece solo cuando ya se votó
-// en las dos categorías ("tranquilo" y "extremo") de la próxima semana a definir.
-export default function VotacionReminderBanner({ competencia, onOpenCalendario }) {
-  const [estado, setEstado] = useState(null); // { semanaId } | 'nada-que-votar' | null (cargando/sin datos)
+// Recordatorio sobrio de que falta votar el deporte de la semana siguiente — vive arriba de la
+// lista de semanas en "Desafíos". Al tocarlo, abre directamente el sheet de votación de la semana
+// pendiente. Desaparece solo cuando ya se votó en las dos categorías ("tranquilo" y "extremo").
+export default function VotacionReminderBanner({ competencia, onVotar }) {
+  const [estado, setEstado] = useState(null); // { semanaId, categoria } | 'nada-que-votar' | null (cargando/sin datos)
 
   const semanas = competencia?.semanas;
   // La próxima semana a votar: la de menor numero_semana (>1) a la que todavía le falte alguna
@@ -30,7 +30,11 @@ export default function VotacionReminderBanner({ competencia, onOpenCalendario }
       if (cancelado) return;
       const pendienteTranquilo = faltaTranquilo && tranquilo?.mi_voto_deporte_id == null;
       const pendienteExtremo   = faltaExtremo   && extremo?.mi_voto_deporte_id == null;
-      setEstado(pendienteTranquilo || pendienteExtremo ? { semanaId: semanaAVotar.id } : 'nada-que-votar');
+      if (pendienteTranquilo || pendienteExtremo) {
+        setEstado({ semanaId: semanaAVotar.id, categoria: pendienteTranquilo ? 'tranquilo' : 'extremo' });
+      } else {
+        setEstado('nada-que-votar');
+      }
     }).catch(() => { if (!cancelado) setEstado('nada-que-votar'); });
 
     return () => { cancelado = true; };
@@ -39,7 +43,7 @@ export default function VotacionReminderBanner({ competencia, onOpenCalendario }
   if (!estado || estado === 'nada-que-votar') return null;
 
   return (
-    <button onClick={onOpenCalendario}
+    <button onClick={() => onVotar(estado.semanaId, estado.categoria)}
       style={{
         display:'flex', alignItems:'center', gap:8, width:'100%', textAlign:'left',
         padding:'9px 14px', borderRadius:10, margin:'0 0 10px',

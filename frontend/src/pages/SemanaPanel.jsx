@@ -4,6 +4,7 @@ import { completarChallenge, descompletarChallenge, getVotacionSemana, votarDepo
 import { sportIcon } from '../lib/sportIcons';
 import SinCompetencia from '../components/SinCompetencia';
 import PageHeader from '../components/PageHeader';
+import VotacionReminderBanner from '../components/VotacionReminderBanner';
 
 const MESES_CORTOS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
@@ -509,6 +510,11 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
     setExpandedId(prev => prev === semanaId ? null : semanaId);
   }
 
+  function handleVotarDesdeRecordatorio(semanaId, categoria) {
+    setExpandedId(semanaId);
+    setVotacionSheetOpen({ semanaId, categoria });
+  }
+
   return (
     <div style={{ paddingBottom:32 }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -516,6 +522,7 @@ export default function SemanaPanel({ competencia, onOpenSelector }) {
       <PageHeader eyebrow={competencia.nombre} title="Semana" />
 
       <div style={{ padding:'16px 20px 0', display:'flex', flexDirection:'column', gap:10 }}>
+        <VotacionReminderBanner competencia={competencia} onVotar={handleVotarDesdeRecordatorio} />
         {semanasOrdenadas.length === 0 && (
           <div style={{ textAlign:'center', padding:'60px 24px', color:'var(--t-muted)' }}>
             <div style={{ fontSize:40, marginBottom:12 }}>🎯</div>

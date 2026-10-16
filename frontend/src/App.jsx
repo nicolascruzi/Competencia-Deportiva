@@ -277,7 +277,6 @@ function AppShell() {
           onTab={setCompTab}
           onBack={() => { localStorage.removeItem('lastGrupoId'); setGrupoActivo(null); selectCompetencia(null); }}
           onNewActivity={() => setActModalOpen(true)}
-          onNavigateToCalendario={() => handleMainTab('calendario')}
           adminSheetOpen={adminSheetOpen}
           onAdminSheetClose={() => setAdminSheetOpen(false)}
           onAdminSaved={deps => {
