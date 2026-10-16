@@ -90,6 +90,7 @@ function TabUsuarios() {
   const [editing, setEditing] = useState(null); // { id, nombre, apodo, role }
   const [resetResult, setResetResult] = useState(null); // { nombre, passwordTemporal }
   const [resetting, setResetting] = useState(null); // id en curso
+  const [search, setSearch] = useState('');
 
   function load() {
     setLoading(true);
@@ -123,12 +124,35 @@ function TabUsuarios() {
     setEditing(null);
   }
 
+  const q = search.trim().toLowerCase();
+  const filteredUsers = q
+    ? users.filter(u =>
+        u.nombre_display?.toLowerCase().includes(q) ||
+        u.nombre?.toLowerCase().includes(q) ||
+        u.apodo?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q)
+      )
+    : users;
+
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:0 }}>
       <SectionHeader title="Usuarios" count={users.length} onRefresh={load} loading={loading} />
+      <div style={{ padding:'0 16px 12px' }}>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por nombre, apodo o email…"
+          style={{ width:'100%', boxSizing:'border-box', padding:'9px 12px', borderRadius:10, border:'1px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontSize:14, outline:'none' }}
+        />
+      </div>
       {loading ? <Spinner /> : (
         <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-          {users.map((u, i) => (
+          {filteredUsers.length === 0 && (
+            <div style={{ padding:'20px 16px', textAlign:'center', color:'var(--t-muted)', fontSize:13 }}>
+              Ningún usuario coincide con "{search}".
+            </div>
+          )}
+          {filteredUsers.map((u, i) => (
             <div key={u.id} style={{ padding:'10px 16px', borderTop: i > 0 ? '1px solid var(--t-surface2)' : 'none', display:'flex', alignItems:'center', gap:10 }}>
               {/* Avatar inicial */}
               <div style={{ width:34, height:34, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
