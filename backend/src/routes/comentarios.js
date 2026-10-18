@@ -6,6 +6,27 @@ const { sendPushToUser } = require('./push');
 const router = express.Router();
 router.use(authMiddleware);
 
+// GET /comentarios/mencionables — personas que comparten algún grupo con el usuario actual, para el
+// autocompletado de @menciones al comentar (no depende de una actividad puntual: es "toda la gente
+// con la que el usuario interactúa en la app").
+router.get('/mencionables', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT u.id, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url
+       FROM grupo_participantes gp1
+       JOIN grupo_participantes gp2 ON gp2.grupo_id = gp1.grupo_id
+       JOIN users u ON u.id = gp2.user_id
+       WHERE gp1.user_id = $1 AND gp2.user_id != $1
+       ORDER BY nombre_display`,
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener mencionables' });
+  }
+});
+
 // GET /comentarios/:actividadId — lista de comentarios de una actividad
 router.get('/:actividadId', async (req, res) => {
   const { actividadId } = req.params;
@@ -26,10 +47,12 @@ router.get('/:actividadId', async (req, res) => {
   }
 });
 
-// POST /comentarios/:actividadId — crear comentario
+// POST /comentarios/:actividadId — crear comentario. mentionIds (opcional): ids de las personas
+// etiquetadas con @ dentro del texto — vienen explícitos desde el picker del frontend en vez de
+// parsearse del texto, para no ambigüar nombres que se solapan (ej. "Juan" y "Juan Pablo").
 router.post('/:actividadId', async (req, res) => {
   const { actividadId } = req.params;
-  const { contenido } = req.body;
+  const { contenido, mentionIds } = req.body;
 
   if (!contenido?.trim())
     return res.status(400).json({ error: 'El comentario no puede estar vacío' });
@@ -64,6 +87,24 @@ router.post('/:actividadId', async (req, res) => {
         title: `💬 ${user.nombre} comentó tu actividad`,
         body:  `"${contenido.trim().slice(0, 80)}"`,
         data:  { actividad_id: Number(actividadId), tipo: 'comentario' },
+      });
+    }
+
+    // Notificar a cada persona etiquetada con @ — además de la notificación al dueño de arriba, y
+    // sin duplicar si justo la persona etiquetada también es la dueña de la actividad.
+    const idsAMencionar = [...new Set((mentionIds || []).map(Number))]
+      .filter(uid => uid !== req.user.id && uid !== actividad?.user_id);
+    for (const mentionUserId of idsAMencionar) {
+      pool.query(
+        `INSERT INTO notificaciones (user_id, tipo, actividad_id, actor_id)
+         VALUES ($1, 'mencion', $2, $3)`,
+        [mentionUserId, actividadId, req.user.id]
+      ).catch(err => console.error('Error al crear notificación de mención:', err));
+
+      sendPushToUser(mentionUserId, {
+        title: `📣 ${user.nombre} te mencionó en un comentario`,
+        body:  `"${contenido.trim().slice(0, 80)}"`,
+        data:  { actividad_id: Number(actividadId), tipo: 'mencion' },
       });
     }
 

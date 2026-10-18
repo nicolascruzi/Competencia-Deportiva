@@ -517,7 +517,7 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:13, color:'var(--t-text)', lineHeight:1.4 }}>
                   <span style={{ fontWeight:700 }}>{n.actor_nombre}</span>
-                  {' comentó tu actividad de '}
+                  {n.tipo === 'mencion' ? ' te mencionó en un comentario de ' : ' comentó tu actividad de '}
                   <span style={{ color:'var(--t-accent)', fontWeight:600 }}>{n.deporte_nombre}</span>
                 </div>
                 <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>

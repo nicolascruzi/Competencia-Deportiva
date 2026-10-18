@@ -22,8 +22,11 @@ export const descompletarChallenge  = (id, challengeId)        => apiFetch(`/com
 export const getCompletadosChallenge = (id, challengeId)       => apiFetch(`/competencias/${id}/challenges/${challengeId}/completados`);
 
 export const getComentarios    = (actividadId)           => apiFetch(`/comentarios/${actividadId}`);
-export const createComentario  = (actividadId, contenido) => apiFetch(`/comentarios/${actividadId}`, { method: 'POST', body: JSON.stringify({ contenido }) });
+export const createComentario  = (actividadId, contenido, mentionIds) => apiFetch(`/comentarios/${actividadId}`, { method: 'POST', body: JSON.stringify({ contenido, mentionIds }) });
 export const deleteComentario  = (id)                    => apiFetch(`/comentarios/${id}`, { method: 'DELETE' });
+export const getMencionables   = ()                      => apiFetch('/comentarios/mencionables');
 
 export const getLikes          = (actividadId)           => apiFetch(`/likes/${actividadId}`);
 export const toggleLike        = (actividadId)           => apiFetch(`/likes/${actividadId}`, { method: 'POST' });
+export const darLike           = (actividadId)           => apiFetch(`/likes/${actividadId}`, { method: 'PUT' });
+export const getLikers         = (actividadId)           => apiFetch(`/likes/${actividadId}/usuarios`);
