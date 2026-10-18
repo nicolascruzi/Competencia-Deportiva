@@ -127,26 +127,43 @@ function TabIntegrantes({ grupo, isAdmin, onSalirGrupo, onBorrarGrupo }) {
           <span style={{ fontSize:13 }}>Cargando integrantes…</span>
         </div>
       )}
-      <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
         {participantes?.map(p => {
           const esYo = String(p.id) === String(user?.id);
           const puedeSacar = isAdmin && !esYo && !p.es_creador;
           return (
-            <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 8px', borderRadius:12 }}>
-              <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'rgba(var(--t-accent-r),0.12)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div key={p.id} style={{
+              display:'flex', alignItems:'center', gap:12, padding:'11px 14px', borderRadius:14,
+              background: esYo ? 'linear-gradient(135deg, rgba(var(--t-accent-r),0.1), rgba(var(--t-accent-r),0.02))' : 'var(--t-surface2)',
+              border: esYo ? '1px solid rgba(var(--t-accent-r),0.25)' : '1px solid var(--t-dim)',
+            }}>
+              <div style={{ width:38, height:38, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.18)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 {p.foto_perfil_url
                   ? <img src={p.foto_perfil_url} alt={p.nombre_display} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color:'var(--t-accent)' }}>{p.nombre_display?.charAt(0).toUpperCase()}</span>
+                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, color:'var(--t-accent)' }}>{p.nombre_display?.charAt(0).toUpperCase()}</span>
                 }
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'block' }}>
-                  {p.nombre_display}{esYo ? ' (tú)' : ''}
+                <span style={{ fontSize:14.5, fontWeight:700, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'block' }}>
+                  {p.nombre_display}
                 </span>
-                {(p.es_creador || p.es_admin) && (
-                  <div style={{ display:'flex', gap:5, marginTop:2 }}>
-                    {p.es_creador && <span style={{ fontSize:9.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-accent)' }}>Creador</span>}
-                    {p.es_admin && <span style={{ fontSize:9.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-muted)' }}>Admin</span>}
+                {(esYo || p.es_creador || p.es_admin) && (
+                  <div style={{ display:'flex', gap:5, marginTop:4, flexWrap:'wrap' }}>
+                    {esYo && (
+                      <span style={{ fontSize:9.5, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', padding:'2px 7px', borderRadius:20, color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.14)' }}>
+                        Tú
+                      </span>
+                    )}
+                    {p.es_creador && (
+                      <span style={{ fontSize:9.5, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', padding:'2px 7px', borderRadius:20, color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.14)' }}>
+                        Creador
+                      </span>
+                    )}
+                    {p.es_admin && (
+                      <span style={{ fontSize:9.5, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', padding:'2px 7px', borderRadius:20, color:'var(--t-muted)', background:'var(--t-dim)' }}>
+                        Admin
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -155,7 +172,7 @@ function TabIntegrantes({ grupo, isAdmin, onSalirGrupo, onBorrarGrupo }) {
                   disabled={sacandoId === p.id}
                   onClick={() => handleSacar(p)}
                   aria-label={`Sacar a ${p.nombre_display} del grupo`}
-                  style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-danger)', display:'flex', alignItems:'center', justifyContent:'center', cursor: sacandoId === p.id ? 'default' : 'pointer', opacity: sacandoId === p.id ? 0.5 : 1, flexShrink:0 }}>
+                  style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-danger)', display:'flex', alignItems:'center', justifyContent:'center', cursor: sacandoId === p.id ? 'default' : 'pointer', opacity: sacandoId === p.id ? 0.5 : 1, flexShrink:0 }}>
                   {sacandoId === p.id
                     ? <div style={{ width:12, height:12, border:'2px solid rgba(185,28,28,0.3)', borderTopColor:'var(--t-danger)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
                     : <IconTrash />
@@ -607,7 +624,9 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
         )}
       </div>
 
-      <SubTabs tabs={TABS} active={tab} onChange={setTab} />
+      <div style={{ borderBottom:'1px solid var(--t-dim)' }}>
+        <SubTabs tabs={TABS} active={tab} onChange={setTab} />
+      </div>
 
       {tab === 'integrantes' && (
         <TabIntegrantes grupo={{ ...grupo, nombre: nombreActual, pin: pinActual }} isAdmin={isAdmin} onSalirGrupo={onSalirGrupo} onBorrarGrupo={onBorrarGrupo} />
