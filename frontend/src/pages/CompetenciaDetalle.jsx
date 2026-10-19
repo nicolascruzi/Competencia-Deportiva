@@ -48,19 +48,24 @@ function aggregateByPerson(acts) {
   return Object.values(map).sort((a, b) => b.pts - a.pts).map((p, i) => ({ ...p, rank: i + 1 }));
 }
 
-// Top 5 personas por puntos totales + la persona actual (myId), si no quedó ya incluida — para que
-// los gráficos de evolución no se vuelvan ilegibles con muchos participantes en el grupo. Devuelve
-// los nombres (nombre_display || nombre) ordenados por puntos descendente.
-function topPersonasConYo(acts, myId) {
+// Todas las personas (nombre_display || nombre) ordenadas por puntos totales descendente — para que
+// la leyenda de los gráficos de evolución siga el mismo orden que el ranking.
+function personasPorPuntos(acts) {
   const totales = {};
   acts.forEach(a => {
     const key = a.nombre_display || a.nombre;
     totales[key] = (totales[key] || 0) + a.puntos;
   });
-  const ordenados = Object.entries(totales).sort((a, b) => b[1] - a[1]).map(([nombre]) => nombre);
+  return Object.entries(totales).sort((a, b) => b[1] - a[1]).map(([nombre]) => nombre);
+}
+
+// Set de nombres que arrancan con su línea visible: el top 5 por puntos + la persona actual (myId),
+// si no quedó ya incluida — el resto se puede ver igual tocando su chip en la leyenda, pero no
+// satura el gráfico por defecto cuando el grupo tiene muchos participantes.
+function visiblesPorDefecto(ordenados, myId) {
   const top5 = ordenados.slice(0, 5);
   if (myId && !top5.includes(myId) && ordenados.includes(myId)) top5.push(myId);
-  return top5;
+  return new Set(top5);
 }
 
 function aggregateBySport(acts) {
@@ -330,10 +335,13 @@ function PlayerDrawer({ person, acts, onClose }) {
 
 function RankingEvolucion({ acts, nombres, myId }) {
   const canvasRef = useRef(null);
-  const [hidden, setHidden] = useState(new Set());
+  const people = personasPorPuntos(acts);
+  const [hidden, setHidden] = useState(() => {
+    const visibles = visiblesPorDefecto(people, myId);
+    return new Set(people.filter(p => !visibles.has(p)));
+  });
 
   const allDates = [...new Set(acts.map(a => a.fecha.slice(0,10)))].sort();
-  const people = topPersonasConYo(acts, myId);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1219,8 +1227,11 @@ function Calendario({ acts, mes }) {
 
 function Evolucion({ acts, nombres, myId }) {
   const canvasRef = useRef(null);
-  const [hidden, setHidden] = useState(new Set());
-  const people = topPersonasConYo(acts, myId);
+  const people = personasPorPuntos(acts);
+  const [hidden, setHidden] = useState(() => {
+    const visibles = visiblesPorDefecto(people, myId);
+    return new Set(people.filter(p => !visibles.has(p)));
+  });
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
