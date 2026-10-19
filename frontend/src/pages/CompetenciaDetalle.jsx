@@ -197,14 +197,8 @@ function PodioEquipos({ data, equipoSeleccionadoId, onSelect }) {
         const selected = eq.id === equipoSeleccionadoId;
         return (
           <button key={eq.id} onClick={() => onSelect(eq.id)}
-            style={{
-              display:'flex', flexDirection:'column', alignItems:'center', gap:3, flex:1, maxWidth:110,
-              background: selected ? 'rgba(var(--t-accent-r),0.06)' : 'transparent',
-              border: selected ? '1.5px solid var(--t-accent)' : '1.5px solid transparent',
-              borderRadius:10, padding:'6px 4px 0', cursor:'pointer', WebkitTapHighlightColor:'transparent',
-              transition:'background 0.15s, border-color 0.15s',
-            }}>
-            <div style={{ width:size, height:size, borderRadius:'50%', background:teamColor, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===40?16:14, color:'#fff', overflow:'hidden', border:'2px solid rgba(255,255,255,0.15)' }}>
+            style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, flex:1, maxWidth:110, background:'transparent', border:'none', padding:0, cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+            <div style={{ width:size, height:size, borderRadius:'50%', background:teamColor, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===40?16:14, color:'#fff', overflow:'hidden', border: selected ? '2.5px solid var(--t-accent)' : '2px solid rgba(255,255,255,0.15)', boxShadow: selected ? '0 0 0 2px rgba(var(--t-accent-r),0.25)' : 'none', transition:'border-color 0.15s, box-shadow 0.15s' }}>
               {eq.nombre?.charAt(0).toUpperCase()}
             </div>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12, textTransform:'uppercase', letterSpacing:'0.03em', textAlign:'center', color: selected ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
