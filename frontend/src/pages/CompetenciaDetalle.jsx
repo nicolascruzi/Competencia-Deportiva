@@ -48,6 +48,21 @@ function aggregateByPerson(acts) {
   return Object.values(map).sort((a, b) => b.pts - a.pts).map((p, i) => ({ ...p, rank: i + 1 }));
 }
 
+// Top 5 personas por puntos totales + la persona actual (myId), si no quedó ya incluida — para que
+// los gráficos de evolución no se vuelvan ilegibles con muchos participantes en el grupo. Devuelve
+// los nombres (nombre_display || nombre) ordenados por puntos descendente.
+function topPersonasConYo(acts, myId) {
+  const totales = {};
+  acts.forEach(a => {
+    const key = a.nombre_display || a.nombre;
+    totales[key] = (totales[key] || 0) + a.puntos;
+  });
+  const ordenados = Object.entries(totales).sort((a, b) => b[1] - a[1]).map(([nombre]) => nombre);
+  const top5 = ordenados.slice(0, 5);
+  if (myId && !top5.includes(myId) && ordenados.includes(myId)) top5.push(myId);
+  return top5;
+}
+
 function aggregateBySport(acts) {
   const map = {};
   acts.forEach(a => {
@@ -313,12 +328,12 @@ function PlayerDrawer({ person, acts, onClose }) {
   );
 }
 
-function RankingEvolucion({ acts, nombres }) {
+function RankingEvolucion({ acts, nombres, myId }) {
   const canvasRef = useRef(null);
   const [hidden, setHidden] = useState(new Set());
 
-  const people   = [...new Set(acts.map(a => a.nombre))].sort();
   const allDates = [...new Set(acts.map(a => a.fecha.slice(0,10)))].sort();
+  const people = topPersonasConYo(acts, myId);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -330,8 +345,10 @@ function RankingEvolucion({ acts, nombres }) {
     const series = {};
     people.forEach(p => { series[p] = {}; });
     [...acts].sort((a, b) => a.fecha.localeCompare(b.fecha)).forEach(a => {
-      cumulMap[a.nombre] += a.puntos;
-      series[a.nombre][a.fecha.slice(0,10)] = cumulMap[a.nombre];
+      const key = a.nombre_display || a.nombre;
+      if (!(key in cumulMap)) return;
+      cumulMap[key] += a.puntos;
+      series[key][a.fecha.slice(0,10)] = cumulMap[key];
     });
     const personLines = people.map(p => {
       let last = 0;
@@ -906,7 +923,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector 
       )}
 
       {subtab === 'evolucion' ? (
-        <RankingEvolucion acts={acts} nombres={nombres} />
+        <RankingEvolucion acts={acts} nombres={nombres} myId={myId} />
       ) : (
         <div style={{ background:'var(--t-surface)', borderRadius:'16px 16px 0 0', marginTop:8 }}>
           {people.map((p, i) => {
@@ -1200,16 +1217,16 @@ function Calendario({ acts, mes }) {
 
 // ─── EVOLUCIÓN ────────────────────────────────────────────────────────────────
 
-function Evolucion({ acts, nombres }) {
+function Evolucion({ acts, nombres, myId }) {
   const canvasRef = useRef(null);
   const [hidden, setHidden] = useState(new Set());
+  const people = topPersonasConYo(acts, myId);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !acts.length) return;
     const ctx = canvas.getContext('2d');
 
-    const people   = [...new Set(acts.map(a => a.nombre))].sort();
     const allDates = [...new Set(acts.map(a => a.fecha.slice(0,10)))].sort();
 
     const cumulMap = {};
@@ -1218,8 +1235,10 @@ function Evolucion({ acts, nombres }) {
     people.forEach(p => { series[p] = {}; });
 
     [...acts].sort((a, b) => a.fecha.localeCompare(b.fecha)).forEach(a => {
-      cumulMap[a.nombre] += a.puntos;
-      series[a.nombre][a.fecha.slice(0,10)] = cumulMap[a.nombre];
+      const key = a.nombre_display || a.nombre;
+      if (!(key in cumulMap)) return;
+      cumulMap[key] += a.puntos;
+      series[key][a.fecha.slice(0,10)] = cumulMap[key];
     });
 
     const personLines = people.map(p => {
@@ -1304,7 +1323,7 @@ function Evolucion({ acts, nombres }) {
       ctx.fillStyle = color;
       ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2); ctx.fill();
     });
-  }, [acts, nombres, hidden]);
+  }, [acts, nombres, hidden, people]);
 
   useEffect(() => {
     draw();
@@ -1315,8 +1334,6 @@ function Evolucion({ acts, nombres }) {
     if (canvasRef.current?.parentElement) ro.observe(canvasRef.current.parentElement);
     return () => ro.disconnect();
   }, [draw]);
-
-  const people = [...new Set(acts.map(a => a.nombre))].sort();
 
   if (!acts.length) return <EmptyState icon="📈" title="Sin datos" />;
 
@@ -2344,7 +2361,7 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
   }
   const canNext = !isAcumulado;
 
-  const nombres = [...new Set(acts.map(a => a.nombre))].sort();
+  const nombres = [...new Set(acts.map(a => a.nombre_display || a.nombre))].sort();
 
   // Para tabs que usan viewYear/viewMonth (calendario interno)
   const viewYear  = isAcumulado ? now.getFullYear() : year;
@@ -2390,7 +2407,7 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
       case 'podio':    return <Podio    acts={acts} nombres={nombres} />;
       case 'ranking':  return renderRankingTab();
       case 'calendar': return <Calendario acts={acts.filter(a => (a.nombre_display || a.nombre) === (user?.nombre_display || user?.nombre))} mes={mes} />;
-      case 'evolucion':return <Evolucion acts={acts} nombres={nombres} />;
+      case 'evolucion':return <Evolucion acts={acts} nombres={nombres} myId={user?.nombre_display || user?.nombre} />;
       case 'carrera':  return <Carrera  acts={acts} nombres={nombres} />;
       case 'deportes': return <Deportes acts={acts} />;
       case 'records':  return <Records  acts={acts} />;
