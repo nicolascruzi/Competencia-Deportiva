@@ -170,6 +170,54 @@ function Podio({ acts, nombres }) {
   );
 }
 
+// ─── PODIO DE EQUIPOS ─────────────────────────────────────────────────────────
+// Mismo layout/estilo que Podio (individual), pero cada escalón muestra un equipo en vez de una
+// persona — el color del círculo es el propio del equipo (o el de AVATAR_COLORS por índice si no
+// tiene uno asignado), igual criterio que TeamEvolucion para que el color del equipo sea consistente
+// en toda la pantalla.
+
+function PodioEquipos({ data }) {
+  if (data.length < 1) return <EmptyState icon="🤝" title="Sin equipos" text="Todavía no hay equipos configurados." />;
+  const top3   = data.slice(0, 3);
+  const leader = top3[0].puntos;
+  const riserColors = ['#F59E0B', '#94A3B8', '#B45309']; // oro, plata, bronce — color del escalón, no del equipo
+  const heights = [88, 62, 44];
+  const sizes   = [58, 48, 48];
+
+  const slots = [top3[1], top3[0], top3[2]].filter(Boolean);
+
+  return (
+    <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:0, paddingTop:16 }}>
+      {slots.map((eq, si) => {
+        const origIdx = [1, 0, 2][si];
+        if (!eq) return null;
+        const teamColor = eq.color || AVATAR_COLORS[data.indexOf(eq) % AVATAR_COLORS.length];
+        const riser  = riserColors[origIdx];
+        const height = heights[origIdx];
+        const size   = sizes[origIdx];
+        const gap    = origIdx === 0 ? 'Líder' : `-${Math.round(leader - eq.puntos)} pts`;
+        return (
+          <div key={eq.id} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, flex:1, maxWidth:120 }}>
+            <div style={{ width:size, height:size, borderRadius:'50%', background:teamColor, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===58?24:18, color:'#fff', overflow:'hidden', border:'2px solid rgba(255,255,255,0.15)' }}>
+              {eq.nombre?.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', textAlign:'center', color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
+              {eq.nombre}
+            </div>
+            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, fontWeight:600, color:'var(--t-accent)', textAlign:'center' }}>
+              {Math.round(eq.puntos).toLocaleString('es')} pts
+            </div>
+            <div style={{ fontSize:10, color:'var(--t-muted)', textAlign:'center', fontFamily:"'JetBrains Mono', monospace" }}>{gap}</div>
+            <div style={{ background: origIdx===0 ? 'rgba(245,158,11,0.07)' : 'var(--t-surface)', border:'1px solid', borderColor: origIdx===0 ? 'rgba(245,158,11,0.25)' : 'var(--t-dim)', borderBottom:'none', borderRadius:'6px 6px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:34, color:'var(--t-muted)', opacity:0.3 }}>{origIdx+1}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── RANKING ──────────────────────────────────────────────────────────────────
 
 function PlayerDrawer({ person, acts, onClose }) {
@@ -688,6 +736,7 @@ function EquiposTab({ data, rankingData, acts, equipos, equipoSeleccionadoId, on
         <TeamEvolucion acts={acts} equipos={data} rankingData={rankingData} />
       ) : (
         <>
+          {data.length > 0 && <PodioEquipos data={data} />}
           <EquiposResumen data={data} equipoSeleccionadoId={equipoSeleccionadoId} onSelect={onSelectEquipo} />
           <Ranking acts={actsEquipo} rankingData={rankingEquipoData} nombres={nombresEquipo} myId={myId} onOpenProfile={onOpenProfile} mesSelector={mesSelector} />
         </>
