@@ -392,39 +392,35 @@ function SemanaCard({
         <div style={{ padding:'0 16px 16px', display:'flex', flexDirection:'column', gap:12 }}>
 
           {(tieneDeporteTranquilo || tieneDeporteExtremo) && (
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ display:'flex', gap:8, marginTop:8 }}>
               {tieneDeporteTranquilo && (
                 <div style={{
-                  display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12,
+                  flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', gap:4, padding:'10px 8px', borderRadius:12,
                   background:'linear-gradient(135deg, rgba(var(--t-accent-r),0.14), rgba(var(--t-accent-r),0.04))',
                   border:'1px solid rgba(var(--t-accent-r),0.3)',
                 }}>
-                  <div style={{ fontSize:26, lineHeight:1, flexShrink:0 }}>{sportIcon(semana.deporte_semana_nombre)}</div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Tranquilo de la semana</div>
-                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
-                      {semana.deporte_semana_nombre}
-                    </div>
+                  <div style={{ fontSize:24, lineHeight:1 }}>{sportIcon(semana.deporte_semana_nombre)}</div>
+                  <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Tranquilo de la semana</div>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
+                    {semana.deporte_semana_nombre}
                   </div>
-                  <div style={{ fontSize:11, color:'var(--t-accent)', fontWeight:700, flexShrink:0, whiteSpace:'nowrap' }}>
+                  <div style={{ fontSize:11, color:'var(--t-accent)', fontWeight:700, whiteSpace:'nowrap' }}>
                     +{semana.deporte_semana_ponderador_extra}
                   </div>
                 </div>
               )}
               {tieneDeporteExtremo && (
                 <div style={{
-                  display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12,
+                  flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', gap:4, padding:'10px 8px', borderRadius:12,
                   background:'linear-gradient(135deg, rgba(var(--t-accent-r),0.14), rgba(var(--t-accent-r),0.04))',
                   border:'1px solid rgba(var(--t-accent-r),0.3)',
                 }}>
-                  <div style={{ fontSize:26, lineHeight:1, flexShrink:0 }}>{sportIcon(semana.deporte_semana_nombre_2)}</div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Extremo de la semana</div>
-                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2 }}>
-                      {semana.deporte_semana_nombre_2}
-                    </div>
+                  <div style={{ fontSize:24, lineHeight:1 }}>{sportIcon(semana.deporte_semana_nombre_2)}</div>
+                  <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Extremo de la semana</div>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
+                    {semana.deporte_semana_nombre_2}
                   </div>
-                  <div style={{ fontSize:11, color:'var(--t-accent)', fontWeight:700, flexShrink:0, whiteSpace:'nowrap' }}>
+                  <div style={{ fontSize:11, color:'var(--t-accent)', fontWeight:700, whiteSpace:'nowrap' }}>
                     +{semana.deporte_semana_ponderador_extra}
                   </div>
                 </div>
