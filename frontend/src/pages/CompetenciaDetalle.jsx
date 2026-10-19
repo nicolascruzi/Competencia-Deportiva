@@ -176,7 +176,7 @@ function Podio({ acts, nombres }) {
 // tiene uno asignado), igual criterio que TeamEvolucion para que el color del equipo sea consistente
 // en toda la pantalla.
 
-function PodioEquipos({ data }) {
+function PodioEquipos({ data, equipoSeleccionadoId, onSelect }) {
   if (data.length < 1) return <EmptyState icon="🤝" title="Sin equipos" text="Todavía no hay equipos configurados." />;
   const top3   = data.slice(0, 3);
   const riserColors = ['#F59E0B', '#94A3B8', '#B45309']; // oro, plata, bronce — color del escalón, no del equipo
@@ -194,21 +194,23 @@ function PodioEquipos({ data }) {
         const riser  = riserColors[origIdx];
         const height = heights[origIdx];
         const size   = sizes[origIdx];
+        const selected = eq.id === equipoSeleccionadoId;
         return (
-          <div key={eq.id} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, flex:1, maxWidth:110 }}>
-            <div style={{ width:size, height:size, borderRadius:'50%', background:teamColor, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===40?16:14, color:'#fff', overflow:'hidden', border:'2px solid rgba(255,255,255,0.15)' }}>
+          <button key={eq.id} onClick={() => onSelect(eq.id)}
+            style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, flex:1, maxWidth:110, background:'transparent', border:'none', padding:0, cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+            <div style={{ width:size, height:size, borderRadius:'50%', background:teamColor, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===40?16:14, color:'#fff', overflow:'hidden', border: selected ? '2.5px solid var(--t-accent)' : '2px solid rgba(255,255,255,0.15)', boxShadow: selected ? '0 0 0 2px rgba(var(--t-accent-r),0.25)' : 'none' }}>
               {eq.nombre?.charAt(0).toUpperCase()}
             </div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12, textTransform:'uppercase', letterSpacing:'0.03em', textAlign:'center', color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12, textTransform:'uppercase', letterSpacing:'0.03em', textAlign:'center', color: selected ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
               {eq.nombre}
             </div>
             <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'var(--t-accent)', textAlign:'center' }}>
               {Math.round(eq.puntos).toLocaleString('es')} pts
             </div>
-            <div style={{ background: origIdx===0 ? 'rgba(245,158,11,0.07)' : 'var(--t-surface)', border:'1px solid', borderColor: origIdx===0 ? 'rgba(245,158,11,0.25)' : 'var(--t-dim)', borderBottom:'none', borderRadius:'5px 5px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center', marginTop:2 }}>
+            <div style={{ background: origIdx===0 ? 'rgba(245,158,11,0.07)' : 'var(--t-surface)', border:'1px solid', borderColor: origIdx===0 ? 'rgba(245,158,11,0.25)' : 'var(--t-dim)', borderBottom:'none', borderRadius:'5px 5px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center', marginTop:2, boxSizing:'border-box' }}>
               <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'var(--t-muted)', opacity:0.3 }}>{origIdx+1}</span>
             </div>
-          </div>
+          </button>
         );
       })}
     </div>
@@ -669,13 +671,13 @@ function TeamEvolucion({ acts, equipos, rankingData }) {
 
 // Selector de equipo: chips horizontales compactos (una sola línea, con scroll si no entran todos) —
 // los puntos ya se ven en el podio de arriba, así que acá solo hace falta el color + nombre para elegir.
-function EquiposResumen({ data, equipoSeleccionadoId, onSelect }) {
+function EquiposResumen({ data, equipoSeleccionadoId, onSelect, colorOffset = 0 }) {
   if (!data.length) return <EmptyState icon="🤝" title="Sin equipos" text="Todavía no hay equipos configurados." />;
   return (
     <div style={{ display:'flex', gap:6, overflowX:'auto', padding:'6px 4px 10px', WebkitOverflowScrolling:'touch' }}>
       {data.map((eq, i) => {
         const selected = eq.id === equipoSeleccionadoId;
-        const teamColor = eq.color || AVATAR_COLORS[i % AVATAR_COLORS.length];
+        const teamColor = eq.color || AVATAR_COLORS[(i + colorOffset) % AVATAR_COLORS.length];
         return (
           <button key={eq.id} onClick={() => onSelect(eq.id)}
             style={{
@@ -721,8 +723,9 @@ function EquiposTab({ data, rankingData, acts, equipos, equipoSeleccionadoId, on
         <TeamEvolucion acts={acts} equipos={data} rankingData={rankingData} />
       ) : (
         <>
-          {data.length > 0 && <PodioEquipos data={data} />}
-          <EquiposResumen data={data} equipoSeleccionadoId={equipoSeleccionadoId} onSelect={onSelectEquipo} />
+          {data.length > 0 && <PodioEquipos data={data} equipoSeleccionadoId={equipoSeleccionadoId} onSelect={onSelectEquipo} />}
+          {/* Más de 3 equipos: el 4° en adelante no tiene escalón en el podio, así que se eligen acá */}
+          {data.length > 3 && <EquiposResumen data={data.slice(3)} equipoSeleccionadoId={equipoSeleccionadoId} onSelect={onSelectEquipo} colorOffset={3} />}
           <Ranking acts={actsEquipo} rankingData={rankingEquipoData} nombres={nombresEquipo} myId={myId} onOpenProfile={onOpenProfile} mesSelector={mesSelector} />
         </>
       )}
