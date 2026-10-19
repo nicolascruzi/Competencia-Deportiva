@@ -546,9 +546,17 @@ export function FeedCard({ act, user, onLightbox, onOpenProfile }) {
       )}
 
       {/* Stats */}
-      <div style={{ display:'flex', alignItems:'center', gap:0, padding:'10px 14px 4px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, padding:'10px 14px 4px' }}>
+        {act.puntos != null && (
+          <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
+            <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:'var(--t-accent)', lineHeight:1 }}>
+              {Math.round(parseFloat(act.puntos))}
+            </span>
+            <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</span>
+          </div>
+        )}
         <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:'var(--t-accent)', lineHeight:1 }}>
+          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize: act.puntos != null ? 15 : 20, color: act.puntos != null ? 'var(--t-text)' : 'var(--t-accent)', lineHeight:1 }}>
             {Math.round(parseFloat(act.minutos))}
           </span>
           <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
