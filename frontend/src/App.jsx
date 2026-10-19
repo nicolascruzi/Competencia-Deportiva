@@ -22,6 +22,7 @@ import GrupoDetalle from './pages/GrupoDetalle';
 import OnboardingModal from './components/OnboardingModal';
 import PullToRefreshIndicator from './components/PullToRefreshIndicator';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
+import { usePushNotifications } from './hooks/usePushNotifications';
 import { getGrupo, salirDeGrupo, borrarGrupo } from './api/grupos';
 import { getActividades } from './api/actividades';
 import { useLoading } from './context/LoadingContext';
@@ -171,6 +172,17 @@ function AppShell() {
       setShowOnboarding(true);
     }
   }, [user?.id]);
+
+  // Pedir el permiso de notificaciones push automáticamente la primera vez que este usuario entra
+  // desde este dispositivo — una sola vez por usuario/navegador, acepte o rechace, para no insistir.
+  const { supported: pushSupported, subscribe: pushSubscribe } = usePushNotifications();
+  useEffect(() => {
+    if (!user || !pushSupported) return;
+    const key = `nanao_push_prompt_shown_${user.id}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, '1');
+    pushSubscribe();
+  }, [user?.id, pushSupported]);
 
   // Restaurar último grupo cuando el usuario está listo
   useEffect(() => {
