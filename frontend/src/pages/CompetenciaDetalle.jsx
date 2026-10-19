@@ -179,7 +179,6 @@ function Podio({ acts, nombres }) {
 function PodioEquipos({ data, equipoSeleccionadoId, onSelect }) {
   if (data.length < 1) return <EmptyState icon="🤝" title="Sin equipos" text="Todavía no hay equipos configurados." />;
   const top3   = data.slice(0, 3);
-  const riserColors = ['#F59E0B', '#94A3B8', '#B45309']; // oro, plata, bronce — color del escalón, no del equipo
   const heights = [52, 36, 26];
   const sizes   = [40, 34, 34];
 
@@ -191,7 +190,6 @@ function PodioEquipos({ data, equipoSeleccionadoId, onSelect }) {
         const origIdx = [1, 0, 2][si];
         if (!eq) return null;
         const teamColor = eq.color || AVATAR_COLORS[data.indexOf(eq) % AVATAR_COLORS.length];
-        const riser  = riserColors[origIdx];
         const height = heights[origIdx];
         const size   = sizes[origIdx];
         const selected = eq.id === equipoSeleccionadoId;
@@ -207,7 +205,7 @@ function PodioEquipos({ data, equipoSeleccionadoId, onSelect }) {
             <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'var(--t-accent)', textAlign:'center' }}>
               {Math.round(eq.puntos).toLocaleString('es')} pts
             </div>
-            <div style={{ background: origIdx===0 ? 'rgba(245,158,11,0.07)' : 'var(--t-surface)', border:'1px solid', borderColor: origIdx===0 ? 'rgba(245,158,11,0.25)' : 'var(--t-dim)', borderBottom:'none', borderRadius:'5px 5px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center', marginTop:2, boxSizing:'border-box' }}>
+            <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderBottom:'none', borderRadius:'5px 5px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center', marginTop:2, boxSizing:'border-box' }}>
               <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'var(--t-muted)', opacity:0.3 }}>{origIdx+1}</span>
             </div>
           </button>
