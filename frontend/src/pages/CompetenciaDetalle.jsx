@@ -197,8 +197,14 @@ function PodioEquipos({ data, equipoSeleccionadoId, onSelect }) {
         const selected = eq.id === equipoSeleccionadoId;
         return (
           <button key={eq.id} onClick={() => onSelect(eq.id)}
-            style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, flex:1, maxWidth:110, background:'transparent', border:'none', padding:0, cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
-            <div style={{ width:size, height:size, borderRadius:'50%', background:teamColor, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===40?16:14, color:'#fff', overflow:'hidden', border: selected ? '2.5px solid var(--t-accent)' : '2px solid rgba(255,255,255,0.15)', boxShadow: selected ? '0 0 0 2px rgba(var(--t-accent-r),0.25)' : 'none' }}>
+            style={{
+              display:'flex', flexDirection:'column', alignItems:'center', gap:3, flex:1, maxWidth:110,
+              background: selected ? 'rgba(var(--t-accent-r),0.06)' : 'transparent',
+              border: selected ? '1.5px solid var(--t-accent)' : '1.5px solid transparent',
+              borderRadius:10, padding:'6px 4px 0', cursor:'pointer', WebkitTapHighlightColor:'transparent',
+              transition:'background 0.15s, border-color 0.15s',
+            }}>
+            <div style={{ width:size, height:size, borderRadius:'50%', background:teamColor, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===40?16:14, color:'#fff', overflow:'hidden', border:'2px solid rgba(255,255,255,0.15)' }}>
               {eq.nombre?.charAt(0).toUpperCase()}
             </div>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12, textTransform:'uppercase', letterSpacing:'0.03em', textAlign:'center', color: selected ? 'var(--t-accent)' : 'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
@@ -726,7 +732,7 @@ function EquiposTab({ data, rankingData, acts, equipos, equipoSeleccionadoId, on
           {data.length > 0 && <PodioEquipos data={data} equipoSeleccionadoId={equipoSeleccionadoId} onSelect={onSelectEquipo} />}
           {/* Más de 3 equipos: el 4° en adelante no tiene escalón en el podio, así que se eligen acá */}
           {data.length > 3 && <EquiposResumen data={data.slice(3)} equipoSeleccionadoId={equipoSeleccionadoId} onSelect={onSelectEquipo} colorOffset={3} />}
-          <Ranking acts={actsEquipo} rankingData={rankingEquipoData} nombres={nombresEquipo} myId={myId} onOpenProfile={onOpenProfile} mesSelector={mesSelector} />
+          <Ranking acts={actsEquipo} rankingData={rankingEquipoData} nombres={nombresEquipo} myId={myId} onOpenProfile={onOpenProfile} mesSelector={mesSelector} ocultarSubtabs />
         </>
       )}
     </div>
@@ -922,7 +928,7 @@ function ProgresoCompetenciaCompacto({ fechaInicio, fechaFin }) {
   );
 }
 
-function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector }) {
+function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector, ocultarSubtabs = false }) {
   const [subtab, setSubtab]       = useState('tabla');
   const [lightboxFoto, setLightboxFoto] = useState(null); // url
 
@@ -948,14 +954,19 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector 
       }}>{label}</button>
   );
 
+  const subtabEfectivo = ocultarSubtabs ? 'tabla' : subtab;
+
   return (
     <div>
-      {/* Subtabs + selector de mes compacto */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 4px 0 12px', borderBottom:'1px solid var(--t-dim)' }}>
-        <div style={{ display:'flex', gap:0 }}>
-          {tabBtn('tabla', 'Tabla')}
-          {tabBtn('evolucion', 'Evolución')}
-        </div>
+      {/* Subtabs + selector de mes compacto — cuando este Ranking vive dentro de otra pestaña que ya
+          tiene su propio selector Tabla/Evolución (ej. Equipos), se oculta para no duplicarlo. */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 4px 0 12px', borderBottom: ocultarSubtabs ? 'none' : '1px solid var(--t-dim)' }}>
+        {!ocultarSubtabs && (
+          <div style={{ display:'flex', gap:0 }}>
+            {tabBtn('tabla', 'Tabla')}
+            {tabBtn('evolucion', 'Evolución')}
+          </div>
+        )}
         {mesSelector}
       </div>
 
@@ -967,7 +978,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector 
         document.body
       )}
 
-      {subtab === 'evolucion' ? (
+      {subtabEfectivo === 'evolucion' ? (
         <RankingEvolucion acts={acts} nombres={nombres} myId={myId} />
       ) : (
         <div style={{ background:'var(--t-surface)', borderRadius:'16px 16px 0 0', marginTop:8 }}>
