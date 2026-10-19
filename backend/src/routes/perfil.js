@@ -22,11 +22,12 @@ function uploadToCloudinary(buffer, options) {
 
 const USER_FIELDS = `id, email, nombre, apellido, apodo,
   COALESCE(apodo, nombre) AS nombre_display,
-  role, created_at, foto_perfil_url, peso_kg, estatura_cm, fecha_nacimiento, sexo`;
+  role, created_at, foto_perfil_url, peso_kg, estatura_cm, fecha_nacimiento, sexo,
+  notif_actividad_nueva, notif_interacciones`;
 
 // PUT /perfil — actualiza datos del perfil
 router.put('/', authMiddleware, async (req, res) => {
-  const { peso_kg, estatura_cm, fecha_nacimiento, sexo, nombre, apellido, apodo } = req.body;
+  const { peso_kg, estatura_cm, fecha_nacimiento, sexo, nombre, apellido, apodo, notif_actividad_nueva, notif_interacciones } = req.body;
 
   const campos = [];
   const valores = [];
@@ -39,6 +40,8 @@ router.put('/', authMiddleware, async (req, res) => {
   if (estatura_cm !== undefined)     { campos.push(`estatura_cm = $${idx++}`);     valores.push(estatura_cm); }
   if (fecha_nacimiento !== undefined){ campos.push(`fecha_nacimiento = $${idx++}`); valores.push(fecha_nacimiento); }
   if (sexo !== undefined)            { campos.push(`sexo = $${idx++}`);            valores.push(sexo); }
+  if (notif_actividad_nueva !== undefined) { campos.push(`notif_actividad_nueva = $${idx++}`); valores.push(!!notif_actividad_nueva); }
+  if (notif_interacciones !== undefined)   { campos.push(`notif_interacciones = $${idx++}`);   valores.push(!!notif_interacciones); }
 
   if (campos.length === 0)
     return res.status(400).json({ error: 'No se recibió ningún campo para actualizar' });

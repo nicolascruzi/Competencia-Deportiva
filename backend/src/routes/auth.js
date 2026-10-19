@@ -9,7 +9,8 @@ const SALT_ROUNDS = 12;
 
 const USER_FIELDS = `id, email, nombre, apellido, apodo,
   COALESCE(apodo, nombre) AS nombre_display,
-  role, created_at, foto_perfil_url, peso_kg, estatura_cm, fecha_nacimiento, sexo`;
+  role, created_at, foto_perfil_url, peso_kg, estatura_cm, fecha_nacimiento, sexo,
+  notif_actividad_nueva, notif_interacciones`;
 
 function makeToken(user) {
   return jwt.sign(

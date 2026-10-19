@@ -56,11 +56,27 @@ router.delete('/subscribe', authMiddleware, async (req, res) => {
   }
 });
 
-// Función interna: enviar push a un user_id
-async function sendPushToUser(userId, payload) {
+// Categoría de notificación → columna de preferencia en users que la controla. 'actividad' es la
+// única del grupo "actividad nueva"; comentario/mención/like son todas "interacciones sobre lo mío".
+const COLUMNA_PREFERENCIA = {
+  actividad:  'notif_actividad_nueva',
+  comentario: 'notif_interacciones',
+  mencion:    'notif_interacciones',
+  like:       'notif_interacciones',
+};
+
+// Función interna: enviar push a un user_id. `categoria` es opcional — si se pasa (uno de
+// COLUMNA_PREFERENCIA) y el usuario tiene esa categoría apagada, no se manda nada.
+async function sendPushToUser(userId, payload, categoria) {
   const wp = getWebPush();
   if (!wp) return; // VAPID no configurado, ignorar silenciosamente
   try {
+    const columna = categoria && COLUMNA_PREFERENCIA[categoria];
+    if (columna) {
+      const { rows: [pref] } = await pool.query(`SELECT ${columna} AS activo FROM users WHERE id = $1`, [userId]);
+      if (pref && pref.activo === false) return;
+    }
+
     const { rows } = await pool.query(
       'SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1',
       [userId]

@@ -246,7 +246,7 @@ async function notifyCompaneros(actorId, actividad, actorNombre) {
     body:  `${actividad.deporte_nombre} · ${Math.round(actividad.minutos)} min · ${pts} pts`,
     data:  { actividad_id: actividad.id, tipo: 'actividad' },
   };
-  await Promise.allSettled(companeros.map(c => sendPushToUser(c.user_id, payload)));
+  await Promise.allSettled(companeros.map(c => sendPushToUser(c.user_id, payload, 'actividad')));
 }
 
 // PUT /actividades/:id — editar actividad (dueño o admin)

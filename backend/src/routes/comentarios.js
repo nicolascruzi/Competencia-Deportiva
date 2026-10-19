@@ -87,7 +87,7 @@ router.post('/:actividadId', async (req, res) => {
         title: `💬 ${user.nombre} comentó tu actividad`,
         body:  `"${contenido.trim().slice(0, 80)}"`,
         data:  { actividad_id: Number(actividadId), tipo: 'comentario' },
-      });
+      }, 'comentario');
     }
 
     // Notificar a cada persona etiquetada con @ — además de la notificación al dueño de arriba, y
@@ -105,7 +105,7 @@ router.post('/:actividadId', async (req, res) => {
         title: `📣 ${user.nombre} te mencionó en un comentario`,
         body:  `"${contenido.trim().slice(0, 80)}"`,
         data:  { actividad_id: Number(actividadId), tipo: 'mencion' },
-      });
+      }, 'mencion');
     }
 
     res.status(201).json({ ...comentario, ...user });

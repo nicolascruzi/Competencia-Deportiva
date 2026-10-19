@@ -106,12 +106,48 @@ function PersonalCell({ label, value, onEdit }) {
   );
 }
 
+// Switch chico reutilizado tanto para el toggle maestro de push como para las dos categorías.
+function MiniSwitch({ on, onClick, disabled }) {
+  return (
+    <button onClick={onClick} disabled={disabled}
+      style={{
+        flexShrink: 0, width: 44, height: 26, borderRadius: 13, border: 'none',
+        background: on ? 'var(--t-accent)' : 'var(--t-surface2)',
+        cursor: disabled ? 'default' : 'pointer', position: 'relative', transition: 'background 0.2s',
+        opacity: disabled ? 0.4 : 1,
+      }}>
+      <span style={{
+        position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: '50%',
+        background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+      }} />
+    </button>
+  );
+}
+
 function PushToggle() {
+  const { user, updateUser } = useAuth();
   const { supported, permission, subscribed, loading, error, subscribe, unsubscribe } = usePushNotifications();
+  const [savingPref, setSavingPref] = useState(null); // 'actividad' | 'interacciones' | null
 
   if (!supported) return null;
 
   const denied = permission === 'denied';
+
+  async function togglePref(campo) {
+    setSavingPref(campo);
+    const actual = campo === 'actividad' ? user?.notif_actividad_nueva : user?.notif_interacciones;
+    try {
+      const body = campo === 'actividad'
+        ? { notif_actividad_nueva: !actual }
+        : { notif_interacciones: !actual };
+      const updated = await updatePerfil(body);
+      updateUser(updated);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingPref(null);
+    }
+  }
 
   return (
     <div style={{ borderRadius:12, border:'1px solid var(--t-dim)', overflow:'hidden' }}>
@@ -124,36 +160,44 @@ function PushToggle() {
             {denied
               ? 'Bloqueadas en el navegador — habilita en ajustes del sistema'
               : subscribed
-              ? 'Activadas — te avisamos de comentarios y actividades nuevas'
+              ? 'Activadas en este dispositivo'
               : 'Recibe alertas cuando un compañero sube contenido'}
           </div>
         </div>
-        {/* Toggle */}
-        <button
-          onClick={subscribed ? unsubscribe : subscribe}
-          disabled={loading || denied}
-          style={{
-            flexShrink: 0,
-            width: 48, height: 28,
-            borderRadius: 14,
-            border: 'none',
-            background: subscribed ? 'var(--t-accent)' : 'var(--t-surface2)',
-            cursor: (loading || denied) ? 'default' : 'pointer',
-            position: 'relative',
-            transition: 'background 0.2s',
-            opacity: denied ? 0.4 : 1,
-          }}>
-          <span style={{
-            position: 'absolute',
-            top: 3, left: subscribed ? 23 : 3,
-            width: 22, height: 22,
-            borderRadius: '50%',
-            background: '#fff',
-            transition: 'left 0.2s',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-          }} />
-        </button>
+        <MiniSwitch on={subscribed} onClick={subscribed ? unsubscribe : subscribe} disabled={loading || denied} />
       </div>
+
+      {subscribed && !denied && (
+        <>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', gap:12, borderTop:'1px solid var(--t-dim)' }}>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:13, fontWeight:600, color:'var(--t-text)' }}>Actividad nueva</div>
+              <div style={{ fontSize:11.5, color:'var(--t-muted)', marginTop:1, lineHeight:1.4 }}>
+                Cuando un compañero de grupo sube una actividad
+              </div>
+            </div>
+            <MiniSwitch
+              on={user?.notif_actividad_nueva !== false}
+              onClick={() => togglePref('actividad')}
+              disabled={savingPref === 'actividad'}
+            />
+          </div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', gap:12, borderTop:'1px solid var(--t-dim)' }}>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:13, fontWeight:600, color:'var(--t-text)' }}>Interacciones</div>
+              <div style={{ fontSize:11.5, color:'var(--t-muted)', marginTop:1, lineHeight:1.4 }}>
+                Me gusta, comentarios y menciones en tus publicaciones
+              </div>
+            </div>
+            <MiniSwitch
+              on={user?.notif_interacciones !== false}
+              onClick={() => togglePref('interacciones')}
+              disabled={savingPref === 'interacciones'}
+            />
+          </div>
+        </>
+      )}
+
       {error && (
         <div style={{ padding:'8px 14px', fontSize:12, color:'#F87171', borderTop:'1px solid var(--t-dim)', background:'rgba(248,113,113,0.06)' }}>
           {error}

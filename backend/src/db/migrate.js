@@ -566,6 +566,12 @@ BEGIN
     ALTER TABLE votos_deporte_semana ADD CONSTRAINT votos_deporte_semana_semana_user_categoria_key UNIQUE (competencia_semana_id, user_id, categoria);
   END IF;
 END $$;
+
+-- Preferencias de notificaciones push, separadas en dos categorías independientes: actividad nueva de
+-- compañeros de grupo, e interacciones sobre las propias publicaciones (like/comentario/mención).
+-- Default true para no cambiar el comportamiento de nadie que ya tenía push activado.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_actividad_nueva BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_interacciones    BOOLEAN NOT NULL DEFAULT true;
 `;
 
 async function migrate() {
