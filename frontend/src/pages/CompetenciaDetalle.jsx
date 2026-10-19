@@ -179,15 +179,14 @@ function Podio({ acts, nombres }) {
 function PodioEquipos({ data }) {
   if (data.length < 1) return <EmptyState icon="🤝" title="Sin equipos" text="Todavía no hay equipos configurados." />;
   const top3   = data.slice(0, 3);
-  const leader = top3[0].puntos;
   const riserColors = ['#F59E0B', '#94A3B8', '#B45309']; // oro, plata, bronce — color del escalón, no del equipo
-  const heights = [88, 62, 44];
-  const sizes   = [58, 48, 48];
+  const heights = [52, 36, 26];
+  const sizes   = [40, 34, 34];
 
   const slots = [top3[1], top3[0], top3[2]].filter(Boolean);
 
   return (
-    <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:0, paddingTop:16 }}>
+    <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'center', gap:0, paddingTop:10 }}>
       {slots.map((eq, si) => {
         const origIdx = [1, 0, 2][si];
         if (!eq) return null;
@@ -195,21 +194,19 @@ function PodioEquipos({ data }) {
         const riser  = riserColors[origIdx];
         const height = heights[origIdx];
         const size   = sizes[origIdx];
-        const gap    = origIdx === 0 ? 'Líder' : `-${Math.round(leader - eq.puntos)} pts`;
         return (
-          <div key={eq.id} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, flex:1, maxWidth:120 }}>
-            <div style={{ width:size, height:size, borderRadius:'50%', background:teamColor, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===58?24:18, color:'#fff', overflow:'hidden', border:'2px solid rgba(255,255,255,0.15)' }}>
+          <div key={eq.id} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, flex:1, maxWidth:110 }}>
+            <div style={{ width:size, height:size, borderRadius:'50%', background:teamColor, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===40?16:14, color:'#fff', overflow:'hidden', border:'2px solid rgba(255,255,255,0.15)' }}>
               {eq.nombre?.charAt(0).toUpperCase()}
             </div>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', textAlign:'center', color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12, textTransform:'uppercase', letterSpacing:'0.03em', textAlign:'center', color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
               {eq.nombre}
             </div>
-            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, fontWeight:600, color:'var(--t-accent)', textAlign:'center' }}>
+            <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'var(--t-accent)', textAlign:'center' }}>
               {Math.round(eq.puntos).toLocaleString('es')} pts
             </div>
-            <div style={{ fontSize:10, color:'var(--t-muted)', textAlign:'center', fontFamily:"'JetBrains Mono', monospace" }}>{gap}</div>
-            <div style={{ background: origIdx===0 ? 'rgba(245,158,11,0.07)' : 'var(--t-surface)', border:'1px solid', borderColor: origIdx===0 ? 'rgba(245,158,11,0.25)' : 'var(--t-dim)', borderBottom:'none', borderRadius:'6px 6px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:34, color:'var(--t-muted)', opacity:0.3 }}>{origIdx+1}</span>
+            <div style={{ background: origIdx===0 ? 'rgba(245,158,11,0.07)' : 'var(--t-surface)', border:'1px solid', borderColor: origIdx===0 ? 'rgba(245,158,11,0.25)' : 'var(--t-dim)', borderBottom:'none', borderRadius:'5px 5px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center', marginTop:2 }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'var(--t-muted)', opacity:0.3 }}>{origIdx+1}</span>
             </div>
           </div>
         );
@@ -670,38 +667,26 @@ function TeamEvolucion({ acts, equipos, rankingData }) {
   );
 }
 
-// Resumen compacto: tarjetas de equipo lado a lado (nombre + puntos), tappables para seleccionar.
+// Selector de equipo: chips horizontales compactos (una sola línea, con scroll si no entran todos) —
+// los puntos ya se ven en el podio de arriba, así que acá solo hace falta el color + nombre para elegir.
 function EquiposResumen({ data, equipoSeleccionadoId, onSelect }) {
   if (!data.length) return <EmptyState icon="🤝" title="Sin equipos" text="Todavía no hay equipos configurados." />;
-  // Hasta 4 equipos entran en una sola fila que ocupa el ancho de la pantalla (sin scroll horizontal);
-  // de 5 en adelante, se vuelve a un carrusel horizontal para no achicar demasiado cada tarjeta.
-  const cabenEnFila = data.length <= 4;
   return (
-    <div style={{
-      display: cabenEnFila ? 'grid' : 'flex',
-      gridTemplateColumns: cabenEnFila ? `repeat(${data.length}, 1fr)` : undefined,
-      gap:8, overflowX: cabenEnFila ? 'visible' : 'auto', padding:'10px 4px',
-    }}>
-      {data.map(eq => {
+    <div style={{ display:'flex', gap:6, overflowX:'auto', padding:'6px 4px 10px', WebkitOverflowScrolling:'touch' }}>
+      {data.map((eq, i) => {
         const selected = eq.id === equipoSeleccionadoId;
+        const teamColor = eq.color || AVATAR_COLORS[i % AVATAR_COLORS.length];
         return (
           <button key={eq.id} onClick={() => onSelect(eq.id)}
             style={{
-              flexShrink: cabenEnFila ? undefined : 0,
-              minWidth: cabenEnFila ? 0 : 100,
-              width: cabenEnFila ? '100%' : undefined,
-              padding:'7px 10px', borderRadius:12, textAlign:'left', cursor:'pointer', WebkitTapHighlightColor:'transparent',
+              flexShrink:0, display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:20,
+              cursor:'pointer', WebkitTapHighlightColor:'transparent', whiteSpace:'nowrap',
               border: selected ? '1.5px solid var(--t-accent)' : '1px solid var(--t-dim)',
               background: selected ? 'rgba(var(--t-accent-r),0.1)' : 'var(--t-surface)',
-              boxSizing:'border-box', overflow:'hidden',
-              display:'flex', flexDirection:'column', gap:2,
             }}>
-            <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:12, lineHeight:1.15, color: selected ? 'var(--t-accent)' : 'var(--t-text)', whiteSpace:'normal', wordBreak:'break-word' }}>
+            <span style={{ width:8, height:8, borderRadius:'50%', background:teamColor, flexShrink:0 }} />
+            <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.02em', color: selected ? 'var(--t-accent)' : 'var(--t-text)' }}>
               {eq.nombre}
-            </span>
-            <span>
-              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-text)' }}>{Math.round(eq.puntos)}</span>
-              <span style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}> pts</span>
             </span>
           </button>
         );
