@@ -393,7 +393,10 @@ function SemanaCard({
 
           {(tieneDeporteTranquilo || tieneDeporteExtremo) && (
             <div style={{ marginTop:8 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)', marginBottom:8 }}>Deportes de la semana</div>
+              <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:8 }}>
+                <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deportes de la semana</span>
+                <span style={{ fontSize:10, color:'var(--t-muted2)' }}>+{semana.deporte_semana_ponderador_extra}</span>
+              </div>
               <div style={{ display:'flex', gap:8 }}>
               {tieneDeporteTranquilo && (
                 <div style={{
@@ -404,9 +407,6 @@ function SemanaCard({
                   <div style={{ fontSize:24, lineHeight:1 }}>{sportIcon(semana.deporte_semana_nombre)}</div>
                   <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
                     {semana.deporte_semana_nombre}
-                  </div>
-                  <div style={{ fontSize:11, color:'var(--t-accent)', fontWeight:700, whiteSpace:'nowrap' }}>
-                    +{semana.deporte_semana_ponderador_extra}
                   </div>
                 </div>
               )}
@@ -419,9 +419,6 @@ function SemanaCard({
                   <div style={{ fontSize:24, lineHeight:1 }}>{sportIcon(semana.deporte_semana_nombre_2)}</div>
                   <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
                     {semana.deporte_semana_nombre_2}
-                  </div>
-                  <div style={{ fontSize:11, color:'var(--t-accent)', fontWeight:700, whiteSpace:'nowrap' }}>
-                    +{semana.deporte_semana_ponderador_extra}
                   </div>
                 </div>
               )}
