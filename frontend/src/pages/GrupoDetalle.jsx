@@ -50,6 +50,11 @@ const IconStop = () => (
     <rect x="5" y="5" width="14" height="14" rx="2"/>
   </svg>
 );
+const IconPlusCircle = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+  </svg>
+);
 const IconUsersBig = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -228,7 +233,7 @@ function CompetenciaCard({ competencia: c, isAdmin, cerrando, borrando, onAbrir,
       border: enCurso ? '1px solid rgba(var(--t-accent-r),0.25)' : '1px solid var(--t-dim)',
     }}>
       <button onClick={onAbrir}
-        style={{ display:'flex', alignItems:'flex-start', gap:12, width:'100%', padding:'16px 16px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+        style={{ display:'flex', alignItems:'flex-start', gap:12, width:'100%', padding: isAdmin ? '16px 40px 16px 16px' : '16px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
         <div style={{
           width:40, height:40, borderRadius:12, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
           background: enCurso ? 'rgba(var(--t-accent-r),0.16)' : 'var(--t-dim)',
@@ -253,7 +258,7 @@ function CompetenciaCard({ competencia: c, isAdmin, cerrando, borrando, onAbrir,
             </span>
           </div>
         </div>
-        <span style={{ color:'var(--t-muted)', flexShrink:0, marginTop:4 }}><IconChevronRight /></span>
+        {!isAdmin && <span style={{ color:'var(--t-muted)', flexShrink:0, marginTop:4 }}><IconChevronRight /></span>}
       </button>
 
       {isAdmin && (
@@ -329,8 +334,11 @@ function TabCompetencias({ grupo, isAdmin, onAbrirCompetencia }) {
     }
   }
 
+  const enCurso = competencias?.filter(c => c.estado === 'en_curso') ?? [];
+  const finalizadas = competencias?.filter(c => c.estado !== 'en_curso') ?? [];
+
   return (
-    <div style={{ padding:'14px 20px', display:'flex', flexDirection:'column', gap:8 }}>
+    <div style={{ padding:'14px 20px', display:'flex', flexDirection:'column', gap:10 }}>
       {error && <div style={{ fontSize:13, color:'var(--t-danger)' }}>{error}</div>}
 
       {competencias === null ? (
@@ -342,24 +350,65 @@ function TabCompetencias({ grupo, isAdmin, onAbrirCompetencia }) {
         <>
           {isAdmin && (
             <button onClick={() => setNuevaOpen(true)}
-              style={{ width:'100%', padding:'12px', borderRadius:12, border:'1.5px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.08)', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', marginBottom:4 }}>
-              + Crear nueva competencia
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, width:'100%', padding:'13px', borderRadius:14, border:'1.5px dashed rgba(var(--t-accent-r),0.4)', background:'rgba(var(--t-accent-r),0.06)', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', marginBottom:4 }}>
+              <IconPlusCircle /> Crear nueva competencia
             </button>
           )}
-          {competencias.map(c => (
-            <CompetenciaCard
-              key={c.id}
-              competencia={c}
-              isAdmin={isAdmin}
-              cerrando={cerrandoId === c.id}
-              borrando={borrandoId === c.id}
-              onAbrir={() => onAbrirCompetencia(c)}
-              onCerrar={() => handleCerrar(c)}
-              onBorrar={() => handleBorrar(c)}
-            />
-          ))}
-          {competencias.length === 0 && (
-            <div style={{ textAlign:'center', padding:'20px 0', color:'var(--t-muted)', fontSize:13 }}>Todavía no hay competencias en este grupo.</div>
+
+          {competencias.length === 0 ? (
+            <div style={{ textAlign:'center', padding:'44px 20px', color:'var(--t-muted)' }}>
+              <div style={{ width:52, height:52, margin:'0 auto 14px', borderRadius:16, background:'var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t-muted)' }}>
+                <IconTrophy />
+              </div>
+              <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', color:'var(--t-text)', marginBottom:4 }}>
+                Sin competencias todavía
+              </div>
+              <div style={{ fontSize:13, lineHeight:1.5 }}>
+                {isAdmin ? 'Creá la primera para que el grupo empiece a competir.' : 'El admin del grupo todavía no creó ninguna.'}
+              </div>
+            </div>
+          ) : (
+            <>
+              {enCurso.length > 0 && (
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', padding:'2px 2px 0' }}>
+                    En curso
+                  </div>
+                  {enCurso.map(c => (
+                    <CompetenciaCard
+                      key={c.id}
+                      competencia={c}
+                      isAdmin={isAdmin}
+                      cerrando={cerrandoId === c.id}
+                      borrando={borrandoId === c.id}
+                      onAbrir={() => onAbrirCompetencia(c)}
+                      onCerrar={() => handleCerrar(c)}
+                      onBorrar={() => handleBorrar(c)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {finalizadas.length > 0 && (
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop: enCurso.length > 0 ? 6 : 0 }}>
+                  <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', padding:'2px 2px 0' }}>
+                    Finalizadas
+                  </div>
+                  {finalizadas.map(c => (
+                    <CompetenciaCard
+                      key={c.id}
+                      competencia={c}
+                      isAdmin={isAdmin}
+                      cerrando={cerrandoId === c.id}
+                      borrando={borrandoId === c.id}
+                      onAbrir={() => onAbrirCompetencia(c)}
+                      onCerrar={() => handleCerrar(c)}
+                      onBorrar={() => handleBorrar(c)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </>
       )}
