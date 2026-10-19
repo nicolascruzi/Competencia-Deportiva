@@ -205,8 +205,8 @@ function PodioEquipos({ data, equipoSeleccionadoId, onSelect }) {
             <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'var(--t-accent)', textAlign:'center' }}>
               {Math.round(eq.puntos).toLocaleString('es')} pts
             </div>
-            <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderBottom:'none', borderRadius:'5px 5px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center', marginTop:2, boxSizing:'border-box' }}>
-              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color:'var(--t-muted)', opacity:0.3 }}>{origIdx+1}</span>
+            <div style={{ background:'var(--t-surface)', borderTop: selected ? '2px solid var(--t-accent)' : '1px solid var(--t-dim)', borderLeft:'1px solid var(--t-dim)', borderRight:'1px solid var(--t-dim)', borderRadius:'5px 5px 0 0', width:'100%', height:height, display:'flex', alignItems:'center', justifyContent:'center', marginTop:2, boxSizing:'border-box', transition:'border-color 0.15s' }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:22, color: selected ? 'var(--t-accent)' : 'var(--t-muted)', opacity: selected ? 0.5 : 0.3, transition:'color 0.15s, opacity 0.15s' }}>{origIdx+1}</span>
             </div>
           </button>
         );
