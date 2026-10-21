@@ -1969,17 +1969,21 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
   const displayNombre = nombreCompleto || (isOwnProfile ? (user?.nombre_display || user?.apodo || user?.nombre || '') : nombre);
 
   // allData: TODO el historial de la persona (todas sus competencias/períodos), sin filtrar por la
-  // competencia que se esté mirando — alimenta publicaciones, calendario y evolución.
+  // competencia que se esté mirando — alimenta publicaciones, calendario y evolución. Se manda
+  // competencia_id cuando se conoce (ej. se entró desde el Ranking de una competencia puntual) para
+  // que el backend calcule los puntos con el ponderador de ESA competencia, sin ambigüedad cuando la
+  // persona participa en varias competencias simultáneas con ponderadores distintos.
   useEffect(() => {
+    const params = competenciaId ? { competencia_id: competenciaId } : {};
     if (isOwnProfile) {
-      getActividades().then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
+      getActividades(params).then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
       getChallengesCompletados().then(rows => setChallengesData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setChallengesData([]));
       return;
     }
     if (userId == null) { setAllData([]); return; }
-    getActividades({ user_id: userId }).then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
+    getActividades({ ...params, user_id: userId }).then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
     getChallengesCompletados({ user_id: userId }).then(rows => setChallengesData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setChallengesData([]));
-  }, [isOwnProfile, userId]);
+  }, [isOwnProfile, userId, competenciaId]);
 
   // Filtrar acts del período visible (fallback mientras carga allData)
   const periodData = isOwnProfile ? acts : acts.filter(a =>

@@ -117,7 +117,7 @@ router.get('/challenges-completados', async (req, res) => {
 // (para ver su perfil/calendario completo, no solo lo vinculado a una competencia puntual).
 // Query params: ?mes=2025-06  ?user_id=3
 router.get('/', async (req, res) => {
-  const { mes, user_id } = req.query;
+  const { mes, user_id, competencia_id } = req.query;
   const isAdmin = req.user.role === 'admin';
 
   const conditions = [];
@@ -145,6 +145,15 @@ router.get('/', async (req, res) => {
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
+  // Si se pasa competencia_id (ej. al ver el perfil/calendario de alguien desde el Ranking de una
+  // competencia puntual), se usa el ponderador de ESA competencia para el deporte de cada actividad
+  // — evita la ambigüedad de cuando una actividad está vinculada a varias competencias simultáneas
+  // con ponderadores distintos para el mismo deporte (sin competencia_id, se usa el "base" guardado
+  // en la actividad como fallback, igual que antes).
+  const compIdNum = competencia_id ? parseInt(competencia_id) : null;
+  const pondCompParam = compIdNum ? params.length + 1 : null;
+  if (compIdNum) params.push(compIdNum);
+
   try {
     const result = await pool.query(`
       SELECT
@@ -161,6 +170,10 @@ router.get('/', async (req, res) => {
             AND (s.deporte_semana_nombre = a.deporte_nombre OR s.deporte_semana_nombre_2 = a.deporte_nombre)
             AND a.fecha BETWEEN s.fecha_inicio AND s.fecha_fin
         ), 0) AS extra_semana
+        ${pondCompParam ? `,
+        (SELECT cd.ponderador FROM competencia_deportes cd
+         WHERE cd.competencia_id = $${pondCompParam} AND cd.deporte_nombre = a.deporte_nombre) AS ponderador_comp_especifica
+        ` : ''}
       FROM actividades a
       JOIN users u ON u.id = a.user_id
       ${where}
@@ -169,9 +182,10 @@ router.get('/', async (req, res) => {
 
     // deporte_semana_ponderador_extra es un delta aditivo (ej. "+0.2" = 20% extra), igual que en
     // GET /competencias/:id/actividades — nunca se guardó en la columna generada actividades.puntos.
-    const actividades = result.rows.map(({ ponderador_original, extra_semana, ...r }) => {
+    const actividades = result.rows.map(({ ponderador_original, extra_semana, ponderador_comp_especifica, ...r }) => {
       const factor = 1 + parseFloat(extra_semana);
-      const ponderador = parseFloat(ponderador_original) * factor;
+      const pondBase = ponderador_comp_especifica != null ? parseFloat(ponderador_comp_especifica) : parseFloat(ponderador_original);
+      const ponderador = pondBase * factor;
       return { ...r, ponderador, puntos: parseFloat(r.minutos) * ponderador };
     });
 
