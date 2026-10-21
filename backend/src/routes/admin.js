@@ -136,10 +136,15 @@ router.delete('/grupos/:id', async (req, res) => {
 
 // ─── ACTIVIDADES ──────────────────────────────────────────────────────────────
 
+// Una actividad puede estar vinculada a varias competencias a la vez, cada una con su propio
+// ponderador configurado para ese deporte (competencia_deportes) — la columna actividades.ponderador
+// guardada es solo un valor "base" (catálogo o el de una competencia elegida sin orden garantizado
+// cuando hay varias en curso), así que para esta vista se recalculan los puntos reales de cada
+// competencia vinculada, en vez de confiar en ese único valor.
 router.get('/actividades', async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT a.id, a.fecha, a.deporte_nombre, a.minutos, a.ponderador, a.puntos,
+      SELECT a.id, a.fecha, a.deporte_nombre, a.minutos, a.ponderador AS ponderador_base,
              COALESCE(u.apodo, u.nombre) AS nombre_display, u.nombre, u.id AS user_id,
              a.created_at
       FROM actividades a
@@ -147,7 +152,43 @@ router.get('/actividades', async (req, res) => {
       ORDER BY a.created_at DESC
       LIMIT 500
     `);
-    res.json(rows);
+
+    const { rows: vinculos } = await pool.query(`
+      SELECT ac.actividad_id, c.id AS competencia_id, c.nombre AS competencia_nombre,
+             COALESCE(cd.ponderador, d.ponderador_default) AS ponderador,
+             COALESCE((
+               SELECT MAX(s.deporte_semana_ponderador_extra)
+               FROM competencia_semanas s
+               WHERE s.competencia_id = c.id
+                 AND (s.deporte_semana_nombre = a.deporte_nombre OR s.deporte_semana_nombre_2 = a.deporte_nombre)
+                 AND a.fecha BETWEEN s.fecha_inicio AND s.fecha_fin
+             ), 0) AS extra_semana
+      FROM actividad_competencias ac
+      JOIN competencias c ON c.id = ac.competencia_id
+      JOIN actividades a ON a.id = ac.actividad_id
+      LEFT JOIN competencia_deportes cd ON cd.competencia_id = c.id AND cd.deporte_nombre = a.deporte_nombre
+      LEFT JOIN deportes d ON d.nombre = a.deporte_nombre
+      WHERE ac.actividad_id = ANY($1)
+    `, [rows.map(r => r.id)]);
+
+    const vinculosPorActividad = {};
+    vinculos.forEach(v => {
+      if (!vinculosPorActividad[v.actividad_id]) vinculosPorActividad[v.actividad_id] = [];
+      const factor = 1 + parseFloat(v.extra_semana);
+      const ponderador = parseFloat(v.ponderador) * factor;
+      vinculosPorActividad[v.actividad_id].push({
+        competencia_id: v.competencia_id,
+        competencia_nombre: v.competencia_nombre,
+        ponderador,
+      });
+    });
+
+    const actividades = rows.map(r => ({
+      ...r,
+      competencias: vinculosPorActividad[r.id] || [],
+    }));
+
+    res.json(actividades);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno' });

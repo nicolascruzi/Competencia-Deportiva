@@ -240,10 +240,13 @@ async function notifyCompaneros(actorId, actividad, actorNombre) {
      WHERE gp1.user_id = $1 AND gp2.user_id != $1`,
     [actorId]
   );
-  const pts = Math.round(parseFloat(actividad.minutos) * parseFloat(actividad.ponderador));
+  // Sin puntos en el texto: este push se manda a TODOS los compañeros de cualquier grupo
+  // compartido, sin acotarse a una competencia — y el ponderador (por ende los puntos) puede
+  // diferir entre competencias cuando el actor participa en varias a la vez. Los minutos sí son
+  // un dato objetivo que no depende de qué competencia se esté mirando.
   const payload = {
     title: `🏅 ${actorNombre} subió una actividad`,
-    body:  `${actividad.deporte_nombre} · ${Math.round(actividad.minutos)} min · ${pts} pts`,
+    body:  `${actividad.deporte_nombre} · ${Math.round(actividad.minutos)} min`,
     data:  { actividad_id: actividad.id, tipo: 'actividad' },
   };
   await Promise.allSettled(companeros.map(c => sendPushToUser(c.user_id, payload, 'actividad')));

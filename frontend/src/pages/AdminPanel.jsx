@@ -404,10 +404,15 @@ function TabActividades() {
                 <div style={{ fontSize:10, color:'var(--t-dim2)', marginTop:2, display:'flex', gap:8 }}>
                   <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, color:'var(--t-accent)' }}>{Math.round(a.minutos)} min</span>
                   <span>·</span>
-                  <span>×{parseFloat(a.ponderador).toFixed(1)}</span>
-                  <span>·</span>
                   <span>{fmtDate(a.fecha)}</span>
                 </div>
+                {a.competencias?.length > 0 && (
+                  <div style={{ fontSize:9.5, color:'var(--t-muted)', marginTop:2, display:'flex', flexWrap:'wrap', gap:6 }}>
+                    {a.competencias.map(c => (
+                      <span key={c.competencia_id}>{c.competencia_nombre}: ×{c.ponderador.toFixed(1)}</span>
+                    ))}
+                  </div>
+                )}
               </div>
               <ConfirmBtn label="Eliminar" onConfirm={() => handleDelete(a.id)} />
             </div>
