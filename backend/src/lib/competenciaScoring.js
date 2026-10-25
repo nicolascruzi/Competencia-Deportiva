@@ -71,7 +71,8 @@ function buildScoringCtes(mesFilter = '') {
 `;
 }
 
-// Devuelve Map<user_id, {actividades, minutos, puntos}> con el total (actividades + bonus + challenge)
+// Devuelve Map<user_id, {actividades, minutos, puntos, puntos_deporte, puntos_bonus, puntos_challenge}>.
+// `puntos` es el total (deporte + bonus + challenge); los otros tres lo desglosan por origen.
 // mesFilter/mesParam opcionales para acotar por mes (YYYY-MM), igual que el resto de la app.
 async function getPuntosPorPersona(competenciaId, mes = null) {
   const mesFilter = mes ? `AND TO_CHAR(a.fecha, 'YYYY-MM') = $2` : '';
@@ -99,18 +100,25 @@ async function getPuntosPorPersona(competenciaId, mes = null) {
     params
   );
 
+  const empty = () => ({ actividades: 0, minutos: 0, puntos: 0, puntos_deporte: 0, puntos_bonus: 0, puntos_challenge: 0 });
+
   const map = new Map();
   for (const r of rows) {
-    map.set(r.user_id, { actividades: r.actividades, minutos: parseFloat(r.minutos), puntos: parseFloat(r.puntos_actividades) });
+    const puntos_deporte = parseFloat(r.puntos_actividades);
+    map.set(r.user_id, { ...empty(), actividades: r.actividades, minutos: parseFloat(r.minutos), puntos: puntos_deporte, puntos_deporte });
   }
   for (const r of bonusRows) {
-    const cur = map.get(r.user_id) ?? { actividades: 0, minutos: 0, puntos: 0 };
-    cur.puntos += parseFloat(r.pts_bonus);
+    const cur = map.get(r.user_id) ?? empty();
+    const puntos_bonus = parseFloat(r.pts_bonus);
+    cur.puntos += puntos_bonus;
+    cur.puntos_bonus = puntos_bonus;
     map.set(r.user_id, cur);
   }
   for (const r of challengeRows) {
-    const cur = map.get(r.user_id) ?? { actividades: 0, minutos: 0, puntos: 0 };
-    cur.puntos += parseFloat(r.pts_challenge);
+    const cur = map.get(r.user_id) ?? empty();
+    const puntos_challenge = parseFloat(r.pts_challenge);
+    cur.puntos += puntos_challenge;
+    cur.puntos_challenge = puntos_challenge;
     map.set(r.user_id, cur);
   }
   return map;

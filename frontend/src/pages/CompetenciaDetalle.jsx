@@ -2194,6 +2194,42 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
           {/* Tab: Evolución */}
           {allData !== null && profileTab === 'evolucion' && (
             <div style={{ padding:'20px 16px 32px', display:'flex', flexDirection:'column', gap:20 }}>
+              {competenciaId != null && rankEntry && (rankEntry.puntos_deporte || rankEntry.puntos_bonus || rankEntry.puntos_challenge) > 0 && (() => {
+                const origenRows = [
+                  { label: 'Deporte',    icon: '🏃', val: parseFloat(rankEntry.puntos_deporte)   || 0, color: 'var(--t-accent)' },
+                  { label: 'Challenges', icon: '🎯', val: parseFloat(rankEntry.puntos_challenge) || 0, color: 'var(--t-text)' },
+                  { label: 'Compañeros', icon: '👥', val: parseFloat(rankEntry.puntos_bonus)      || 0, color: 'var(--t-text)' },
+                ];
+                const totalOrigen = origenRows.reduce((s, r) => s + r.val, 0);
+                return (
+                  <div>
+                    <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--t-muted)', marginBottom:8 }}>
+                      Origen de los puntos
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      {origenRows.filter(r => r.val > 0).map(r => {
+                        const pct = totalOrigen > 0 ? Math.round(r.val / totalOrigen * 100) : 0;
+                        return (
+                          <div key={r.label} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:8 }}>
+                            <span style={{ fontSize:18, flexShrink:0 }}>{r.icon}</span>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontWeight:600, fontSize:13, color:'var(--t-text)' }}>{r.label}</div>
+                              <div style={{ height:2, background:'var(--t-dim)', borderRadius:2, marginTop:5 }}>
+                                <div style={{ height:2, width:pct+'%', background:r.color, borderRadius:2, opacity:0.6, transition:'width 0.4s' }} />
+                              </div>
+                            </div>
+                            <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:11, lineHeight:1.5 }}>
+                              <div style={{ color:r.color, fontWeight:700 }}>{Math.round(r.val)} pts</div>
+                              <div style={{ color:'var(--t-muted)' }}>{pct}%</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {(() => {
                 if (allData.length === 0) return <EmptyState icon="📈" title="Sin datos" />;
                 const N = 4;

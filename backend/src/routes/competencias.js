@@ -768,9 +768,10 @@ router.get('/:id/ranking', authMiddleware, async (req, res) => {
     const totalChallengesComp = totalChallenges[0]?.total ?? 0;
 
     const rows = participantes.map(p => {
-      const calc = puntosMap.get(p.id) ?? { actividades: 0, minutos: 0, puntos: 0 };
+      const calc = puntosMap.get(p.id) ?? { actividades: 0, minutos: 0, puntos: 0, puntos_deporte: 0, puntos_bonus: 0, puntos_challenge: 0 };
       return {
         ...p, actividades: calc.actividades, minutos: calc.minutos, puntos: calc.puntos,
+        puntos_deporte: calc.puntos_deporte, puntos_bonus: calc.puntos_bonus, puntos_challenge: calc.puntos_challenge,
         challenges_completados: completadosMap.get(p.id) ?? 0,
         challenges_total: totalChallengesComp,
       };
