@@ -161,7 +161,7 @@ router.get('/', async (req, res) => {
         u.nombre, u.apellido, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url,
         a.deporte_nombre, a.minutos, a.ponderador AS ponderador_original,
         TO_CHAR(a.fecha, 'YYYY-MM-DD') AS fecha,
-        a.notas, a.foto_url, a.created_at,
+        a.notas, a.foto_url, a.created_at, a.cantidad_companeros,
         COALESCE((
           SELECT MAX(s.deporte_semana_ponderador_extra)
           FROM actividad_competencias ac

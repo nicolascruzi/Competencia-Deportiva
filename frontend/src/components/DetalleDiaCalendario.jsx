@@ -147,7 +147,7 @@ export function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onF
               )}
             </div>
 
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+            <div style={{ display:'grid', gridTemplateColumns: actividad.cantidad_companeros > 0 ? '1fr 1fr 1fr' : '1fr 1fr', gap:8 }}>
               <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'11px 13px', position:'relative', overflow:'hidden' }}>
                 <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.7 }} />
                 <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, color:'var(--t-accent)', lineHeight:1 }}>
@@ -161,6 +161,14 @@ export function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onF
                 </div>
                 <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Minutos</div>
               </div>
+              {actividad.cantidad_companeros > 0 && (
+                <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'11px 13px' }}>
+                  <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, color:'var(--t-text)', lineHeight:1 }}>
+                    👥 {actividad.cantidad_companeros >= 3 ? '3+' : actividad.cantidad_companeros}
+                  </div>
+                  <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Compañeros</div>
+                </div>
+              )}
             </div>
 
             {actividad.notas && (
@@ -247,8 +255,16 @@ export function DaySheet({ fecha, acts, onClose, onSelectAct, readOnly = false, 
                 <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
                   {a.deporte_nombre}
                 </div>
-                <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3, fontFamily:"'JetBrains Mono', monospace" }}>
-                  {Math.round(parseFloat(a.minutos))} min
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:3 }}>
+                  <div style={{ fontSize:12, color:'var(--t-muted)', fontFamily:"'JetBrains Mono', monospace" }}>
+                    {Math.round(parseFloat(a.minutos))} min
+                  </div>
+                  {a.cantidad_companeros > 0 && (
+                    <div style={{ display:'flex', alignItems:'center', gap:3, fontSize:11, color:'var(--t-muted)' }}>
+                      <span style={{ fontSize:11, lineHeight:1 }}>👥</span>
+                      <span>{a.cantidad_companeros >= 3 ? '3+' : a.cantidad_companeros}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div style={{ textAlign:'right', flexShrink:0 }}>

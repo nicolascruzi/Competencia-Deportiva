@@ -138,6 +138,7 @@ export default function Calendario() {
             const count    = byDate[key]?.length || 0;
             const isSel    = selectedKey === key;
             const hasChallenge = !!challengesByDate[key]?.length;
+            const hasCompanions = (byDate[key] || []).some(a => (a.cantidad_companeros || 0) > 0);
 
             // Emojis del día
             const dayActs  = (byDate[key] || []).filter(Boolean);
@@ -188,6 +189,11 @@ export default function Calendario() {
                 {hasChallenge && (
                   <span style={{ position:'absolute', top:3, right:5, fontSize:9, lineHeight:1, filter: isSel ? 'brightness(0) invert(1)' : 'none' }}>
                     🎯
+                  </span>
+                )}
+                {hasCompanions && (
+                  <span style={{ position:'absolute', top:3, left:5, fontSize:9, lineHeight:1, filter: isSel ? 'brightness(0) invert(1)' : 'none' }}>
+                    👥
                   </span>
                 )}
                 <span style={{
