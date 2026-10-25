@@ -561,6 +561,16 @@ export function FeedCard({ act, user, onLightbox, onOpenProfile }) {
           </span>
           <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
         </div>
+        {act.cantidad_companeros > 0 && (
+          <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
+            <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-text)', lineHeight:1 }}>
+              👥 {act.cantidad_companeros >= 3 ? '3+' : act.cantidad_companeros}
+            </span>
+            <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>
+              {act.cantidad_companeros === 1 ? 'compañero' : 'compañeros'}
+            </span>
+          </div>
+        )}
         <div style={{ marginLeft:'auto' }}>
           <span style={{ fontSize:12, color:'var(--t-muted2)' }}>
             {new Date(act.fecha + 'T12:00:00').toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short' })}
