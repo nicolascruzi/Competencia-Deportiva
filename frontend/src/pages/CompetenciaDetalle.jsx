@@ -1881,6 +1881,7 @@ function PlayerCalendar({ acts, challenges = [] }) {
           const dayActs = (byDate[key] || []).filter(Boolean);
           const hasActs = dayActs.length > 0;
           const hasChallenge = !!challengesByDate[key]?.length;
+          const hasCompanions = dayActs.some(a => (a.cantidad_companeros || 0) > 0);
           const clickable = hasActs || hasChallenge;
           const count   = dayActs.length;
           const sportIcon = s => SPORT_ICONS_CAL[s] || '🏅';
@@ -1920,6 +1921,9 @@ function PlayerCalendar({ acts, challenges = [] }) {
               }}>
               {hasChallenge && (
                 <span style={{ position:'absolute', top:3, right:5, fontSize:9, lineHeight:1 }}>🎯</span>
+              )}
+              {hasCompanions && (
+                <span style={{ position:'absolute', top:3, left:5, fontSize:9, lineHeight:1 }}>👥</span>
               )}
               <span style={{
                 fontFamily:"'Barlow Condensed', sans-serif",

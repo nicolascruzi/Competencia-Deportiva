@@ -868,7 +868,7 @@ router.get('/:id/actividades', authMiddleware, async (req, res) => {
               u.foto_perfil_url, a.deporte_nombre, a.minutos,
               a.ponderador AS ponderador_original,
               TO_CHAR(a.fecha, 'YYYY-MM-DD') AS fecha,
-              a.notas, a.foto_url, a.created_at
+              a.notas, a.foto_url, a.created_at, a.cantidad_companeros
        FROM actividades a
        JOIN users u ON u.id = a.user_id
        JOIN competencias c ON c.id = $1
