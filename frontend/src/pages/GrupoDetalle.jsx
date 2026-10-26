@@ -602,7 +602,7 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
 
   if (competenciaAbierta) {
     return (
-      <div style={{ position:'fixed', inset:0, zIndex:150, background:'var(--t-ground)', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
+      <div style={{ position:'fixed', inset:0, top:'calc(env(safe-area-inset-top) + 52px)', zIndex:40, background:'var(--t-ground)', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
         <CompetenciaAdminDetalle
           grupo={{ ...grupo, nombre: nombreActual }}
           competenciaResumen={competenciaAbierta}
@@ -615,7 +615,7 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:150, background:'var(--t-ground)', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
+    <div style={{ position:'fixed', inset:0, top:'calc(env(safe-area-inset-top) + 52px)', zIndex:40, background:'var(--t-ground)', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
       <div style={{
         position:'relative', overflow:'hidden', padding:'14px 20px 18px',
         background:'linear-gradient(180deg, rgba(var(--t-accent-r),0.14) 0%, rgba(var(--t-accent-r),0.03) 60%, transparent 100%)',
