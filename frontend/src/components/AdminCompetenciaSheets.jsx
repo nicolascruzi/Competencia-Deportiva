@@ -840,19 +840,19 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
                     style={{ width:80, flexShrink:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
                   />
                   {c.fecha_inicio || c.fecha_fin ? (
-                    <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:8, alignItems:'center' }}>
                       <input
                         type="date"
                         value={c.fecha_inicio || ''}
                         onChange={e => updateChallengeLocal(key, { fecha_inicio: e.target.value })}
-                        style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
+                        style={{ flex:'1 1 120px', minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
                       />
                       <span style={{ color:'var(--t-muted)', fontSize:12 }}>al</span>
                       <input
                         type="date" min={c.fecha_inicio || undefined}
                         value={c.fecha_fin || ''}
                         onChange={e => updateChallengeLocal(key, { fecha_fin: e.target.value })}
-                        style={{ flex:1, minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
+                        style={{ flex:'1 1 120px', minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none' }}
                       />
                       <button onClick={() => updateChallengeLocal(key, { fecha_inicio: '', fecha_fin: '' })}
                         title="Quitar fechas (siempre vigente)"
@@ -903,11 +903,11 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
                     </button>
                     {isOpen && (
                       <div style={{ padding:'0 12px 12px', display:'flex', flexDirection:'column', gap:8 }}>
-                        <div style={{ display:'flex', gap:8 }}>
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                           <select
                             value={s.deporte_semana_nombre || ''}
                             onChange={e => updateSemana(s.id, { deporte_semana_nombre: e.target.value })}
-                            style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none', appearance:'none' }}
+                            style={{ flex:'1 1 140px', minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none', appearance:'none' }}
                           >
                             <option value="">Sin deporte tranquilo</option>
                             {deportesTranquilos.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
@@ -915,7 +915,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
                           <select
                             value={s.deporte_semana_nombre_2 || ''}
                             onChange={e => updateSemana(s.id, { deporte_semana_nombre_2: e.target.value })}
-                            style={{ flex:1, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none', appearance:'none' }}
+                            style={{ flex:'1 1 140px', minWidth:0, background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'8px 10px', borderRadius:8, fontSize:16, outline:'none', appearance:'none' }}
                           >
                             <option value="">Sin deporte extremo</option>
                             {deportesExtremos.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}

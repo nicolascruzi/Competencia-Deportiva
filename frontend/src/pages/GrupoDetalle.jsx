@@ -512,7 +512,7 @@ function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack, o
           <div style={{ marginTop:14 }}>
             <SubTabs tabs={SECCIONES} active={seccion} onChange={setSeccion} />
           </div>
-          <div style={{ padding:'16px 20px' }}>
+          <div style={{ padding:'16px 20px', maxWidth:'100%', boxSizing:'border-box', overflowX:'hidden' }}>
             {!detalleListo ? (
               <AdminSheetLoading embedded onClose={() => {}} />
             ) : seccion === 'ponderadores' ? (
