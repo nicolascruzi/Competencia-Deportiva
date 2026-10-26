@@ -6,6 +6,9 @@ import {
 import { updateEquiposGrupo, updateAsignacionesGrupo } from '../api/grupos';
 import { useLoading } from '../context/LoadingContext';
 import { getDeportes as getAllDeportes, createDeporte, updateDeporte, deleteDeporte } from '../api/actividades';
+import {
+  DndContext, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay, useDroppable, useDraggable,
+} from '@dnd-kit/core';
 
 const IconEditDeporte = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -527,6 +530,58 @@ function AdminConfigSheet({ competencia, onClose, onSaved, readOnly = false, emb
   );
 }
 
+// Tarjeta arrastrable de un participante, usada dentro de las columnas de AdminEquiposSheet.
+function ParticipanteDraggable({ p }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `p-${p.id}`, data: { participanteId: p.id } });
+  const style = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isDragging ? 0.4 : 1,
+    touchAction: 'none',
+  };
+  return (
+    <div ref={setNodeRef} {...listeners} {...attributes} style={{
+      ...style,
+      display:'flex', alignItems:'center', gap:8, background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:10,
+      padding:'8px 10px', fontSize:13.5, color:'var(--t-text)', cursor:'grab', WebkitTapHighlightColor:'transparent', userSelect:'none',
+    }}>
+      <div style={{ width:24, height:24, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+        {p.foto_perfil_url
+          ? <img src={p.foto_perfil_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+          : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:11, color:'var(--t-muted)' }}>{(p.nombre_display || p.nombre)?.charAt(0).toUpperCase()}</span>
+        }
+      </div>
+      <span style={{ flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.nombre_display || p.nombre}</span>
+    </div>
+  );
+}
+
+// Columna droppable (un equipo, o "Sin equipo") dentro de AdminEquiposSheet.
+function EquipoColumna({ id, titulo, miembros, destacado }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div ref={setNodeRef} style={{
+      flex:'1 1 150px', minWidth:150, display:'flex', flexDirection:'column', gap:6,
+      background: isOver ? 'rgba(var(--t-accent-r),0.08)' : 'var(--t-surface2)',
+      border: isOver ? '1.5px dashed var(--t-accent)' : '1px solid var(--t-dim)',
+      borderRadius:12, padding:8, transition:'background 0.1s, border-color 0.1s',
+    }}>
+      <div style={{
+        fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, textTransform:'uppercase', letterSpacing:'0.03em',
+        color: destacado ? 'var(--t-accent)' : 'var(--t-muted)', padding:'2px 2px 2px', display:'flex', alignItems:'center', justifyContent:'space-between',
+      }}>
+        <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{titulo}</span>
+        <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:11, color:'var(--t-muted)', flexShrink:0, marginLeft:6 }}>{miembros.length}</span>
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:6, minHeight:40 }}>
+        {miembros.map(p => <ParticipanteDraggable key={p.id} p={p} />)}
+        {miembros.length === 0 && (
+          <div style={{ fontSize:11.5, color:'var(--t-muted)', padding:'6px 4px', fontStyle:'italic' }}>Soltá acá</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false, embedded = false }) {
   const [equipos, setEquipos] = useState((competencia.equipos || []).map(e => ({ id: e.id, nombre: e.nombre, color: e.color })));
   const [asignaciones, setAsignaciones] = useState(() => {
@@ -536,7 +591,26 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false, em
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
+  const [arrastrandoId, setArrastrandoId] = useState(null);
   const startY = useRef(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+  );
+
+  function handleDragStart(ev) {
+    setArrastrandoId(ev.active.data.current?.participanteId ?? null);
+  }
+  function handleDragEnd(ev) {
+    setArrastrandoId(null);
+    const { active, over } = ev;
+    if (!over) return;
+    const participanteId = active.data.current?.participanteId;
+    if (participanteId == null) return;
+    const equipoId = over.id === 'sin-equipo' ? null : parseInt(String(over.id).replace('equipo-', ''));
+    setAsignaciones(prev => ({ ...prev, [participanteId]: equipoId }));
+  }
 
   function onTouchStart(e) { startY.current = e.touches[0].clientY; }
   function onTouchEnd(e) {
@@ -638,22 +712,45 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false, em
             </button>
           </div>
 
-          {/* Asignación de participantes */}
+          {/* Asignación de participantes — arrastrá a cada persona a su equipo */}
           <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Participantes</div>
-            {(competencia.participantes || []).map(p => (
-              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)', borderRadius:10, padding:'8px 12px', flexShrink:0 }}>
-                <span style={{ flex:1, fontSize:14, color:'var(--t-text)' }}>{p.nombre_display || p.nombre}</span>
-                <select
-                  value={asignaciones[p.id] ?? ''}
-                  onChange={e => setAsignaciones(prev => ({ ...prev, [p.id]: e.target.value ? parseInt(e.target.value) : null }))}
-                  style={{ background:'var(--t-ground)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'6px 8px', borderRadius:8, fontSize:16, outline:'none' }}
-                >
-                  <option value="">Sin equipo</option>
-                  {equipos.filter(e => e.id != null).map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                </select>
+            {equipos.filter(e => e.id != null).length === 0 ? (
+              <div style={{ fontSize:12.5, color:'var(--t-muted)', padding:'4px 2px' }}>
+                Agregá al menos un equipo arriba para poder asignar participantes.
               </div>
-            ))}
+            ) : (() => {
+              const participantes = competencia.participantes || [];
+              const porEquipo = equipos.filter(e => e.id != null).map(e => ({
+                equipo: e,
+                miembros: participantes.filter(p => asignaciones[p.id] === e.id),
+              }));
+              const sinEquipo = participantes.filter(p => asignaciones[p.id] == null);
+              const arrastrando = arrastrandoId != null ? participantes.find(p => p.id === arrastrandoId) : null;
+              return (
+                <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                    <EquipoColumna id="sin-equipo" titulo="Sin equipo" miembros={sinEquipo} />
+                    {porEquipo.map(({ equipo, miembros }) => (
+                      <EquipoColumna key={equipo.id} id={`equipo-${equipo.id}`} titulo={equipo.nombre} miembros={miembros} destacado />
+                    ))}
+                  </div>
+                  <DragOverlay>
+                    {arrastrando && (
+                      <div style={{ display:'flex', alignItems:'center', gap:8, background:'var(--t-surface)', border:'1.5px solid var(--t-accent)', borderRadius:10, padding:'8px 10px', fontSize:13.5, color:'var(--t-text)', boxShadow:'0 8px 20px rgba(0,0,0,0.25)' }}>
+                        <div style={{ width:24, height:24, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          {arrastrando.foto_perfil_url
+                            ? <img src={arrastrando.foto_perfil_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                            : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:11, color:'var(--t-muted)' }}>{(arrastrando.nombre_display || arrastrando.nombre)?.charAt(0).toUpperCase()}</span>
+                          }
+                        </div>
+                        <span>{arrastrando.nombre_display || arrastrando.nombre}</span>
+                      </div>
+                    )}
+                  </DragOverlay>
+                </DndContext>
+              );
+            })()}
           </div>
         </>
       )}
