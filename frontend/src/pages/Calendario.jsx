@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getActividades, getChallengesCompletados, deleteActividad } from '../api/actividades';
+import { getActividades, getChallengesCompletados, deleteActividad, getDeportes } from '../api/actividades';
 import { SPORT_ICONS } from '../lib/sportIcons';
 import { DetallePanel, DaySheet } from '../components/DetalleDiaCalendario';
 
@@ -24,6 +24,7 @@ export default function Calendario() {
 
   const [acts, setActs]   = useState([]);
   const [challenges, setChallenges] = useState([]);
+  const [iconosDeportes, setIconosDeportes] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [detalle, setDetalle] = useState(null);
@@ -32,9 +33,13 @@ export default function Calendario() {
     Promise.all([
       getActividades(),
       getChallengesCompletados(),
-    ]).then(([actsData, chData]) => {
+      getDeportes(),
+    ]).then(([actsData, chData, deportesData]) => {
       setActs((Array.isArray(actsData) ? actsData : []).filter(Boolean));
       setChallenges((Array.isArray(chData) ? chData : []).filter(Boolean));
+      const mapa = {};
+      (Array.isArray(deportesData) ? deportesData : []).forEach(d => { if (d?.nombre && d.icono) mapa[d.nombre] = d.icono; });
+      setIconosDeportes(mapa);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -143,7 +148,7 @@ export default function Calendario() {
             // Emojis del día
             const dayActs  = (byDate[key] || []).filter(Boolean);
             const dayCount = dayActs.length;
-            const sportIcon = s => SPORT_ICONS[s] || '🏅';
+            const sportIcon = s => iconosDeportes[s] || SPORT_ICONS[s] || '🏅';
             let emojiNode = null;
             if (dayCount === 1) {
               emojiNode = (

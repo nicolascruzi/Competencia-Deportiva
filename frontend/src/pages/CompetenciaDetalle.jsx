@@ -1793,14 +1793,6 @@ function Insights({ acts }) {
 
 const DAYS_ES_CAL   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MONTHS_ES_CAL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const SPORT_ICONS_CAL = {
-  'Bicicleta MTB':'🚵','Bicicleta Rodillo':'🚴','Bicicleta Ruta':'🚴','Box':'🥊',
-  'Buceo':'🤿','Crossfit':'🏋️','Cuerda':'🪢','Escalada':'🧗','Funcional':'💪',
-  'Fútbol':'⚽','Gimnasio':'🏋️','Golf':'⛳','Natación':'🏊','Padel':'🏓',
-  'Spinning':'🚴','Surf':'🏄','Tenis':'🎾','Trail Running':'🏃','Trekking':'🥾','Trote':'🏃',
-};
-function sportIconCal(s) { return SPORT_ICONS_CAL[s] || '🏅'; }
-
 function PlayerCalendar({ acts, challenges = [] }) {
   const now = new Date();
   const [year,  setYear]  = useState(now.getFullYear());
@@ -1884,7 +1876,6 @@ function PlayerCalendar({ acts, challenges = [] }) {
           const hasCompanions = dayActs.some(a => (a.cantidad_companeros || 0) > 0);
           const clickable = hasActs || hasChallenge;
           const count   = dayActs.length;
-          const sportIcon = s => SPORT_ICONS_CAL[s] || '🏅';
 
           let emojiNode = null;
           if (count === 1) {
