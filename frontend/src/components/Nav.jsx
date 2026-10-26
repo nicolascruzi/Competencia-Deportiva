@@ -143,11 +143,11 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
   return (
     <>
       {/* Status bar cover */}
-      <div style={{ position:'fixed', top:0, left:0, right:0, height:'env(safe-area-inset-top)', background:'var(--t-header-bg)', zIndex:51 }} />
+      <div style={{ position:'fixed', top:0, left:0, right:0, height:'env(safe-area-inset-top)', background:'var(--t-header-bg)', zIndex:61 }} />
 
       {/* ── HEADER ── */}
       <header style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 60,
         height: 52,
         display: 'grid', gridTemplateColumns: '44px 1fr auto', alignItems: 'center',
         padding: '0 10px',
