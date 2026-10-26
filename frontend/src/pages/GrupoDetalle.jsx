@@ -472,7 +472,7 @@ function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack, o
   ];
 
   return (
-    <div style={{ minHeight:'100%' }}>
+    <div style={{ minHeight:'100%', maxWidth:560, margin:'0 auto' }}>
       <div style={{ padding:'16px 20px 0' }}>
         <button onClick={onBack}
           style={{ display:'flex', alignItems:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', color:'var(--t-muted)', fontSize:13, padding:0, WebkitTapHighlightColor:'transparent' }}>
@@ -608,6 +608,7 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
 
   return (
     <div style={{ position:'fixed', inset:0, top:'calc(env(safe-area-inset-top) + 52px)', zIndex:55, background:'var(--t-ground)', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
+      <div style={{ maxWidth:560, margin:'0 auto' }}>
       <div style={{
         position:'relative', overflow:'hidden', padding:'14px 20px 18px',
         background:'linear-gradient(180deg, rgba(var(--t-accent-r),0.14) 0%, rgba(var(--t-accent-r),0.03) 60%, transparent 100%)',
@@ -696,6 +697,7 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
       )}
 
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
     </div>
   );
 }
