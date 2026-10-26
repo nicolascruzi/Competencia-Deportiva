@@ -154,36 +154,30 @@ function TabIntegrantes({ grupo, isAdmin, onSalirGrupo, onBorrarGrupo }) {
           const puedeSacar = isAdmin && !esYo && !p.es_creador;
           return (
             <div key={p.id} style={{
-              display:'flex', alignItems:'center', gap:12, padding:'11px 14px', borderRadius:14,
-              background: esYo ? 'linear-gradient(135deg, rgba(var(--t-accent-r),0.1), rgba(var(--t-accent-r),0.02))' : 'var(--t-surface2)',
-              border: esYo ? '1px solid rgba(var(--t-accent-r),0.25)' : '1px solid var(--t-dim)',
+              display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:12,
+              background:'var(--t-surface2)',
+              border:'1px solid var(--t-dim)',
             }}>
-              <div style={{ width:38, height:38, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.18)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 {p.foto_perfil_url
                   ? <img src={p.foto_perfil_url} alt={p.nombre_display} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, color:'var(--t-accent)' }}>{p.nombre_display?.charAt(0).toUpperCase()}</span>
+                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, color:'var(--t-muted)' }}>{p.nombre_display?.charAt(0).toUpperCase()}</span>
                 }
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <span style={{ fontSize:14.5, fontWeight:700, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'block' }}>
+                <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'block' }}>
                   {p.nombre_display}
                 </span>
                 {(esYo || p.es_creador || p.es_admin) && (
-                  <div style={{ display:'flex', gap:5, marginTop:4, flexWrap:'wrap' }}>
+                  <div style={{ display:'flex', gap:6, marginTop:2, flexWrap:'wrap' }}>
                     {esYo && (
-                      <span style={{ fontSize:9.5, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', padding:'2px 7px', borderRadius:20, color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.14)' }}>
-                        Tú
-                      </span>
+                      <span style={{ fontSize:10.5, fontWeight:600, color:'var(--t-accent)' }}>Tú</span>
                     )}
                     {p.es_creador && (
-                      <span style={{ fontSize:9.5, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', padding:'2px 7px', borderRadius:20, color:'var(--t-accent)', background:'rgba(var(--t-accent-r),0.14)' }}>
-                        Creador
-                      </span>
+                      <span style={{ fontSize:10.5, fontWeight:600, color:'var(--t-muted)' }}>Creador</span>
                     )}
                     {p.es_admin && (
-                      <span style={{ fontSize:9.5, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', padding:'2px 7px', borderRadius:20, color:'var(--t-muted)', background:'var(--t-dim)' }}>
-                        Admin
-                      </span>
+                      <span style={{ fontSize:10.5, fontWeight:600, color:'var(--t-muted)' }}>Admin</span>
                     )}
                   </div>
                 )}
@@ -193,9 +187,9 @@ function TabIntegrantes({ grupo, isAdmin, onSalirGrupo, onBorrarGrupo }) {
                   disabled={sacandoId === p.id}
                   onClick={() => handleSacar(p)}
                   aria-label={`Sacar a ${p.nombre_display} del grupo`}
-                  style={{ width:30, height:30, borderRadius:8, border:'1px solid var(--t-dim)', background:'var(--t-surface)', color:'var(--t-danger)', display:'flex', alignItems:'center', justifyContent:'center', cursor: sacandoId === p.id ? 'default' : 'pointer', opacity: sacandoId === p.id ? 0.5 : 1, flexShrink:0 }}>
+                  style={{ width:28, height:28, borderRadius:8, border:'none', background:'transparent', color:'var(--t-muted)', display:'flex', alignItems:'center', justifyContent:'center', cursor: sacandoId === p.id ? 'default' : 'pointer', opacity: sacandoId === p.id ? 0.5 : 1, flexShrink:0 }}>
                   {sacandoId === p.id
-                    ? <div style={{ width:12, height:12, border:'2px solid rgba(185,28,28,0.3)', borderTopColor:'var(--t-danger)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+                    ? <div style={{ width:12, height:12, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-muted)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
                     : <IconTrash />
                   }
                 </button>
@@ -244,28 +238,26 @@ function CompetenciaCard({ competencia: c, isAdmin, cerrando, borrando, onAbrir,
 
   return (
     <div style={{
-      position:'relative', width:'100%', borderRadius:16,
-      background: enCurso ? 'linear-gradient(135deg, rgba(var(--t-accent-r),0.1), rgba(var(--t-accent-r),0.02))' : 'var(--t-surface2)',
-      border: enCurso ? '1px solid rgba(var(--t-accent-r),0.25)' : '1px solid var(--t-dim)',
+      position:'relative', width:'100%', borderRadius:14,
+      background:'var(--t-surface2)',
+      border:'1px solid var(--t-dim)',
     }}>
       <button onClick={onAbrir}
-        style={{ display:'flex', alignItems:'flex-start', gap:12, width:'100%', padding: isAdmin ? '16px 40px 16px 16px' : '16px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+        style={{ display:'flex', alignItems:'flex-start', gap:12, width:'100%', padding: isAdmin ? '14px 40px 14px 14px' : '14px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
         <div style={{
-          width:40, height:40, borderRadius:12, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-          background: enCurso ? 'rgba(var(--t-accent-r),0.16)' : 'var(--t-dim)',
+          width:36, height:36, borderRadius:10, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
+          background:'var(--t-dim)',
           color: enCurso ? 'var(--t-accent)' : 'var(--t-muted)',
         }}>
           <IconTrophy />
         </div>
         <div style={{ flex:1, minWidth:0, paddingTop:1 }}>
-          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.01em', color:'var(--t-text)', lineHeight:1.2, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+          <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, textTransform:'uppercase', letterSpacing:'0.01em', color:'var(--t-text)', lineHeight:1.2, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
             {c.nombre}
           </div>
-          <div style={{ marginTop:7 }}>
+          <div style={{ marginTop:6 }}>
             <span style={{
-              fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', padding:'3px 8px', borderRadius:20,
-              color: enCurso ? 'var(--t-accent)' : 'var(--t-muted)',
-              background: enCurso ? 'rgba(var(--t-accent-r),0.14)' : 'var(--t-dim)',
+              fontSize:10, fontWeight:600, color: enCurso ? 'var(--t-accent)' : 'var(--t-muted)',
             }}>
               {enCurso ? '● En curso' : 'Finalizada'}
             </span>
@@ -369,7 +361,7 @@ function TabCompetencias({ grupo, isAdmin, onAbrirCompetencia }) {
         <>
           {isAdmin && (
             <button onClick={() => setNuevaOpen(true)}
-              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, width:'100%', padding:'13px', borderRadius:14, border:'1.5px dashed rgba(var(--t-accent-r),0.4)', background:'rgba(var(--t-accent-r),0.06)', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', marginBottom:4 }}>
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, width:'100%', padding:'10px', borderRadius:12, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:4 }}>
               <IconPlusCircle /> Crear nueva competencia
             </button>
           )}
@@ -602,7 +594,7 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
 
   if (competenciaAbierta) {
     return (
-      <div style={{ position:'fixed', inset:0, top:'calc(env(safe-area-inset-top) + 52px)', zIndex:40, background:'var(--t-ground)', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
+      <div style={{ position:'fixed', inset:0, top:'calc(env(safe-area-inset-top) + 52px)', zIndex:55, background:'var(--t-ground)', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
         <CompetenciaAdminDetalle
           grupo={{ ...grupo, nombre: nombreActual }}
           competenciaResumen={competenciaAbierta}
@@ -615,7 +607,7 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, top:'calc(env(safe-area-inset-top) + 52px)', zIndex:40, background:'var(--t-ground)', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
+    <div style={{ position:'fixed', inset:0, top:'calc(env(safe-area-inset-top) + 52px)', zIndex:55, background:'var(--t-ground)', overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
       <div style={{
         position:'relative', overflow:'hidden', padding:'14px 20px 18px',
         background:'linear-gradient(180deg, rgba(var(--t-accent-r),0.14) 0%, rgba(var(--t-accent-r),0.03) 60%, transparent 100%)',
@@ -676,10 +668,10 @@ export default function GrupoDetalle({ grupo, isAdmin, onClose, onBorrarGrupo, o
                       setTimeout(() => setPinHeaderCopied(false), 1800);
                     });
                   }}
-                  style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 7px', borderRadius:8, border:'1px solid rgba(var(--t-accent-r),0.25)', background:'rgba(var(--t-accent-r),0.08)', color:'var(--t-accent)', cursor:'pointer', fontSize:10.5, fontWeight:800, letterSpacing:'0.06em', fontFamily:"'JetBrains Mono', monospace", WebkitTapHighlightColor:'transparent' }}
+                  style={{ display:'flex', alignItems:'center', gap:5, padding:0, border:'none', background:'transparent', color:'var(--t-muted)', cursor:'pointer', fontSize:10.5, fontWeight:600, letterSpacing:'0.03em', fontFamily:"'JetBrains Mono', monospace", WebkitTapHighlightColor:'transparent', opacity:0.75 }}
                 >
                   PIN {pinActual}
-                  <span style={{ color: pinHeaderCopied ? 'var(--t-accent)' : 'var(--t-muted)', fontFamily:'inherit', fontSize:9.5, letterSpacing:0 }}>
+                  <span style={{ color: pinHeaderCopied ? 'var(--t-accent)' : 'var(--t-muted)', fontFamily:'inherit', fontSize:9.5, letterSpacing:0, textDecoration: pinHeaderCopied ? 'none' : 'underline', textUnderlineOffset:2 }}>
                     {pinHeaderCopied ? 'Copiado' : 'Copiar'}
                   </span>
                 </button>
