@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   updatePonderadores, updateSemanas,
   crearChallenge, updateChallenge, deleteChallenge, updateConfiguracion,
+  getCompaneros,
 } from '../api/competencias';
 import { updateEquiposGrupo, updateAsignacionesGrupo } from '../api/grupos';
 import { useLoading } from '../context/LoadingContext';
@@ -1044,4 +1045,72 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
   );
 }
 
-export { AdminSheetLoading, AdminPonderadoresSheet, AdminEquiposSheet, AdminSemanasSheet, AdminConfigSheet };
+// ─── SHEET ADMIN: ranking de "quién hizo deporte con más personas" ───────────
+// Solo lectura — muestra SUM(cantidad_companeros) por persona dentro de esta competencia.
+// cantidad_companeros es un conteo autodeclarado (0/1/2/3+) por actividad, no identifica a los
+// compañeros reales; esta vista solo agrega ese conteo, no arma "con quién" se hizo deporte.
+function AdminCompanerosSheet({ competencia, embedded = true }) {
+  const [filas, setFilas] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelado = false;
+    getCompaneros(competencia.id)
+      .then(rows => { if (!cancelado) setFilas(Array.isArray(rows) ? rows : []); })
+      .catch(err => { if (!cancelado) { setError(err.message); setFilas([]); } });
+    return () => { cancelado = true; };
+  }, [competencia.id]);
+
+  const body = (
+    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+      <div style={{ fontSize:12, color:'var(--t-muted)', lineHeight:1.5 }}>
+        Quiénes marcaron más compañeros al cargar sus actividades en esta competencia (no identifica con quién, solo cuántos).
+      </div>
+
+      {error && (
+        <div style={{ borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171' }}>{error}</div>
+      )}
+
+      {filas === null ? (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'30px 0', color:'var(--t-muted)', fontSize:13, gap:8 }}>
+          <div style={{ width:14, height:14, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+          Cargando…
+        </div>
+      ) : filas.length === 0 ? (
+        <div style={{ textAlign:'center', padding:'30px 16px', color:'var(--t-muted)', fontSize:13 }}>
+          Todavía nadie registró actividades con compañeros.
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          {filas.map((p, i) => (
+            <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10, background: i === 0 ? 'rgba(var(--t-accent-r),0.08)' : 'var(--t-surface2)', border: i === 0 ? '1px solid rgba(var(--t-accent-r),0.25)' : '1px solid var(--t-dim)' }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color: i === 0 ? 'var(--t-accent)' : 'var(--t-muted)', width:18, textAlign:'center', flexShrink:0 }}>{i + 1}</span>
+              <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'var(--t-dim)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                {p.foto_perfil_url
+                  ? <img src={p.foto_perfil_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:12, color:'var(--t-muted)' }}>{p.nombre_display?.charAt(0).toUpperCase()}</span>
+                }
+              </div>
+              <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.nombre_display}</span>
+              <div style={{ textAlign:'right', flexShrink:0 }}>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:16, color: i === 0 ? 'var(--t-accent)' : 'var(--t-text)', lineHeight:1 }}>
+                  👥 {p.total_companeros}
+                </div>
+                <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:2 }}>{p.actividades_con_companeros} actividad{p.actividades_con_companeros !== 1 ? 'es' : ''}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  if (embedded) return body;
+  return (
+    <SheetShell embedded={false} title="Social" meta={competencia.nombre}>
+      <div style={{ overflowY:'auto', flex:1, padding:'10px 18px' }}>{body}</div>
+    </SheetShell>
+  );
+}
+
+export { AdminSheetLoading, AdminPonderadoresSheet, AdminEquiposSheet, AdminSemanasSheet, AdminConfigSheet, AdminCompanerosSheet };

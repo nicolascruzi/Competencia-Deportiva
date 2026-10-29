@@ -10,6 +10,7 @@ import SubTabs from '../components/SubTabs';
 import NuevaCompetenciaSheet from '../components/NuevaCompetenciaSheet';
 import {
   AdminSheetLoading, AdminPonderadoresSheet, AdminEquiposSheet, AdminSemanasSheet, AdminConfigSheet,
+  AdminCompanerosSheet,
 } from '../components/AdminCompetenciaSheets';
 import { getCompetencia } from '../api/competencias';
 
@@ -469,6 +470,7 @@ function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack, o
     { id: 'equipos', label: 'Equipos' },
     { id: 'semanas', label: 'Challenges' },
     { id: 'config', label: 'Config' },
+    ...(isAdmin ? [{ id: 'social', label: 'Social' }] : []),
   ];
 
   return (
@@ -530,6 +532,8 @@ function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack, o
                 embedded competencia={compConDeportes} readOnly={!isAdmin} onClose={() => {}}
                 onSaved={(semanas, challenges) => setCompConDeportes(prev => ({ ...prev, semanas, challenges }))}
               />
+            ) : seccion === 'social' ? (
+              <AdminCompanerosSheet embedded competencia={compConDeportes} />
             ) : (
               <AdminConfigSheet
                 embedded competencia={compConDeportes} readOnly={!isAdmin} onClose={() => {}}

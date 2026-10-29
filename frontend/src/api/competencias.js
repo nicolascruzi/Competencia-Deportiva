@@ -8,6 +8,7 @@ export const updatePonderadores   = (id, ponderadores) => apiFetch(`/competencia
 export const getActividadesComp   = (id, mes) => apiFetch(`/competencias/${id}/actividades${mes ? `?mes=${mes}` : ''}`);
 
 export const getRankingEquiposComp = (id, mes)          => apiFetch(`/competencias/${id}/ranking-equipos${mes ? `?mes=${mes}` : ''}`);
+export const getCompaneros         = (id, mes)          => apiFetch(`/competencias/${id}/companeros${mes ? `?mes=${mes}` : ''}`);
 export const updateSemanas         = (id, semanas)      => apiFetch(`/competencias/${id}/semanas`, { method: 'PUT', body: JSON.stringify({ semanas }) });
 export const updateConfiguracion   = (id, data)         => apiFetch(`/competencias/${id}/configuracion`, { method: 'PUT', body: JSON.stringify(data) });
 

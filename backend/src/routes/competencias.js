@@ -784,6 +784,40 @@ router.get('/:id/ranking', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /competencias/:id/companeros — solo admin: ranking de quién hizo más actividades
+// acompañado (SUM de actividades.cantidad_companeros dentro de esta competencia). Recordar que
+// cantidad_companeros es solo un conteo autodeclarado (0/1/2/3+), no identifica a los compañeros.
+router.get('/:id/companeros', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { mes } = req.query; // YYYY-MM opcional
+
+  try {
+    if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede ver esta estadística' });
+
+    const mesFilter = mes && /^\d{4}-\d{2}$/.test(mes) ? `AND TO_CHAR(a.fecha, 'YYYY-MM') = $2` : '';
+    const params = mesFilter ? [id, mes] : [id];
+
+    const { rows } = await pool.query(
+      `SELECT u.id, u.nombre, u.apellido, u.apodo, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url,
+              SUM(a.cantidad_companeros)::int AS total_companeros,
+              COUNT(*) FILTER (WHERE a.cantidad_companeros > 0)::int AS actividades_con_companeros
+       FROM actividades a
+       JOIN users u ON u.id = a.user_id
+       WHERE EXISTS (SELECT 1 FROM actividad_competencias ac WHERE ac.actividad_id = a.id AND ac.competencia_id = $1)
+         ${mesFilter}
+       GROUP BY u.id, nombre_display
+       HAVING SUM(a.cantidad_companeros) > 0
+       ORDER BY total_companeros DESC, actividades_con_companeros DESC`,
+      params
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al calcular el ranking de compañeros' });
+  }
+});
+
 // GET /competencias/:id/ranking-equipos — ranking de equipos (suma de puntos de sus miembros)
 router.get('/:id/ranking-equipos', authMiddleware, async (req, res) => {
   const { id } = req.params;
