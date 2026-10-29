@@ -1045,27 +1045,58 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
   );
 }
 
+const MESES_CORTOS_SOCIAL = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+function fmtFechaSocial(iso) {
+  if (!iso) return '';
+  const [, m, d] = iso.split('-').map(Number);
+  return `${d} ${MESES_CORTOS_SOCIAL[m - 1]}`;
+}
+
 // ─── SHEET ADMIN: ranking de "quién hizo deporte con más personas" ───────────
-// Solo lectura — muestra SUM(cantidad_companeros) por persona dentro de esta competencia.
+// Solo lectura — muestra SUM(cantidad_companeros) por persona dentro de esta competencia, con un
+// selector para ver toda la competencia o acotar a una semana puntual (las mismas semanas que ya
+// se usan para los challenges/deporte-de-la-semana, en competencia.semanas).
 // cantidad_companeros es un conteo autodeclarado (0/1/2/3+) por actividad, no identifica a los
 // compañeros reales; esta vista solo agrega ese conteo, no arma "con quién" se hizo deporte.
 function AdminCompanerosSheet({ competencia, embedded = true }) {
+  const semanas = competencia.semanas || [];
+  const [semanaSel, setSemanaSel] = useState(null); // null = toda la competencia; si no, un objeto de `semanas`
   const [filas, setFilas] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelado = false;
-    getCompaneros(competencia.id)
+    setFilas(null); setError('');
+    const rango = semanaSel ? { desde: semanaSel.fecha_inicio, hasta: semanaSel.fecha_fin } : undefined;
+    getCompaneros(competencia.id, rango)
       .then(rows => { if (!cancelado) setFilas(Array.isArray(rows) ? rows : []); })
       .catch(err => { if (!cancelado) { setError(err.message); setFilas([]); } });
     return () => { cancelado = true; };
-  }, [competencia.id]);
+  }, [competencia.id, semanaSel]);
 
   const body = (
     <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
       <div style={{ fontSize:12, color:'var(--t-muted)', lineHeight:1.5 }}>
         Quiénes marcaron más compañeros al cargar sus actividades en esta competencia (no identifica con quién, solo cuántos).
       </div>
+
+      {semanas.length > 0 && (
+        <div style={{ display:'flex', gap:6, overflowX:'auto', WebkitOverflowScrolling:'touch', scrollbarWidth:'none', paddingBottom:2 }}>
+          <button onClick={() => setSemanaSel(null)}
+            style={{ flexShrink:0, padding:'6px 12px', borderRadius:20, border: semanaSel == null ? '1px solid var(--t-accent)' : '1px solid var(--t-dim)', background: semanaSel == null ? 'rgba(var(--t-accent-r),0.12)' : 'transparent', color: semanaSel == null ? 'var(--t-accent)' : 'var(--t-muted)', fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap', WebkitTapHighlightColor:'transparent' }}>
+            Toda la competencia
+          </button>
+          {semanas.map(s => {
+            const activa = semanaSel?.id === s.id;
+            return (
+              <button key={s.id} onClick={() => setSemanaSel(s)}
+                style={{ flexShrink:0, padding:'6px 12px', borderRadius:20, border: activa ? '1px solid var(--t-accent)' : '1px solid var(--t-dim)', background: activa ? 'rgba(var(--t-accent-r),0.12)' : 'transparent', color: activa ? 'var(--t-accent)' : 'var(--t-muted)', fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap', WebkitTapHighlightColor:'transparent' }}>
+                Sem {s.numero_semana} · {fmtFechaSocial(s.fecha_inicio)}–{fmtFechaSocial(s.fecha_fin)}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {error && (
         <div style={{ borderRadius:10, padding:'9px 13px', fontSize:13, background:'rgba(248,113,113,0.12)', border:'1px solid rgba(248,113,113,0.3)', color:'#F87171' }}>{error}</div>
@@ -1078,7 +1109,7 @@ function AdminCompanerosSheet({ competencia, embedded = true }) {
         </div>
       ) : filas.length === 0 ? (
         <div style={{ textAlign:'center', padding:'30px 16px', color:'var(--t-muted)', fontSize:13 }}>
-          Todavía nadie registró actividades con compañeros.
+          {semanaSel ? 'Nadie registró actividades con compañeros esa semana.' : 'Todavía nadie registró actividades con compañeros.'}
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:6 }}>

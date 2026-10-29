@@ -789,13 +789,20 @@ router.get('/:id/ranking', authMiddleware, async (req, res) => {
 // cantidad_companeros es solo un conteo autodeclarado (0/1/2/3+), no identifica a los compañeros.
 router.get('/:id/companeros', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { mes } = req.query; // YYYY-MM opcional
+  const { mes, desde, hasta } = req.query; // mes: YYYY-MM opcional; desde/hasta: YYYY-MM-DD opcionales (rango de una semana)
 
   try {
     if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede ver esta estadística' });
 
-    const mesFilter = mes && /^\d{4}-\d{2}$/.test(mes) ? `AND TO_CHAR(a.fecha, 'YYYY-MM') = $2` : '';
-    const params = mesFilter ? [id, mes] : [id];
+    const params = [id];
+    let rangoFilter = '';
+    if (desde && hasta && /^\d{4}-\d{2}-\d{2}$/.test(desde) && /^\d{4}-\d{2}-\d{2}$/.test(hasta)) {
+      params.push(desde, hasta);
+      rangoFilter = `AND a.fecha BETWEEN $${params.length - 1} AND $${params.length}`;
+    } else if (mes && /^\d{4}-\d{2}$/.test(mes)) {
+      params.push(mes);
+      rangoFilter = `AND TO_CHAR(a.fecha, 'YYYY-MM') = $${params.length}`;
+    }
 
     const { rows } = await pool.query(
       `SELECT u.id, u.nombre, u.apellido, u.apodo, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url,
@@ -804,7 +811,7 @@ router.get('/:id/companeros', authMiddleware, async (req, res) => {
        FROM actividades a
        JOIN users u ON u.id = a.user_id
        WHERE EXISTS (SELECT 1 FROM actividad_competencias ac WHERE ac.actividad_id = a.id AND ac.competencia_id = $1)
-         ${mesFilter}
+         ${rangoFilter}
        GROUP BY u.id, nombre_display
        HAVING SUM(a.cantidad_companeros) > 0
        ORDER BY total_companeros DESC, actividades_con_companeros DESC`,
