@@ -809,7 +809,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
   async function handleSave() {
     setSaving(true); setError('');
     try {
-      await updateSemanas(competencia.id, semanas.filter(s => s.numero_semana === 1 || s.id === competencia.semana_actual_id).map(s => ({
+      await updateSemanas(competencia.id, semanas.map(s => ({
         id: s.id,
         deporte_semana_nombre: s.deporte_semana_nombre,
         deporte_semana_nombre_2: s.deporte_semana_nombre_2,
@@ -971,18 +971,17 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
             </button>
           </div>
 
-          {/* ── Deportes de la semana editables a mano: siempre la semana 1, y además la semana
-              actual (sea cual sea su número) — así el admin puede corregirlos aunque ya haya
-              votación. Hay dos categorías independientes: tranquilo (ponderador <=1) y extremo
-              (ponderador >1), cada una con su propio deporte ganador. Ambas comparten el mismo
-              ponderador extra. ── */}
-          {semanas.some(s => s.numero_semana === 1 || s.id === competencia.semana_actual_id) && (
+          {/* ── Deportes de la semana editables a mano: TODAS las semanas de la competencia — así
+              el admin puede corregir cualquiera, pasada, actual o futura. Hay dos categorías
+              independientes: tranquilo (ponderador <=1) y extremo (ponderador >1), cada una con
+              su propio deporte ganador. Ambas comparten el mismo ponderador extra. ── */}
+          {semanas.length > 0 && (
             <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
               <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--t-muted)' }}>Deportes de la semana</div>
               <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:-4 }}>
-                La semana 1 se fija a mano. De la semana 2 en adelante cada categoría se decide por votación de los participantes, pero puedes sobreescribir la semana actual.
+                La semana 1 se fija a mano. De la semana 2 en adelante cada categoría se decide por votación de los participantes, pero puedes sobreescribir cualquier semana.
               </div>
-              {semanas.filter(s => s.numero_semana === 1 || s.id === competencia.semana_actual_id)
+              {[...semanas]
                 .sort((a, b) => a.numero_semana - b.numero_semana)
                 .map(s => {
                 const isOpen = abierta === s.id;
