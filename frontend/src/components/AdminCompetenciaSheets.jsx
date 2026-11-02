@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   updatePonderadores, updateSemanas,
   crearChallenge, updateChallenge, deleteChallenge, updateConfiguracion,
-  getCompaneros,
+  getCompaneros, getVotacionSemana,
 } from '../api/competencias';
 import { updateEquiposGrupo, updateAsignacionesGrupo } from '../api/grupos';
 import { useLoading } from '../context/LoadingContext';
@@ -762,6 +762,53 @@ function AdminEquiposSheet({ competencia, onClose, onSaved, readOnly = false, em
 
 // ─── SHEET ADMIN: challenges semanales + deporte de la semana ────────────────
 
+// Desglose de votos de una categoría (tranquilo/extremo) para una semana — reusa el mismo endpoint
+// que alimenta la pantalla de votación de los participantes, pero mostrando votos y votantes de
+// TODOS los deportes de esa categoría, no solo el propio voto.
+function VotosCategoria({ competenciaId, semanaId, categoria, label }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelado = false;
+    getVotacionSemana(competenciaId, semanaId, categoria)
+      .then(res => { if (!cancelado) setData(res); })
+      .catch(err => { if (!cancelado) setError(err.message); });
+    return () => { cancelado = true; };
+  }, [competenciaId, semanaId, categoria]);
+
+  if (error) return <div style={{ fontSize:12, color:'#F87171' }}>{error}</div>;
+  if (!data) return <div style={{ fontSize:12, color:'var(--t-muted)' }}>Cargando votos…</div>;
+
+  const conVotos = data.deportes.filter(d => d.votos > 0);
+  const totalVotos = conVotos.reduce((s, d) => s + d.votos, 0);
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+      <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--t-muted)' }}>{label}</div>
+      {totalVotos === 0 ? (
+        <div style={{ fontSize:12, color:'var(--t-muted)' }}>Nadie votó todavía en esta categoría.</div>
+      ) : (
+        conVotos.sort((a, b) => b.votos - a.votos).map(d => (
+          <div key={d.id} style={{ display:'flex', flexDirection:'column', gap:1, padding:'6px 8px', borderRadius:8, background: d.id === data.ganador_deporte_id ? 'rgba(var(--t-accent-r),0.1)' : 'var(--t-ground)', border: d.id === data.ganador_deporte_id ? '1px solid rgba(var(--t-accent-r),0.3)' : '1px solid var(--t-dim)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:14 }}>{d.icono}</span>
+              <span style={{ fontSize:13, fontWeight:600, color:'var(--t-text)', flex:1 }}>{d.nombre}</span>
+              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:13, color: d.id === data.ganador_deporte_id ? 'var(--t-accent)' : 'var(--t-text)' }}>
+                {d.votos} voto{d.votos !== 1 ? 's' : ''}
+              </span>
+              {d.id === data.ganador_deporte_id && <span style={{ color:'var(--t-accent)' }}>✓</span>}
+            </div>
+            {d.votantes?.length > 0 && (
+              <div style={{ fontSize:11, color:'var(--t-muted)', paddingLeft:20 }}>{d.votantes.join(', ')}</div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, embedded = false }) {
   const [deportes, setDeportes]   = useState([]);
   const [semanas, setSemanas]     = useState(competencia.semanas || []);
@@ -1018,6 +1065,14 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
                             {deportesExtremos.map(d => <option key={d.nombre} value={d.nombre}>{d.icono} {d.nombre}</option>)}
                           </select>
                         </div>
+
+                        {s.numero_semana !== 1 && (
+                          <div style={{ display:'flex', flexDirection:'column', gap:10, padding:'10px', borderRadius:10, background:'var(--t-ground)', border:'1px solid var(--t-dim)' }}>
+                            <VotosCategoria competenciaId={competencia.id} semanaId={s.id} categoria="tranquilo" label="Votos · tranquilo" />
+                            <VotosCategoria competenciaId={competencia.id} semanaId={s.id} categoria="extremo" label="Votos · extremo" />
+                          </div>
+                        )}
+
                         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                           <span style={{ fontSize:12, color:'var(--t-muted)', flex:1 }}>Extra compartido (ambos deportes)</span>
                           <input
