@@ -884,6 +884,12 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
         }
       }
 
+      // En modo embedded, onClose() es un no-op y este componente sigue montado — hay que
+      // sincronizar el estado local con lo que realmente quedó guardado (ids reales, sin _isNew),
+      // si no un segundo "Guardar" vuelve a crear los challenges que ya se habían creado recién.
+      setChallenges(savedChallenges.map(c => ({ ...c, _isNew: false })));
+      setEliminados([]);
+
       onSaved(semanas, savedChallenges);
       onClose();
     } catch (err) {
