@@ -81,11 +81,12 @@ async function calcularExtraSemana(actividadId, deporteNombre, fecha) {
 }
 
 // GET /actividades/challenges-completados — challenges completados por un usuario, con fecha, a
-// través de todas sus competencias. Mismo criterio de permisos que GET /actividades (propio, o de
-// un compañero de algún grupo en común) — alimenta el calendario personal/ajeno.
-// Query params: ?user_id=3 (si se omite, el propio)
+// través de todas sus competencias (o de una sola si se pasa competencia_id). Mismo criterio de
+// permisos que GET /actividades (propio, o de un compañero de algún grupo en común) — alimenta el
+// calendario personal/ajeno, y el de un jugador visto desde el Ranking de una competencia puntual.
+// Query params: ?user_id=3 (si se omite, el propio)  ?competencia_id=7 (si se omite, todas)
 router.get('/challenges-completados', async (req, res) => {
-  const { user_id } = req.query;
+  const { user_id, competencia_id } = req.query;
   const isAdmin = req.user.role === 'admin';
   let targetUserId = req.user.id;
 
@@ -95,15 +96,22 @@ router.get('/challenges-completados', async (req, res) => {
     targetUserId = parseInt(user_id);
   }
 
+  const params = [targetUserId];
+  let compFilter = '';
+  if (competencia_id) {
+    params.push(parseInt(competencia_id));
+    compFilter = `AND ch.competencia_id = $${params.length}`;
+  }
+
   try {
     const { rows } = await pool.query(
       `SELECT ch.id AS challenge_id, ch.texto, ch.puntos,
               TO_CHAR(cc.completed_at, 'YYYY-MM-DD') AS fecha, cc.completed_at
        FROM challenge_completados cc
        JOIN challenges ch ON ch.id = cc.challenge_id
-       WHERE cc.user_id = $1
+       WHERE cc.user_id = $1 ${compFilter}
        ORDER BY cc.completed_at DESC`,
-      [targetUserId]
+      params
     );
     res.json(rows);
   } catch (err) {

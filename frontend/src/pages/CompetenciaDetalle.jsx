@@ -1972,12 +1972,12 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
     const params = competenciaId ? { competencia_id: competenciaId } : {};
     if (isOwnProfile) {
       getActividades(params).then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
-      getChallengesCompletados().then(rows => setChallengesData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setChallengesData([]));
+      getChallengesCompletados(params).then(rows => setChallengesData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setChallengesData([]));
       return;
     }
     if (userId == null) { setAllData([]); return; }
     getActividades({ ...params, user_id: userId }).then(rows => setAllData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setAllData([]));
-    getChallengesCompletados({ user_id: userId }).then(rows => setChallengesData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setChallengesData([]));
+    getChallengesCompletados({ ...params, user_id: userId }).then(rows => setChallengesData((Array.isArray(rows) ? rows : []).filter(Boolean))).catch(() => setChallengesData([]));
   }, [isOwnProfile, userId, competenciaId]);
 
   // Filtrar acts del período visible (fallback mientras carga allData)
