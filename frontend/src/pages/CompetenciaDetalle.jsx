@@ -2332,7 +2332,102 @@ function EmptyState({ icon, title, text }) {
     </div>
   );
 }
-export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, onSemanasSaved, configSheetOpen, onConfigSheetClose, onConfigSaved, navYear, navMonth, onNavYear, onNavMonth }) {
+// Pantalla que reemplaza el Ranking normal cuando la competencia ya pasó su fecha_fin (haya o no
+// sido cerrada manualmente por el admin) — avisa que terminó, muestra el resumen final de
+// posiciones, e invita a pasarse a otra competencia en curso del mismo grupo (o a crear una, si
+// no hay ninguna y el usuario es admin).
+function CompetenciaFinalizadaPanel({ competencia, isAdmin, otrasCompetenciasEnCurso, onSelectOtraCompetencia, onCrearCompetencia }) {
+  const [ranking, setRanking] = useState(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    getRankingComp(competencia.id)
+      .then(rows => { if (!cancelado) setRanking(Array.isArray(rows) ? rows : []); })
+      .catch(() => { if (!cancelado) setRanking([]); });
+    return () => { cancelado = true; };
+  }, [competencia.id]);
+
+  const podio = ['🥇', '🥈', '🥉'];
+
+  return (
+    <div style={{ padding:'20px 16px 32px', maxWidth:480, margin:'0 auto' }}>
+      <div style={{ textAlign:'center', marginBottom:24 }}>
+        <div style={{ fontSize:40, marginBottom:8 }}>🏁</div>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.1 }}>
+          {competencia.nombre} terminó
+        </div>
+        <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:6 }}>
+          El plazo de esta competencia ya pasó. Acá quedan los resultados finales.
+        </div>
+      </div>
+
+      <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:8 }}>
+        Resultados finales
+      </div>
+      {ranking === null ? (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'30px 0', color:'var(--t-muted)', fontSize:13, gap:8 }}>
+          <div style={{ width:14, height:14, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+          Cargando resultados…
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+      ) : ranking.length === 0 ? (
+        <EmptyState icon="🏁" title="Sin registros" text="Nadie cargó actividades en esta competencia." />
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:28 }}>
+          {ranking.map((p, i) => (
+            <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background: i === 0 ? 'rgba(var(--t-accent-r),0.1)' : 'var(--t-surface2)', border: i === 0 ? '1px solid rgba(var(--t-accent-r),0.3)' : '1px solid var(--t-dim)' }}>
+              <span style={{ width:22, textAlign:'center', fontSize: i < 3 ? 16 : 13, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, color:'var(--t-muted)', flexShrink:0 }}>
+                {podio[i] ?? i + 1}
+              </span>
+              <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                {p.nombre_display}
+              </span>
+              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color: i === 0 ? 'var(--t-accent)' : 'var(--t-text)' }}>
+                {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ borderTop:'1px solid var(--t-dim)', paddingTop:20 }}>
+        {otrasCompetenciasEnCurso.length > 0 ? (
+          <>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', color:'var(--t-text)', textAlign:'center', marginBottom:12 }}>
+              ¿Seguimos compitiendo?
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {otrasCompetenciasEnCurso.map(c => (
+                <button key={c.id} onClick={() => onSelectOtraCompetencia?.(c.id)}
+                  style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'13px 14px', borderRadius:14, border:'1.5px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.08)', color:'var(--t-accent)', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                  <span style={{ fontSize:18, flexShrink:0 }}>🏆</span>
+                  <span style={{ flex:1, minWidth:0, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:15, textTransform:'uppercase', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {c.nombre}
+                  </span>
+                  <span style={{ flexShrink:0 }}>→</span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontSize:13, color:'var(--t-muted)', marginBottom: isAdmin ? 12 : 0 }}>
+              Todavía no hay otra competencia en curso en este grupo.
+            </div>
+            {isAdmin && (
+              <button onClick={onCrearCompetencia}
+                style={{ padding:'12px 20px', borderRadius:12, border:'none', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:15, textTransform:'uppercase', letterSpacing:'0.04em', background:'var(--t-accent)', color:'var(--t-ground)', cursor:'pointer' }}>
+                + Crear nueva competencia
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNewActivity, tab, onTab, adminSheetOpen, onAdminSheetClose, onAdminSaved, equiposSheetOpen, onEquiposSheetClose, semanasSheetOpen, onSemanasSheetClose, onSemanasSaved, configSheetOpen, onConfigSheetClose, onConfigSaved, navYear, navMonth, onNavYear, onNavMonth, otrasCompetenciasEnCurso = [], onSelectOtraCompetencia, onCrearCompetencia }) {
   const { user } = useAuth();
   const { withLoading } = useLoading();
   const now = new Date();
@@ -2501,6 +2596,22 @@ export default function CompetenciaDetalle({ competencia, isAdmin, onBack, onNew
       case 'insights': return <Insights acts={acts} />;
       default:         return null;
     }
+  }
+
+  // Competencia vencida: se detecta por fecha (fecha_fin < hoy), no por el campo `estado` — una
+  // competencia puede seguir 'en_curso' en la base si nadie la cerró manualmente todavía, pero no
+  // tiene sentido seguir mostrándola como activa una vez que pasó su plazo.
+  const haVencido = !!compConDeportes.fecha_fin && compConDeportes.fecha_fin < hoyLocal();
+  if (haVencido) {
+    return (
+      <CompetenciaFinalizadaPanel
+        competencia={compConDeportes}
+        isAdmin={isAdmin}
+        otrasCompetenciasEnCurso={otrasCompetenciasEnCurso}
+        onSelectOtraCompetencia={onSelectOtraCompetencia}
+        onCrearCompetencia={onCrearCompetencia}
+      />
+    );
   }
 
   // Ver el perfil de un participante reemplaza esta pantalla entera (en vez de abrirse como un

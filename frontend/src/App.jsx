@@ -326,6 +326,9 @@ function AppShell() {
           navMonth={navMonth}
           onNavYear={setNavYear}
           onNavMonth={setNavMonth}
+          otrasCompetenciasEnCurso={competenciasEnCurso.filter(c => c.id !== competenciaActiva.id)}
+          onSelectOtraCompetencia={selectCompetencia}
+          onCrearCompetencia={() => setCrearOpen(true)}
         />
       : <SinCompetencia onOpen={() => setForceOpenSelector(n => n + 1)} />,
     calendario:  <SemanaPanel  key={(competenciaActiva?.id ?? 'noc') + '_' + refreshKey} competencia={competenciaActiva} onOpenSelector={() => setForceOpenSelector(n => n + 1)} />,
