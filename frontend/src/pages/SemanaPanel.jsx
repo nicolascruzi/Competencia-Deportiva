@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { completarChallenge, descompletarChallenge, getVotacionSemana, votarDeporteSemana } from '../api/competencias';
 import { sportIcon } from '../lib/sportIcons';
+import { hoyLocal } from '../lib/fecha';
 import SinCompetencia from '../components/SinCompetencia';
 import PageHeader from '../components/PageHeader';
 import VotacionReminderBanner from '../components/VotacionReminderBanner';
@@ -343,10 +344,20 @@ function SemanaCard({
 }) {
   const tieneDeporteTranquilo = !!semana.deporte_semana_nombre;
   const tieneDeporteExtremo = !!semana.deporte_semana_nombre_2;
-  const vigentes = challenges.filter(ch =>
-    (!ch.fecha_inicio || !ch.fecha_fin) ||
-    (ch.fecha_inicio <= semana.fecha_fin && ch.fecha_fin >= semana.fecha_inicio)
-  );
+  // En la semana ACTUAL, "vigente" es respecto a HOY — un challenge con fecha_fin ya pasada no
+  // debe seguir apareciendo como pendiente solo porque la semana en curso todavía no terminó.
+  // En una semana PASADA (historial, readOnly), se mantiene el criterio original de solape con
+  // el rango de esa semana, para no ocultar challenges que sí correspondían a ese historial.
+  // "Siempre vigente" es cuando AMBAS fechas son null (si solo falta una, se respeta la que sí
+  // está, en vez de tratarlo como sin límite por el solo hecho de que falte la otra).
+  const hoy = hoyLocal();
+  const vigentes = challenges.filter(ch => {
+    if (!ch.fecha_inicio && !ch.fecha_fin) return true;
+    if (isActual) {
+      return (!ch.fecha_inicio || ch.fecha_inicio <= hoy) && (!ch.fecha_fin || hoy <= ch.fecha_fin);
+    }
+    return (!ch.fecha_inicio || ch.fecha_inicio <= semana.fecha_fin) && (!ch.fecha_fin || ch.fecha_fin >= semana.fecha_inicio);
+  });
   const completados = vigentes.filter(ch => ch.completado).length;
   const seVota = seVotaTranquilo || seVotaExtremo;
   const tieneDeporte = tieneDeporteTranquilo || tieneDeporteExtremo;
