@@ -393,6 +393,38 @@ router.get('/:id/competencias', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /grupos/:id/competencias/ultima-config — ponderadores y bonus por compañeros de la
+// competencia MÁS RECIENTE del grupo (sin importar su estado), para precargar el formulario de
+// "Nueva competencia" con la última configuración en vez de los defaults genéricos del catálogo.
+router.get('/:id/competencias/ultima-config', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!(await esAdminDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede ver esto' });
+
+    const { rows: [ultima] } = await pool.query(
+      `SELECT id, bonus_1_companero_pts, bonus_2_companeros_pts, bonus_3mas_companeros_pts
+       FROM competencias WHERE grupo_id=$1 ORDER BY created_at DESC LIMIT 1`,
+      [id]
+    );
+    if (!ultima) return res.json(null);
+
+    const { rows: ponderadores } = await pool.query(
+      'SELECT deporte_nombre, ponderador FROM competencia_deportes WHERE competencia_id=$1',
+      [ultima.id]
+    );
+
+    res.json({
+      ponderadores,
+      bonus_1_companero_pts: ultima.bonus_1_companero_pts,
+      bonus_2_companeros_pts: ultima.bonus_2_companeros_pts,
+      bonus_3mas_companeros_pts: ultima.bonus_3mas_companeros_pts,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener la última configuración' });
+  }
+});
+
 // POST /grupos/:id/competencias — crear la siguiente competencia del grupo (admin)
 router.post('/:id/competencias', authMiddleware, async (req, res) => {
   const { id } = req.params;

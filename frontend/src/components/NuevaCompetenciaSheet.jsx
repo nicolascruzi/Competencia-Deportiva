@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getDeportes } from '../api/actividades';
-import { crearCompetenciaGrupo } from '../api/grupos';
+import { crearCompetenciaGrupo, getUltimaConfigGrupo } from '../api/grupos';
 import { useLoading } from '../context/LoadingContext';
 
 const inputStyle = {
@@ -47,16 +47,29 @@ export default function NuevaCompetenciaSheet({ grupoId, onClose, onCreated }) {
     startY.current = null;
   }
 
+  // Precarga: ponderadores y bonus por compañeros de la ÚLTIMA competencia de este grupo (si hay
+  // alguna), en vez de los defaults genéricos del catálogo — así no hay que reconfigurar todo de
+  // nuevo cada vez que se crea la siguiente competencia del mismo grupo.
   useEffect(() => {
-    getDeportes().then(deps => {
+    Promise.all([getDeportes(), getUltimaConfigGrupo(grupoId).catch(() => null)]).then(([deps, ultima]) => {
       setDeportes(deps);
+      const pondUltima = {};
+      (ultima?.ponderadores || []).forEach(p => { pondUltima[p.deporte_nombre] = p.ponderador; });
       setPonders(prev => {
         const next = { ...prev };
-        deps.forEach(d => { if (!(d.nombre in next)) next[d.nombre] = d.ponderador_default; });
+        deps.forEach(d => {
+          if (d.nombre in next) return;
+          next[d.nombre] = pondUltima[d.nombre] ?? d.ponderador_default;
+        });
         return next;
       });
+      if (ultima) {
+        setBonus1(String(ultima.bonus_1_companero_pts ?? 0));
+        setBonus2(String(ultima.bonus_2_companeros_pts ?? 0));
+        setBonus3mas(String(ultima.bonus_3mas_companeros_pts ?? 0));
+      }
     }).catch(() => {});
-  }, []);
+  }, [grupoId]);
 
   async function handleSubmit(e) {
     e.preventDefault();
