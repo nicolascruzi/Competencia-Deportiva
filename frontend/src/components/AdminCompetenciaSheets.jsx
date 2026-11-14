@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import {
   updatePonderadores, updateSemanas,
   crearChallenge, updateChallenge, deleteChallenge, updateConfiguracion,
-  getCompaneros, getVotacionSemana,
+  getCompaneros, getVotacionSemana, quitarDeporteComp,
 } from '../api/competencias';
 import { updateEquiposGrupo, updateAsignacionesGrupo } from '../api/grupos';
 import { useLoading } from '../context/LoadingContext';
-import { getDeportes as getAllDeportes, createDeporte, updateDeporte, deleteDeporte } from '../api/actividades';
+import { getDeportes as getAllDeportes, createDeporte, updateDeporte } from '../api/actividades';
 import {
   DndContext, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay, useDroppable, useDraggable,
 } from '@dnd-kit/core';
@@ -191,18 +191,18 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
   }
 
   async function handleBorrarDeporte(d) {
-    if (!confirm(`¿Eliminar "${d.nombre}" del catálogo? Las actividades ya registradas con este deporte no se borran, pero dejará de estar disponible para elegir en nuevas actividades.`)) return;
+    if (!confirm(`¿Quitar "${d.nombre}" de "${competencia.nombre}"? Solo afecta a esta competencia — el deporte sigue disponible en el catálogo y en las demás competencias.`)) return;
     setBorrandoId(d.id); setEditError('');
     try {
-      await deleteDeporte(d.id);
-      setDeportes(prev => prev.filter(x => x.id !== d.id));
+      await quitarDeporteComp(competencia.id, d.nombre);
+      setDeportes(prev => prev.filter(x => x.nombre !== d.nombre));
       setPonders(prev => {
         const map = { ...prev };
         delete map[d.nombre];
         return map;
       });
     } catch (err) {
-      setEditError(err.message || 'Error al eliminar el deporte');
+      setEditError(err.message || 'Error al quitar el deporte de la competencia');
     } finally {
       setBorrandoId(null);
     }

@@ -311,6 +311,28 @@ router.put('/:id/deportes', authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /competencias/:id/deportes/:nombre — quitar un deporte SOLO de esta competencia
+// (borra la fila en competencia_deportes; el deporte sigue existiendo en el catálogo global
+// y en cualquier otra competencia que lo tenga configurado).
+router.delete('/:id/deportes/:nombre', authMiddleware, async (req, res) => {
+  const { id, nombre } = req.params;
+
+  try {
+    const { rows: [comp] } = await pool.query('SELECT id FROM competencias WHERE id=$1', [id]);
+    if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
+    if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede modificar ponderadores' });
+
+    await pool.query(
+      'DELETE FROM competencia_deportes WHERE competencia_id=$1 AND deporte_nombre=$2',
+      [id, nombre]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al quitar el deporte de la competencia' });
+  }
+});
+
 // ── SEMANAS: CHALLENGES Y DEPORTE DE LA SEMANA ──────────────────────────────
 
 // PUT /competencias/:id/semanas — editar los dos deportes de la semana 1 (admin del grupo)
