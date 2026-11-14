@@ -45,6 +45,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const part = await esParticipanteDeCompetencia(id, req.user.id);
     if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
 
+    await pool.query(
+      `UPDATE competencias SET estado='finalizada' WHERE id=$1 AND estado='en_curso' AND fecha_fin IS NOT NULL AND fecha_fin < $2`,
+      [id, hoyChile()]
+    );
+
     const { rows: [comp] } = await pool.query(
       `SELECT c.id, c.nombre, c.grupo_id, c.estado, c.created_at,
               c.bonus_1_companero_pts, c.bonus_2_companeros_pts, c.bonus_3mas_companeros_pts, c.bonus_deporte_semana_extra,

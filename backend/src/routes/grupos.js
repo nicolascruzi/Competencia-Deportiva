@@ -8,6 +8,16 @@ const { hoyChile } = require('../lib/fecha');
 const router = express.Router();
 
 // Genera un PIN de 6 dígitos único
+// Cierra automáticamente las competencias en_curso cuya fecha_fin ya pasó. El frontend ya
+// detecta esto por fecha_fin para mostrar el panel de cierre sin depender de `estado`, pero
+// dejar `estado` desactualizado en la fila es confuso al mirar la base de datos directamente.
+async function cerrarCompetenciasVencidas() {
+  await pool.query(
+    `UPDATE competencias SET estado='finalizada' WHERE estado='en_curso' AND fecha_fin IS NOT NULL AND fecha_fin < $1`,
+    [hoyChile()]
+  );
+}
+
 async function generarPin() {
   for (let i = 0; i < 20; i++) {
     const pin = String(Math.floor(100000 + Math.random() * 900000));
@@ -84,6 +94,7 @@ async function creaCompetenciaEnTransaccion(client, grupoId, body) {
 // GET /grupos — mis grupos, con sus competencias en_curso y las últimas finalizadas embebidas
 router.get('/', authMiddleware, async (req, res) => {
   try {
+    await cerrarCompetenciasVencidas();
     const { rows: grupos } = await pool.query(
       `SELECT g.id, g.nombre, g.pin, g.creador_id, g.created_at,
               (SELECT COUNT(*) FROM grupo_participantes gp2 WHERE gp2.grupo_id = g.id) AS participantes,
@@ -280,6 +291,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const part = await esParticipanteDeGrupo(id, req.user.id);
     if (!part) return res.status(403).json({ error: 'No eres participante de este grupo' });
 
+    await cerrarCompetenciasVencidas();
+
     const { rows: [grupo] } = await pool.query('SELECT * FROM grupos WHERE id=$1', [id]);
     if (!grupo) return res.status(404).json({ error: 'Grupo no encontrado' });
 
@@ -378,6 +391,8 @@ router.get('/:id/competencias', authMiddleware, async (req, res) => {
   const { id } = req.params;
   try {
     if (!(await esParticipanteDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de este grupo' });
+
+    await cerrarCompetenciasVencidas();
 
     const { rows } = await pool.query(
       `SELECT id, nombre, estado,
