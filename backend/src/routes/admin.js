@@ -167,7 +167,7 @@ router.get('/actividades', async (req, res) => {
       JOIN competencias c ON c.id = ac.competencia_id
       JOIN actividades a ON a.id = ac.actividad_id
       LEFT JOIN competencia_deportes cd ON cd.competencia_id = c.id AND cd.deporte_nombre = a.deporte_nombre
-      LEFT JOIN deportes d ON d.nombre = a.deporte_nombre
+      LEFT JOIN deportes d ON d.nombre = a.deporte_nombre AND (d.competencia_id IS NULL OR d.competencia_id = c.id)
       WHERE ac.actividad_id = ANY($1)
     `, [rows.map(r => r.id)]);
 

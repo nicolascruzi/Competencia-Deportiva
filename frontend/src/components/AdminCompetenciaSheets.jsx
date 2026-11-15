@@ -3,10 +3,11 @@ import {
   updatePonderadores, updateSemanas,
   crearChallenge, updateChallenge, deleteChallenge, updateConfiguracion,
   getCompaneros, getVotacionSemana, quitarDeporteComp,
+  getDeportesDisponiblesComp, crearDeporteComp,
 } from '../api/competencias';
 import { updateEquiposGrupo, updateAsignacionesGrupo } from '../api/grupos';
 import { useLoading } from '../context/LoadingContext';
-import { getDeportes as getAllDeportes, createDeporte, updateDeporte } from '../api/actividades';
+import { updateDeporte } from '../api/actividades';
 import {
   DndContext, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay, useDroppable, useDraggable,
 } from '@dnd-kit/core';
@@ -108,7 +109,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
   const { withLoading } = useLoading();
 
   function loadDeportes() {
-    return getAllDeportes().then(deps => {
+    return getDeportesDisponiblesComp(competencia.id).then(deps => {
       setDeportes(deps);
       setPonders(prev => {
         const map = {};
@@ -136,9 +137,9 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
     const pond = parseFloat(nuevoPond) || 1;
     setAddingDeporte(true); setAddError(''); setAddSuccess('');
     try {
-      await createDeporte({ nombre, icono: nuevoIcono || '🏅', ponderador_default: pond });
+      await crearDeporteComp(competencia.id, { nombre, icono: nuevoIcono || '🏅', ponderador: pond });
       setPonders(p => ({ ...p, [nombre]: pond }));
-      await getAllDeportes().then(deps => {
+      await getDeportesDisponiblesComp(competencia.id).then(deps => {
         setDeportes(deps);
         setPonders(prev => {
           const map = { ...prev };
@@ -146,7 +147,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
           return map;
         });
       });
-      setAddSuccess(`"${nombre}" se agregó — búscalo en la lista y no olvides Guardar cambios.`);
+      setAddSuccess(`"${nombre}" se agregó solo para "${competencia.nombre}" — no olvides Guardar cambios.`);
       setNuevoNombre('');
       setNuevoIcono('🏅');
       setNuevoPond('1.0');
@@ -170,7 +171,7 @@ function AdminPonderadoresSheet({ competencia, onClose, onSaved, readOnly = fals
     setEditSaving(true); setEditError('');
     try {
       await updateDeporte(deporteOriginal.id, { nombre, icono: editDraft.icono || '🏅', ponderador_default: pond });
-      const deps = await getAllDeportes();
+      const deps = await getDeportesDisponiblesComp(competencia.id);
       setDeportes(deps);
       // El ponderador tipeado por el usuario para este deporte en esta sesión vive bajo la key del
       // nombre viejo — si cambió el nombre, se migra a la key nueva para no perderlo.
@@ -819,7 +820,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
   const [error, setError]         = useState('');
   const startY = useRef(null);
 
-  useEffect(() => { getAllDeportes().then(setDeportes).catch(() => {}); }, []);
+  useEffect(() => { getDeportesDisponiblesComp(competencia.id).then(setDeportes).catch(() => {}); }, []);
 
   // Ponderador vigente de un deporte en esta competencia (override si existe, si no el default del
   // catálogo) — mismo criterio que usa el backend para separar "tranquilos" (<=1) de "extremos" (>1).

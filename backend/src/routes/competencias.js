@@ -61,7 +61,12 @@ router.get('/:id', authMiddleware, async (req, res) => {
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
 
     const { rows: deportes } = await pool.query(
-      'SELECT deporte_nombre, ponderador FROM competencia_deportes WHERE competencia_id=$1 ORDER BY deporte_nombre',
+      `SELECT cd.deporte_nombre, cd.ponderador,
+              COALESCE(
+                (SELECT d.icono FROM deportes d WHERE d.nombre=cd.deporte_nombre AND d.competencia_id=cd.competencia_id),
+                (SELECT d.icono FROM deportes d WHERE d.nombre=cd.deporte_nombre AND d.competencia_id IS NULL)
+              ) AS icono
+       FROM competencia_deportes cd WHERE cd.competencia_id=$1 ORDER BY cd.deporte_nombre`,
       [id]
     );
 
@@ -311,9 +316,78 @@ router.put('/:id/deportes', authMiddleware, async (req, res) => {
   }
 });
 
-// DELETE /competencias/:id/deportes/:nombre — quitar un deporte SOLO de esta competencia
-// (borra la fila en competencia_deportes; el deporte sigue existiendo en el catálogo global
-// y en cualquier otra competencia que lo tenga configurado).
+// GET /competencias/:id/deportes-disponibles — catálogo global + deportes privados creados
+// desde esta competencia (nunca deportes privados de OTRA competencia).
+router.get('/:id/deportes-disponibles', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const part = await esParticipanteDeCompetencia(id, req.user.id);
+    if (!part) return res.status(403).json({ error: 'No eres participante de esta competencia' });
+
+    const { rows } = await pool.query(
+      'SELECT * FROM deportes WHERE competencia_id IS NULL OR competencia_id=$1 ORDER BY nombre',
+      [id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener los deportes disponibles' });
+  }
+});
+
+// POST /competencias/:id/deportes — crear un deporte PRIVADO de esta competencia: no aparece en
+// el catálogo global (GET /actividades/deportes) ni en ninguna otra competencia.
+router.post('/:id/deportes', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { nombre, icono, ponderador } = req.body;
+
+  try {
+    const { rows: [comp] } = await pool.query('SELECT id FROM competencias WHERE id=$1', [id]);
+    if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
+    if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede agregar deportes' });
+
+    const nombreLimpio = nombre?.trim();
+    if (!nombreLimpio) return res.status(400).json({ error: 'El nombre es obligatorio' });
+    const iconoFinal = icono?.trim() || '🏅';
+    const pond = parseFloat(ponderador) || 1.0;
+
+    const { rows: [existente] } = await pool.query(
+      `SELECT id FROM deportes WHERE LOWER(nombre)=LOWER($1) AND (competencia_id IS NULL OR competencia_id=$2)`,
+      [nombreLimpio, id]
+    );
+    if (existente) return res.status(400).json({ error: 'Ya existe un deporte con ese nombre en esta competencia' });
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: [deporte] } = await client.query(
+        `INSERT INTO deportes (nombre, icono, ponderador_default, competencia_id)
+         VALUES ($1,$2,$3,$4) RETURNING *`,
+        [nombreLimpio, iconoFinal, pond, id]
+      );
+      await client.query(
+        `INSERT INTO competencia_deportes (competencia_id, deporte_nombre, ponderador)
+         VALUES ($1,$2,$3) ON CONFLICT (competencia_id, deporte_nombre) DO UPDATE SET ponderador=EXCLUDED.ponderador`,
+        [id, nombreLimpio, pond]
+      );
+      await client.query('COMMIT');
+      res.status(201).json(deporte);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al crear el deporte' });
+  }
+});
+
+// DELETE /competencias/:id/deportes/:nombre — quitar un deporte SOLO de esta competencia. Si el
+// deporte es privado de esta competencia (fue creado desde aquí), se borra por completo; si es del
+// catálogo global o privado de otra competencia, solo se quita el override en competencia_deportes
+// (el deporte sigue existiendo donde corresponda).
 router.delete('/:id/deportes/:nombre', authMiddleware, async (req, res) => {
   const { id, nombre } = req.params;
 
@@ -322,6 +396,7 @@ router.delete('/:id/deportes/:nombre', authMiddleware, async (req, res) => {
     if (!comp) return res.status(404).json({ error: 'Competencia no encontrada' });
     if (!(await esAdminDeCompetencia(id, req.user.id))) return res.status(403).json({ error: 'Solo un admin puede modificar ponderadores' });
 
+    await pool.query('DELETE FROM deportes WHERE nombre=$1 AND competencia_id=$2', [nombre, id]);
     await pool.query(
       'DELETE FROM competencia_deportes WHERE competencia_id=$1 AND deporte_nombre=$2',
       [id, nombre]
@@ -382,7 +457,7 @@ async function ponderadorVigente(competenciaId, deporteNombre) {
   const { rows: [r] } = await pool.query(
     `SELECT COALESCE(
        (SELECT cd.ponderador FROM competencia_deportes cd WHERE cd.competencia_id=$1 AND cd.deporte_nombre=$2),
-       (SELECT d.ponderador_default FROM deportes d WHERE d.nombre=$2)
+       (SELECT d.ponderador_default FROM deportes d WHERE d.nombre=$2 AND (d.competencia_id IS NULL OR d.competencia_id=$1))
      ) AS ponderador`,
     [competenciaId, deporteNombre]
   );
@@ -446,7 +521,8 @@ router.get('/:id/semanas/:semanaId/votacion', authMiddleware, async (req, res) =
                 WHERE v.competencia_semana_id=$1 AND v.deporte_id=d.id AND v.categoria=$3
               ), '[]') AS votantes
        FROM deportes d
-       WHERE (CASE WHEN COALESCE(
+       WHERE (d.competencia_id IS NULL OR d.competencia_id=$2)
+         AND (CASE WHEN COALESCE(
                 (SELECT cd.ponderador FROM competencia_deportes cd WHERE cd.competencia_id=$2 AND cd.deporte_nombre=d.nombre),
                 d.ponderador_default
               ) > 1 THEN 'extremo' ELSE 'tranquilo' END) = $3
@@ -510,7 +586,10 @@ router.post('/:id/semanas/:semanaId/votar', authMiddleware, async (req, res) => 
     const hoy = hoyChile();
     if (anterior && hoy > anterior.fecha_fin) return res.status(400).json({ error: 'La votación de esta semana ya cerró' });
 
-    const { rows: [deporte] } = await pool.query('SELECT id, nombre FROM deportes WHERE id=$1', [deporte_id]);
+    const { rows: [deporte] } = await pool.query(
+      'SELECT id, nombre FROM deportes WHERE id=$1 AND (competencia_id IS NULL OR competencia_id=$2)',
+      [deporte_id, id]
+    );
     if (!deporte) return res.status(404).json({ error: 'Deporte no encontrado' });
 
     const ponderador = await ponderadorVigente(id, deporte.nombre);
@@ -532,7 +611,8 @@ router.post('/:id/semanas/:semanaId/votar', authMiddleware, async (req, res) => 
     if (nombresUsados.has(deporte.nombre)) {
       const { rows: todosDeCategoria } = await pool.query(
         `SELECT d.nombre FROM deportes d
-         WHERE (CASE WHEN COALESCE(
+         WHERE (d.competencia_id IS NULL OR d.competencia_id=$1::int)
+           AND (CASE WHEN COALESCE(
                   (SELECT cd.ponderador FROM competencia_deportes cd WHERE cd.competencia_id=$1::int AND cd.deporte_nombre=d.nombre),
                   d.ponderador_default
                 ) > 1 THEN 'extremo' ELSE 'tranquilo' END) = $2`,

@@ -6,6 +6,8 @@ export const getChallengesCompletadosComp = (id) => apiFetch(`/competencias/${id
 export const getMesesComp         = (id)     => apiFetch(`/competencias/${id}/meses`);
 export const updatePonderadores   = (id, ponderadores) => apiFetch(`/competencias/${id}/deportes`, { method: 'PUT', body: JSON.stringify({ ponderadores }) });
 export const quitarDeporteComp    = (id, deporteNombre) => apiFetch(`/competencias/${id}/deportes/${encodeURIComponent(deporteNombre)}`, { method: 'DELETE' });
+export const getDeportesDisponiblesComp = (id) => apiFetch(`/competencias/${id}/deportes-disponibles`);
+export const crearDeporteComp     = (id, body) => apiFetch(`/competencias/${id}/deportes`, { method: 'POST', body: JSON.stringify(body) });
 export const getActividadesComp   = (id, mes) => apiFetch(`/competencias/${id}/actividades${mes ? `?mes=${mes}` : ''}`);
 
 export const getRankingEquiposComp = (id, mes)          => apiFetch(`/competencias/${id}/ranking-equipos${mes ? `?mes=${mes}` : ''}`);

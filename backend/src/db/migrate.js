@@ -572,6 +572,23 @@ END $$;
 -- Default true para no cambiar el comportamiento de nadie que ya tenía push activado.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_actividad_nueva BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_interacciones    BOOLEAN NOT NULL DEFAULT true;
+
+-- Deportes "privados" de una competencia: competencia_id NULL = deporte del catálogo global
+-- (visible/seleccionable en cualquier competencia); competencia_id = X = creado desde el panel
+-- de ponderadores de la competencia X, invisible para todas las demás. Siguen viviendo en la
+-- misma tabla (necesario para la FK de votos_deporte_semana.deporte_id), pero nunca se listan ni
+-- se exponen fuera de su competencia dueña. El UNIQUE(nombre) global se reemplaza por uno que
+-- permite el mismo nombre en catálogo global vs. distintas competencias privadas (NULL se trata
+-- como valor distinto entre filas, comportamiento estándar de UNIQUE en Postgres).
+ALTER TABLE deportes ADD COLUMN IF NOT EXISTS competencia_id INTEGER REFERENCES competencias(id) ON DELETE CASCADE;
+ALTER TABLE deportes DROP CONSTRAINT IF EXISTS deportes_nombre_key;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'deportes_nombre_competencia_key') THEN
+    ALTER TABLE deportes ADD CONSTRAINT deportes_nombre_competencia_key UNIQUE (nombre, competencia_id);
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_deportes_competencia ON deportes(competencia_id);
 `;
 
 async function migrate() {

@@ -60,7 +60,7 @@ async function calcularPonderador(deporteNombre, userId, fecha) {
   if (compConfig) return parseFloat(compConfig.ponderador);
 
   const { rows: [deporte] } = await pool.query(
-    'SELECT ponderador_default FROM deportes WHERE nombre = $1', [deporteNombre]
+    'SELECT ponderador_default FROM deportes WHERE nombre = $1 AND competencia_id IS NULL', [deporteNombre]
   );
   return deporte ? parseFloat(deporte.ponderador_default) : 1;
 }
@@ -341,17 +341,20 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// GET /actividades/deportes — lista de deportes disponibles
+// GET /actividades/deportes — lista de deportes del catálogo GLOBAL (visibles en cualquier
+// competencia). Excluye los deportes "privados" creados desde el panel de una competencia
+// puntual (competencia_id IS NOT NULL) — esos solo se listan vía GET /competencias/:id/deportes.
 router.get('/deportes', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM deportes ORDER BY nombre');
+    const result = await pool.query('SELECT * FROM deportes WHERE competencia_id IS NULL ORDER BY nombre');
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener deportes' });
   }
 });
 
-// POST /actividades/deportes — crear deporte custom
+// POST /actividades/deportes — crear deporte custom en el catálogo GLOBAL (visible en cualquier
+// competencia). Para un deporte exclusivo de una sola competencia usar POST /competencias/:id/deportes.
 router.post('/deportes', async (req, res) => {
   const { nombre, icono, ponderador_default } = req.body;
   if (!nombre?.trim()) return res.status(400).json({ error: 'El nombre es obligatorio' });
@@ -359,9 +362,9 @@ router.post('/deportes', async (req, res) => {
   const pond = parseFloat(ponderador_default) || 1.0;
   try {
     const result = await pool.query(
-      `INSERT INTO deportes (nombre, icono, ponderador_default)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (nombre) DO UPDATE SET icono = EXCLUDED.icono, ponderador_default = EXCLUDED.ponderador_default
+      `INSERT INTO deportes (nombre, icono, ponderador_default, competencia_id)
+       VALUES ($1, $2, $3, NULL)
+       ON CONFLICT (nombre, competencia_id) DO UPDATE SET icono = EXCLUDED.icono, ponderador_default = EXCLUDED.ponderador_default
        RETURNING *`,
       [nombre.trim(), icono_final, pond]
     );

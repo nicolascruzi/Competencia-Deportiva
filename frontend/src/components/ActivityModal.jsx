@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getDeportes, createActividad } from '../api/actividades';
+import { getDeportesDisponiblesComp } from '../api/competencias';
 import { getGrupos } from '../api/grupos';
 import { uploadFoto } from '../api/fotos';
 import { useLoading } from '../context/LoadingContext';
@@ -115,7 +116,15 @@ export default function ActivityModal({ open, onClose, onCreated, competenciaAct
     3: parseFloat(competenciaActiva?.bonus_3mas_companeros_pts) || 0,
   };
 
-  useEffect(() => { getDeportes().then(setDeportes).catch(() => {}); }, []);
+  // Catálogo global + (si hay competencia activa) los deportes privados creados desde esa
+  // competencia — así un deporte exclusivo de una competencia queda seleccionable al registrar
+  // actividad dentro de ella, sin filtrarse a otras competencias.
+  useEffect(() => {
+    const cargar = competenciaActiva?.id
+      ? getDeportesDisponiblesComp(competenciaActiva.id)
+      : getDeportes();
+    cargar.then(setDeportes).catch(() => {});
+  }, [competenciaActiva?.id]);
 
   useEffect(() => {
     if (open) {
