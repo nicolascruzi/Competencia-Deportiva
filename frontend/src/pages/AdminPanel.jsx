@@ -409,7 +409,7 @@ function TabActividades() {
                 {a.competencias?.length > 0 && (
                   <div style={{ fontSize:9.5, color:'var(--t-muted)', marginTop:2, display:'flex', flexWrap:'wrap', gap:6 }}>
                     {a.competencias.map(c => (
-                      <span key={c.competencia_id}>{c.competencia_nombre}: ×{c.ponderador.toFixed(1)}</span>
+                      <span key={c.competencia_id}>{c.competencia_nombre}: ×{(parseFloat(c.ponderador) || 0).toFixed(1)}</span>
                     ))}
                   </div>
                 )}

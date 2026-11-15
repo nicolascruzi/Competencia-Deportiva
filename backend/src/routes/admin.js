@@ -155,7 +155,7 @@ router.get('/actividades', async (req, res) => {
 
     const { rows: vinculos } = await pool.query(`
       SELECT ac.actividad_id, c.id AS competencia_id, c.nombre AS competencia_nombre,
-             COALESCE(cd.ponderador, d.ponderador_default) AS ponderador,
+             COALESCE(cd.ponderador, d.ponderador_default, a.ponderador) AS ponderador,
              COALESCE((
                SELECT MAX(s.deporte_semana_ponderador_extra)
                FROM competencia_semanas s
