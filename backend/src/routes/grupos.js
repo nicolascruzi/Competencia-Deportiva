@@ -4,6 +4,7 @@ const { authMiddleware } = require('../middleware/auth');
 const { esAdminDeGrupo, esParticipanteDeGrupo } = require('../lib/permisos');
 const { calcularSemanas } = require('./competencias');
 const { hoyChile } = require('../lib/fecha');
+const { getPuntosPorPersona } = require('../lib/competenciaScoring');
 
 const router = express.Router();
 
@@ -405,6 +406,62 @@ router.get('/:id/competencias', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener el historial de competencias' });
+  }
+});
+
+// GET /grupos/:id/competencias/ranking-total — acumulado histórico: suma los puntos/minutos/
+// actividades de cada participante a través de TODAS las competencias finalizadas del grupo (cada
+// una recalculada con sus propios ponderadores/bonus/challenges, vía getPuntosPorPersona), más el
+// detalle de cuántas competencias ganó cada uno (quedó 1° en su ranking individual).
+router.get('/:id/competencias/ranking-total', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!(await esParticipanteDeGrupo(id, req.user.id))) return res.status(403).json({ error: 'No eres participante de este grupo' });
+
+    await cerrarCompetenciasVencidas();
+
+    const { rows: competencias } = await pool.query(
+      `SELECT id, nombre FROM competencias WHERE grupo_id=$1 AND estado='finalizada' ORDER BY created_at ASC`,
+      [id]
+    );
+
+    const { rows: participantes } = await pool.query(
+      `SELECT u.id, COALESCE(u.apodo, u.nombre) AS nombre_display, u.foto_perfil_url
+       FROM grupo_participantes gp JOIN users u ON u.id = gp.user_id WHERE gp.grupo_id=$1`,
+      [id]
+    );
+
+    const acumulado = new Map(participantes.map(p => [p.id, {
+      ...p, actividades: 0, minutos: 0, puntos: 0, competencias_jugadas: 0, competencias_ganadas: 0,
+    }]));
+
+    for (const comp of competencias) {
+      const puntosPorPersona = await getPuntosPorPersona(comp.id);
+      if (!puntosPorPersona.size) continue;
+
+      let mejorUserId = null, mejorPuntos = -Infinity;
+      for (const [userId, datos] of puntosPorPersona) {
+        if (datos.puntos > mejorPuntos) { mejorPuntos = datos.puntos; mejorUserId = userId; }
+      }
+
+      for (const [userId, datos] of puntosPorPersona) {
+        const cur = acumulado.get(userId);
+        if (!cur) continue; // ya no es participante del grupo
+        cur.actividades += datos.actividades;
+        cur.minutos += datos.minutos;
+        cur.puntos += datos.puntos;
+        cur.competencias_jugadas += 1;
+      }
+      if (mejorUserId != null && acumulado.has(mejorUserId)) {
+        acumulado.get(mejorUserId).competencias_ganadas += 1;
+      }
+    }
+
+    const ranking = [...acumulado.values()].sort((a, b) => b.puntos - a.puntos || b.minutos - a.minutos);
+    res.json({ total_competencias: competencias.length, ranking });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener el ranking acumulado' });
   }
 });
 

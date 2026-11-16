@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getCompetenciasGrupo, cerrarCompetenciaGrupo, borrarCompetenciaGrupo } from '../api/grupos';
+import { getCompetenciasGrupo, cerrarCompetenciaGrupo, borrarCompetenciaGrupo, getRankingTotalGrupo } from '../api/grupos';
 import { getRankingComp, getChallengesCompletadosComp } from '../api/competencias';
 import NuevaCompetenciaSheet from './NuevaCompetenciaSheet';
 import SubTabs from './SubTabs';
@@ -142,10 +142,79 @@ function RankingCongelado({ competencia, onBack }) {
   );
 }
 
+// Ranking acumulado de TODAS las competencias finalizadas del grupo — suma puntos/minutos/
+// actividades de cada participante a través de su historia completa, más cuántas competencias
+// jugó y ganó, usando el mismo endpoint que calcula cada ranking individual (uno por competencia).
+function RankingTotalGrupo({ grupoId, onBack }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelado = false;
+    getRankingTotalGrupo(grupoId)
+      .then(d => { if (!cancelado) setData(d); })
+      .catch(err => { if (!cancelado) setError(err.message); });
+    return () => { cancelado = true; };
+  }, [grupoId]);
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+      <button onClick={onBack}
+        style={{ display:'flex', alignItems:'center', gap:6, alignSelf:'flex-start', padding:'6px 4px', background:'transparent', border:'none', cursor:'pointer', color:'var(--t-muted)', fontSize:13, WebkitTapHighlightColor:'transparent' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Volver al historial
+      </button>
+      <div>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:18, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
+          Ranking acumulado
+        </div>
+        <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:3 }}>
+          {data ? `Suma de ${data.total_competencias} competencia${data.total_competencias === 1 ? '' : 's'} finalizada${data.total_competencias === 1 ? '' : 's'}` : 'Suma de todas las competencias finalizadas'}
+        </div>
+      </div>
+
+      {error && <div style={{ fontSize:13, color:'#F87171' }}>{error}</div>}
+
+      {data === null && !error ? (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'30px 0', color:'var(--t-muted)', fontSize:13, gap:8 }}>
+          <div style={{ width:14, height:14, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+          Cargando…
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          {data?.ranking.map((p, i) => (
+            <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)' }}>
+              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color:'var(--t-muted)', width:18, textAlign:'center', flexShrink:0 }}>
+                {i + 1}
+              </span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:14, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {p.nombre_display}
+                </div>
+                <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>
+                  {p.competencias_jugadas} competencia{p.competencias_jugadas === 1 ? '' : 's'}
+                  {p.competencias_ganadas > 0 && ` · 🏆 ${p.competencias_ganadas}`}
+                </div>
+              </div>
+              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)', flexShrink:0 }}>
+                {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
+              </span>
+            </div>
+          ))}
+          {data?.ranking.length === 0 && (
+            <div style={{ textAlign:'center', padding:'20px 0', color:'var(--t-muted)', fontSize:13 }}>Todavía no hay competencias finalizadas en este grupo.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, onCompetenciasEnCursoCambio }) {
   const [competencias, setCompetencias] = useState(null);
   const [error, setError] = useState('');
   const [verRanking, setVerRanking] = useState(null); // competencia seleccionada, o null
+  const [verAcumulado, setVerAcumulado] = useState(false);
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [cerrandoId, setCerrandoId] = useState(null);
   const [borrandoId, setBorrandoId] = useState(null);
@@ -217,6 +286,8 @@ export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, 
 
           {verRanking ? (
             <RankingCongelado competencia={verRanking} onBack={() => setVerRanking(null)} />
+          ) : verAcumulado ? (
+            <RankingTotalGrupo grupoId={grupoId} onBack={() => setVerAcumulado(false)} />
           ) : competencias === null ? (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'30px 0', color:'var(--t-muted)', fontSize:13, gap:8 }}>
               <div style={{ width:14, height:14, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
@@ -224,6 +295,10 @@ export default function HistorialCompetenciasSheet({ grupoId, isAdmin, onClose, 
             </div>
           ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <button onClick={() => setVerAcumulado(true)}
+                style={{ width:'100%', padding:'12px', borderRadius:12, border:'1px solid var(--t-dim)', background:'var(--t-surface2)', color:'var(--t-text)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                🏆 Ranking acumulado del grupo
+              </button>
               {isAdmin && (
                 <button onClick={() => setNuevaOpen(true)}
                   style={{ width:'100%', padding:'12px', borderRadius:12, border:'1.5px solid rgba(var(--t-accent-r),0.35)', background:'rgba(var(--t-accent-r),0.08)', color:'var(--t-accent)', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:14, textTransform:'uppercase', letterSpacing:'0.04em', cursor:'pointer', marginBottom:4 }}>
