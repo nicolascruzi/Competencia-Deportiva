@@ -116,6 +116,8 @@ export default function FeedGrupal({ competencia, scrollSignal }) {
               user={user}
               onLightbox={url => setLightbox(url)}
               onOpenProfile={a => setProfile({ nombre: a.nombre_display || a.nombre, id: a.user_id })}
+              onUpdated={updated => setActs(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a))}
+              onDeleted={id => setActs(prev => prev.filter(a => a.id !== id))}
             />
           </div>
         ))}

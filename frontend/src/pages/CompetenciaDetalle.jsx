@@ -2163,7 +2163,10 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
                     {posts.map(act => (
                       <div key={act.id} ref={el => { postRefs.current[act.id] = el; }}
                         style={{ outline: act.id === activePostId ? '2px solid var(--t-accent)' : '2px solid transparent', transition:'outline 0.3s' }}>
-                        <FeedCard act={act} user={user} onLightbox={url => setLightbox(url)} />
+                        <FeedCard act={act} user={user} onLightbox={url => setLightbox(url)}
+                          onUpdated={updated => setAllData(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a))}
+                          onDeleted={id => { setAllData(prev => prev.filter(a => a.id !== id)); setActivePostId(null); }}
+                        />
                       </div>
                     ))}
                   </div>

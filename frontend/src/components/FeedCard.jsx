@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getComentarios, createComentario, deleteComentario, getLikes, toggleLike, darLike, getLikers, getMencionables } from '../api/competencias';
+import { deleteActividad, getDeportes } from '../api/actividades';
+import { useLoading } from '../context/LoadingContext';
+import EditActividadModal from './EditActividadModal';
 
 // ─── Estado de likes compartido entre el botón de corazón y el doble-tap en la foto ──────────────
 
@@ -512,11 +515,81 @@ function FotoActividad({ act, onLightbox, likeState }) {
   );
 }
 
-export function FeedCard({ act, user, onLightbox, onOpenProfile }) {
-  const likeState = useLikeState(act.id);
+const IconDots = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+  </svg>
+);
+
+// Menú de tres puntitos: "Editar"/"Eliminar" de la propia publicación. Solo visible para el dueño
+// de la actividad (o un admin), en la esquina superior derecha de la card — antes la única forma de
+// editar/borrar una actividad era ir a "Mis actividades" y buscarla ahí.
+function MenuPublicacion({ act, onEdit, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e) { if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  async function handleDelete() {
+    setOpen(false);
+    if (!confirm('¿Eliminar esta publicación?')) return;
+    setDeleting(true);
+    try {
+      await onDelete(act.id);
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
-    <div style={{ background:'var(--t-surface)', borderBottom:'1px solid var(--t-surface2)', marginBottom:8, borderRadius:0 }}>
+    <div ref={menuRef} style={{ position:'relative', flexShrink:0 }}>
+      <button onClick={() => setOpen(o => !o)} disabled={deleting} aria-label="Más acciones"
+        style={{ width:28, height:28, borderRadius:8, border:'none', background:'transparent', color:'var(--t-muted2)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+        <IconDots />
+      </button>
+      {open && (
+        <div style={{ position:'absolute', top:32, right:0, zIndex:30, width:170, background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, boxShadow:'0 8px 24px rgba(0,0,0,0.25)', overflow:'hidden' }}>
+          <button onClick={() => { setOpen(false); onEdit(); }}
+            style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'11px 14px', border:'none', background:'transparent', color:'var(--t-text)', fontSize:13, fontWeight:600, cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+            ✏️ Editar
+          </button>
+          <button onClick={handleDelete}
+            style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'11px 14px', border:'none', borderTop:'1px solid var(--t-dim)', background:'transparent', color:'#F87171', fontSize:13, fontWeight:600, cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+            🗑️ Eliminar
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function FeedCard({ act, user, onLightbox, onOpenProfile, onUpdated, onDeleted }) {
+  const likeState = useLikeState(act.id);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deportes, setDeportes] = useState([]);
+  const esDueño = act.user_id === user?.id || user?.role === 'admin';
+  const { withLoading } = useLoading();
+
+  function handleAbrirEditar() {
+    if (deportes.length === 0) getDeportes().then(setDeportes).catch(() => {});
+    setEditOpen(true);
+  }
+
+  async function handleDelete(id) {
+    await withLoading(() => deleteActividad(id));
+    onDeleted?.(id);
+  }
+
+  return (
+    <div style={{ background:'var(--t-surface)', borderBottom:'1px solid var(--t-surface2)', marginBottom:8, borderRadius:0, position:'relative' }}>
 
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px 10px' }}>
@@ -538,7 +611,22 @@ export function FeedCard({ act, user, onLightbox, onOpenProfile }) {
         <div style={{ fontSize:12, color:'var(--t-muted2)', flexShrink:0 }}>
           {timeAgo(act.created_at || act.fecha)}
         </div>
+        {esDueño && (
+          <MenuPublicacion act={act} onEdit={handleAbrirEditar} onDelete={handleDelete} />
+        )}
       </div>
+
+      {editOpen && createPortal(
+        <EditActividadModal
+          actividad={act}
+          deportes={deportes}
+          onClose={() => setEditOpen(false)}
+          onSaved={updated => onUpdated?.(updated)}
+          onFotoUploaded={(id, foto_url) => onUpdated?.({ ...act, foto_url })}
+          onFotoDeleted={() => onUpdated?.({ ...act, foto_url: null })}
+        />,
+        document.body
+      )}
 
       {/* Foto */}
       {act.foto_url && (
