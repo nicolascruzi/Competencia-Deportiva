@@ -12,11 +12,13 @@ const USER_FIELDS = `id, email, nombre, apellido, apodo,
   role, created_at, foto_perfil_url, peso_kg, estatura_cm, fecha_nacimiento, sexo,
   notif_actividad_nueva, notif_interacciones`;
 
+// La sesión solo debe cerrarse cuando el usuario elige "Cerrar sesión" (AuthContext.logout), nunca
+// sola por expiración — de ahí la vida tan larga del token en vez de un valor corto con refresh.
 function makeToken(user) {
   return jwt.sign(
     { id: user.id, email: user.email, nombre: user.nombre_display || user.nombre, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '3650d' }
   );
 }
 
