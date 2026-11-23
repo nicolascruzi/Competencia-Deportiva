@@ -6,6 +6,7 @@ import {
   getAdminDeportes, updateAdminDeporte, deleteAdminDeporte,
 } from '../api/admin';
 import { createDeporte } from '../api/actividades';
+import SubTabs from '../components/SubTabs';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -256,12 +257,44 @@ function fmtFechaCorta(iso) {
   return `${d}/${m}`;
 }
 
+const VISTAS_RANKING_SEMANAL = [
+  { id: 'total',  label: 'Más minutos' },
+  { id: 'sesion', label: 'Sesión más larga' },
+];
+
+// Una fila del ranking de una semana — cambia el subtítulo según la vista: cantidad de
+// actividades (vista "total") o qué deporte/día fue la sesión (vista "sesión más larga").
+function FilaRankingSemanal({ p, i, vista }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderRadius:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)' }}>
+      <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, color: i === 0 ? 'var(--t-accent)' : 'var(--t-muted)', width:16, textAlign:'center', flexShrink:0 }}>
+        {i + 1}
+      </span>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:13, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+          {p.nombre_display}
+        </div>
+        <div style={{ fontSize:10, color:'var(--t-muted)' }}>
+          {vista === 'sesion'
+            ? `${p.deporte_nombre} · ${fmtFechaCorta(p.fecha)}`
+            : `${p.actividades} actividad${p.actividades !== 1 ? 'es' : ''}`}
+        </div>
+      </div>
+      <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:14, color:'var(--t-accent)', flexShrink:0 }}>
+        {Math.round(p.minutos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>min</span>
+      </span>
+    </div>
+  );
+}
+
 // Bottom sheet: elegí una competencia del grupo (si hay más de una) y mostramos, semana por
-// semana (usando las semanas ya configuradas en competencia_semanas), quién hizo más minutos.
+// semana (usando las semanas ya configuradas en competencia_semanas), quién hizo más minutos en
+// total o quién tuvo la sesión individual más larga.
 function RankingSemanalSheet({ grupo, onClose }) {
   const [competencias, setCompetencias] = useState(null);
   const [competenciaId, setCompetenciaId] = useState(null);
   const [semanas, setSemanas] = useState(null);
+  const [vista, setVista] = useState('total');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -296,6 +329,10 @@ function RankingSemanalSheet({ grupo, onClose }) {
             style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>✕</button>
         </div>
 
+        <div style={{ borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
+          <SubTabs tabs={VISTAS_RANKING_SEMANAL} active={vista} onChange={setVista} />
+        </div>
+
         <div style={{ overflowY:'auto', flex:1, padding:'14px 18px' }}>
           {error && <div style={{ fontSize:13, color:'#F87171', marginBottom:10 }}>{error}</div>}
 
@@ -321,35 +358,25 @@ function RankingSemanalSheet({ grupo, onClose }) {
                 <div style={{ textAlign:'center', padding:'30px 0', color:'var(--t-muted)', fontSize:13 }}>Esta competencia no tiene semanas configuradas.</div>
               )}
 
-              {competenciaId && semanas !== null && semanas.map(s => (
-                <div key={s.id} style={{ marginBottom:16 }}>
-                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', color:'var(--t-accent)', marginBottom:6 }}>
-                    Semana {s.numero_semana} <span style={{ color:'var(--t-muted)', fontWeight:600 }}>· {fmtFechaCorta(s.fecha_inicio)} al {fmtFechaCorta(s.fecha_fin)}</span>
-                  </div>
-                  {s.ranking.length === 0 ? (
-                    <div style={{ fontSize:12, color:'var(--t-muted)', padding:'6px 2px' }}>Sin actividades esta semana.</div>
-                  ) : (
-                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                      {s.ranking.map((p, i) => (
-                        <div key={p.user_id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderRadius:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)' }}>
-                          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, color: i === 0 ? 'var(--t-accent)' : 'var(--t-muted)', width:16, textAlign:'center', flexShrink:0 }}>
-                            {i + 1}
-                          </span>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontSize:13, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                              {p.nombre_display}
-                            </div>
-                            <div style={{ fontSize:10, color:'var(--t-muted)' }}>{p.actividades} actividad{p.actividades !== 1 ? 'es' : ''}</div>
-                          </div>
-                          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:14, color:'var(--t-accent)', flexShrink:0 }}>
-                            {Math.round(p.minutos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>min</span>
-                          </span>
-                        </div>
-                      ))}
+              {competenciaId && semanas !== null && semanas.map(s => {
+                const ranking = vista === 'sesion' ? s.ranking_sesion_mas_larga : s.ranking;
+                return (
+                  <div key={s.id} style={{ marginBottom:16 }}>
+                    <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', color:'var(--t-accent)', marginBottom:6 }}>
+                      Semana {s.numero_semana} <span style={{ color:'var(--t-muted)', fontWeight:600 }}>· {fmtFechaCorta(s.fecha_inicio)} al {fmtFechaCorta(s.fecha_fin)}</span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {ranking.length === 0 ? (
+                      <div style={{ fontSize:12, color:'var(--t-muted)', padding:'6px 2px' }}>Sin actividades esta semana.</div>
+                    ) : (
+                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                        {ranking.map((p, i) => (
+                          <FilaRankingSemanal key={p.user_id} p={p} i={i} vista={vista} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </>
           )}
         </div>

@@ -261,9 +261,38 @@ router.get('/competencias/:id/ranking-semanal', async (req, res) => {
       });
     }
 
+    // Sesión más larga: por usuario, la actividad individual (una sola sesión, no la suma) con más
+    // minutos esa semana — distinto del ranking de arriba, que suma todas sus actividades.
+    const { rows: sesionMasLargaPorSemana } = await pool.query(
+      `SELECT DISTINCT ON (s.id, u.id)
+              s.id AS semana_id, u.id AS user_id, COALESCE(u.apodo, u.nombre) AS nombre_display,
+              u.foto_perfil_url, a.minutos, a.deporte_nombre, TO_CHAR(a.fecha, 'YYYY-MM-DD') AS fecha
+       FROM competencia_semanas s
+       JOIN actividades a ON a.fecha BETWEEN s.fecha_inicio AND s.fecha_fin
+       JOIN actividad_competencias ac ON ac.actividad_id = a.id AND ac.competencia_id = s.competencia_id
+       JOIN users u ON u.id = a.user_id
+       WHERE s.competencia_id = $1
+       ORDER BY s.id, u.id, a.minutos DESC`,
+      [id]
+    );
+
+    const porSemanaSesion = new Map();
+    for (const r of sesionMasLargaPorSemana) {
+      if (!porSemanaSesion.has(r.semana_id)) porSemanaSesion.set(r.semana_id, []);
+      porSemanaSesion.get(r.semana_id).push({
+        user_id: r.user_id,
+        nombre_display: r.nombre_display,
+        foto_perfil_url: r.foto_perfil_url,
+        minutos: parseFloat(r.minutos),
+        deporte_nombre: r.deporte_nombre,
+        fecha: r.fecha,
+      });
+    }
+
     res.json(semanas.map(s => ({
       ...s,
       ranking: (porSemana.get(s.id) || []).sort((a, b) => b.minutos - a.minutos),
+      ranking_sesion_mas_larga: (porSemanaSesion.get(s.id) || []).sort((a, b) => b.minutos - a.minutos),
     })));
   } catch (err) {
     console.error(err);
