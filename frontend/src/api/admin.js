@@ -7,6 +7,8 @@ export const deleteAdminUser      = (id)         => apiFetch(`/admin/users/${id}
 export const resetAdminUserPassword = (id)       => apiFetch(`/admin/users/${id}/reset-password`, { method: 'POST' });
 export const getAdminGrupos       = ()           => apiFetch('/admin/grupos');
 export const deleteAdminGrupo     = (id)         => apiFetch(`/admin/grupos/${id}`,       { method: 'DELETE' });
+export const getAdminCompetenciasGrupo = (grupoId) => apiFetch(`/admin/grupos/${grupoId}/competencias`);
+export const getAdminRankingSemanal    = (competenciaId) => apiFetch(`/admin/competencias/${competenciaId}/ranking-semanal`);
 export const getAdminActividades  = ()           => apiFetch('/admin/actividades');
 export const deleteAdminActividad = (id)         => apiFetch(`/admin/actividades/${id}`,  { method: 'DELETE' });
 export const getAdminDeportes     = ()           => apiFetch('/admin/deportes');

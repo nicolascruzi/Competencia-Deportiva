@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   getAdminStats, getAdminUsers, updateAdminUser, deleteAdminUser, resetAdminUserPassword,
-  getAdminGrupos, deleteAdminGrupo,
+  getAdminGrupos, deleteAdminGrupo, getAdminCompetenciasGrupo, getAdminRankingSemanal,
   getAdminActividades, deleteAdminActividad,
   getAdminDeportes, updateAdminDeporte, deleteAdminDeporte,
 } from '../api/admin';
@@ -248,10 +248,121 @@ function TabUsuarios() {
   );
 }
 
+// ─── Ranking semanal de minutos (por competencia) ────────────────────────────
+
+function fmtFechaCorta(iso) {
+  if (!iso) return '';
+  const [, m, d] = iso.split('-');
+  return `${d}/${m}`;
+}
+
+// Bottom sheet: elegí una competencia del grupo (si hay más de una) y mostramos, semana por
+// semana (usando las semanas ya configuradas en competencia_semanas), quién hizo más minutos.
+function RankingSemanalSheet({ grupo, onClose }) {
+  const [competencias, setCompetencias] = useState(null);
+  const [competenciaId, setCompetenciaId] = useState(null);
+  const [semanas, setSemanas] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    getAdminCompetenciasGrupo(grupo.id)
+      .then(rows => {
+        setCompetencias(rows);
+        if (rows.length === 1) setCompetenciaId(rows[0].id);
+      })
+      .catch(e => setError(e.message));
+  }, [grupo.id]);
+
+  useEffect(() => {
+    if (!competenciaId) return;
+    setSemanas(null);
+    getAdminRankingSemanal(competenciaId)
+      .then(setSemanas)
+      .catch(e => setError(e.message));
+  }, [competenciaId]);
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.5)' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:301, background:'var(--t-surface)', borderRadius:'20px 20px 0 0', maxHeight:'85dvh', display:'flex', flexDirection:'column', paddingBottom:'calc(env(safe-area-inset-bottom) + 16px)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 18px 12px', borderBottom:'1px solid var(--t-dim)', flexShrink:0 }}>
+          <div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1 }}>
+              Ranking semanal
+            </div>
+            <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:3 }}>{grupo.nombre}</div>
+          </div>
+          <button onClick={onClose}
+            style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>✕</button>
+        </div>
+
+        <div style={{ overflowY:'auto', flex:1, padding:'14px 18px' }}>
+          {error && <div style={{ fontSize:13, color:'#F87171', marginBottom:10 }}>{error}</div>}
+
+          {competencias === null ? (
+            <Spinner />
+          ) : competencias.length === 0 ? (
+            <div style={{ textAlign:'center', padding:'30px 0', color:'var(--t-muted)', fontSize:13 }}>Este grupo no tiene competencias.</div>
+          ) : (
+            <>
+              {competencias.length > 1 && (
+                <select value={competenciaId ?? ''} onChange={e => setCompetenciaId(parseInt(e.target.value) || null)}
+                  style={{ width:'100%', boxSizing:'border-box', background:'var(--t-surface2)', border:'1px solid var(--t-dim)', color:'var(--t-text)', padding:'9px 12px', borderRadius:10, fontSize:14, outline:'none', appearance:'none', marginBottom:14 }}>
+                  <option value="" disabled>Elegí una competencia…</option>
+                  {competencias.map(c => (
+                    <option key={c.id} value={c.id}>{c.nombre} {c.estado === 'en_curso' ? '(en curso)' : '(finalizada)'}</option>
+                  ))}
+                </select>
+              )}
+
+              {competenciaId && semanas === null && <Spinner />}
+
+              {competenciaId && semanas !== null && semanas.length === 0 && (
+                <div style={{ textAlign:'center', padding:'30px 0', color:'var(--t-muted)', fontSize:13 }}>Esta competencia no tiene semanas configuradas.</div>
+              )}
+
+              {competenciaId && semanas !== null && semanas.map(s => (
+                <div key={s.id} style={{ marginBottom:16 }}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, textTransform:'uppercase', color:'var(--t-accent)', marginBottom:6 }}>
+                    Semana {s.numero_semana} <span style={{ color:'var(--t-muted)', fontWeight:600 }}>· {fmtFechaCorta(s.fecha_inicio)} al {fmtFechaCorta(s.fecha_fin)}</span>
+                  </div>
+                  {s.ranking.length === 0 ? (
+                    <div style={{ fontSize:12, color:'var(--t-muted)', padding:'6px 2px' }}>Sin actividades esta semana.</div>
+                  ) : (
+                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      {s.ranking.map((p, i) => (
+                        <div key={p.user_id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderRadius:10, background:'var(--t-surface2)', border:'1px solid var(--t-dim)' }}>
+                          <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, color: i === 0 ? 'var(--t-accent)' : 'var(--t-muted)', width:16, textAlign:'center', flexShrink:0 }}>
+                            {i + 1}
+                          </span>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:13, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                              {p.nombre_display}
+                            </div>
+                            <div style={{ fontSize:10, color:'var(--t-muted)' }}>{p.actividades} actividad{p.actividades !== 1 ? 'es' : ''}</div>
+                          </div>
+                          <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:14, color:'var(--t-accent)', flexShrink:0 }}>
+                            {Math.round(p.minutos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>min</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Tab: Competencias ────────────────────────────────────────────────────────
 
 function CompRow({ c, onDelete }) {
   const [open, setOpen] = useState(false);
+  const [verRankingSemanal, setVerRankingSemanal] = useState(false);
   return (
     <div style={{ borderTop:'1px solid var(--t-surface2)' }}>
       {/* Fila principal */}
@@ -285,6 +396,10 @@ function CompRow({ c, onDelete }) {
             <span>{new Date(c.created_at).toLocaleDateString('es',{day:'numeric',month:'short',year:'2-digit'})}</span>
           </div>
         </div>
+        <button onClick={() => setVerRankingSemanal(true)}
+          style={{ padding:'4px 10px', borderRadius:6, border:'1px solid var(--t-dim)', background:'transparent', color:'var(--t-muted)', fontSize:11, cursor:'pointer', whiteSpace:'nowrap' }}>
+          Ranking semanal
+        </button>
         <ConfirmBtn label="Eliminar" onConfirm={() => onDelete(c.id)} />
       </div>
 
@@ -313,6 +428,10 @@ function CompRow({ c, onDelete }) {
             </div>
           ))}
         </div>
+      )}
+
+      {verRankingSemanal && (
+        <RankingSemanalSheet grupo={c} onClose={() => setVerRankingSemanal(false)} />
       )}
     </div>
   );

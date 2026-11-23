@@ -205,6 +205,72 @@ router.delete('/actividades/:id', async (req, res) => {
   }
 });
 
+// ─── COMPETENCIAS ─────────────────────────────────────────────────────────────
+
+// GET /admin/grupos/:id/competencias — lista de competencias de un grupo (id, nombre, estado), para
+// elegir cuál ver en el ranking semanal.
+router.get('/grupos/:id/competencias', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, nombre, estado, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
+       FROM competencias WHERE grupo_id=$1 ORDER BY created_at DESC`,
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+// GET /admin/competencias/:id/ranking-semanal — para cada semana configurada de la competencia
+// (competencia_semanas), quién hizo más minutos esa semana. Solo cuenta actividades vinculadas a
+// esta competencia (actividad_competencias), igual criterio que el resto de las vistas de
+// competencia — no todo lo que el usuario registró en esos días, solo lo que cuenta para ella.
+router.get('/competencias/:id/ranking-semanal', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows: semanas } = await pool.query(
+      `SELECT id, numero_semana, TO_CHAR(fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(fecha_fin,'YYYY-MM-DD') AS fecha_fin
+       FROM competencia_semanas WHERE competencia_id=$1 ORDER BY numero_semana`,
+      [id]
+    );
+    if (!semanas.length) return res.json([]);
+
+    const { rows: minutosPorSemana } = await pool.query(
+      `SELECT s.id AS semana_id, u.id AS user_id, COALESCE(u.apodo, u.nombre) AS nombre_display,
+              u.foto_perfil_url, SUM(a.minutos) AS minutos, COUNT(a.id)::int AS actividades
+       FROM competencia_semanas s
+       JOIN actividades a ON a.fecha BETWEEN s.fecha_inicio AND s.fecha_fin
+       JOIN actividad_competencias ac ON ac.actividad_id = a.id AND ac.competencia_id = s.competencia_id
+       JOIN users u ON u.id = a.user_id
+       WHERE s.competencia_id = $1
+       GROUP BY s.id, u.id, nombre_display, u.foto_perfil_url`,
+      [id]
+    );
+
+    const porSemana = new Map();
+    for (const r of minutosPorSemana) {
+      if (!porSemana.has(r.semana_id)) porSemana.set(r.semana_id, []);
+      porSemana.get(r.semana_id).push({
+        user_id: r.user_id,
+        nombre_display: r.nombre_display,
+        foto_perfil_url: r.foto_perfil_url,
+        minutos: parseFloat(r.minutos),
+        actividades: r.actividades,
+      });
+    }
+
+    res.json(semanas.map(s => ({
+      ...s,
+      ranking: (porSemana.get(s.id) || []).sort((a, b) => b.minutos - a.minutos),
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener el ranking semanal' });
+  }
+});
+
 // ─── DEPORTES ─────────────────────────────────────────────────────────────────
 
 router.get('/deportes', async (req, res) => {
