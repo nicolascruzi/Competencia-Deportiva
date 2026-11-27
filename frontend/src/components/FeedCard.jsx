@@ -4,6 +4,7 @@ import { getComentarios, createComentario, deleteComentario, getLikes, toggleLik
 import { deleteActividad, getDeportes } from '../api/actividades';
 import { useLoading } from '../context/LoadingContext';
 import EditActividadModal from './EditActividadModal';
+import { fmtNum } from '../lib/formato';
 
 // ─── Estado de likes compartido entre el botón de corazón y el doble-tap en la foto ──────────────
 
@@ -638,14 +639,14 @@ export function FeedCard({ act, user, onLightbox, onOpenProfile, onUpdated, onDe
         {act.puntos != null && (
           <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
             <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:20, color:'var(--t-accent)', lineHeight:1 }}>
-              {Math.round(parseFloat(act.puntos))}
+              {fmtNum(parseFloat(act.puntos))}
             </span>
             <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>pts</span>
           </div>
         )}
         <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
           <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize: act.puntos != null ? 15 : 20, color: act.puntos != null ? 'var(--t-text)' : 'var(--t-accent)', lineHeight:1 }}>
-            {Math.round(parseFloat(act.minutos))}
+            {fmtNum(parseFloat(act.minutos))}
           </span>
           <span style={{ fontSize:11, color:'var(--t-muted2)', textTransform:'uppercase', letterSpacing:'0.06em' }}>min</span>
         </div>

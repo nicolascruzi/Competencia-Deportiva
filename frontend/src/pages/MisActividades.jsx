@@ -8,6 +8,7 @@ import PageHeader from '../components/PageHeader';
 import SubTabs from '../components/SubTabs';
 import EditActividadModal from '../components/EditActividadModal';
 import { sportIcon } from '../lib/sportIcons';
+import { fmtNum } from '../lib/formato';
 
 const IconCamera = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -160,7 +161,7 @@ function DetallePanel({ actividad, onClose, onDelete, onUpdate, onFotoUploaded, 
               <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'11px 13px', position:'relative', overflow:'hidden' }}>
                 <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.7 }} />
                 <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, color:'var(--t-accent)', lineHeight:1 }}>
-                  {Math.round(parseFloat(actividad.minutos))}
+                  {fmtNum(parseFloat(actividad.minutos))}
                 </div>
                 <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Minutos</div>
               </div>
@@ -233,10 +234,10 @@ function ActividadRow({ a, onClick }) {
       </div>
       <div style={{ textAlign:'right', flexShrink:0 }}>
         <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:13, fontWeight:700, color:'var(--t-text)' }}>
-          {Math.round(parseFloat(a.minutos))} min
+          {fmtNum(parseFloat(a.minutos))} min
         </div>
         <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'var(--t-accent)', marginTop:1 }}>
-          +{Math.round(parseFloat(a.puntos))} pts
+          +{fmtNum(parseFloat(a.puntos))} pts
         </div>
       </div>
     </div>
@@ -383,7 +384,7 @@ function Evolucion({ actividades }) {
         ctx.fillStyle = `rgba(${accentR},0.9)`;
         ctx.font = `bold 9px JetBrains Mono, monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText(Math.round(d.pts), x + barW / 2, y - 4);
+        ctx.fillText(fmtNum(d.pts), x + barW / 2, y - 4);
       }
 
       // Etiqueta eje X
@@ -693,7 +694,7 @@ export default function MisActividades({ onNewActivity, evolucionSignal }) {
                   </div>
                   <div style={{ flex:1, height:1, background:'var(--t-surface2)' }} />
                   <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, fontWeight:700, color:'var(--t-accent)', flexShrink:0 }}>
-                    {Math.round(ptsMes)} min
+                    {fmtNum(ptsMes)} min
                   </div>
                 </div>
 

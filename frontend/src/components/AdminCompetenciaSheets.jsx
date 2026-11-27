@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { fmtNum } from '../lib/formato';
 import {
   updatePonderadores, updateSemanas,
   crearChallenge, updateChallenge, deleteChallenge, updateConfiguracion,
@@ -932,7 +933,7 @@ function AdminSemanasSheet({ competencia, onClose, onSaved, readOnly = false, em
             ) : challenges.map(c => (
               <div key={c.id ?? c._key} style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid var(--t-dim)', borderRadius:10, padding:'9px 12px', background:'var(--t-surface2)', flexShrink:0 }}>
                 <span style={{ flex:1, minWidth:0, fontSize:14, color:'var(--t-text)' }}>{c.texto}</span>
-                <span style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)', flexShrink:0 }}>+{Math.round(c.puntos ?? 0)}</span>
+                <span style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)', flexShrink:0 }}>+{fmtNum(c.puntos ?? 0)}</span>
               </div>
             ))}
           </div>

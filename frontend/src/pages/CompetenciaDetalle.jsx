@@ -14,6 +14,7 @@ import SubTabs from '../components/SubTabs';
 import { AdminSheetLoading, AdminPonderadoresSheet, AdminEquiposSheet, AdminSemanasSheet, AdminConfigSheet } from '../components/AdminCompetenciaSheets';
 import { hoyLocal } from '../lib/fecha';
 import { DaySheet } from '../components/DetalleDiaCalendario';
+import { fmtNum } from '../lib/formato';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 
@@ -100,7 +101,7 @@ function KpiStrip({ acts }) {
     { label:'Jugadores',     val: personas },
     { label:'Pts totales',   val: Math.round(totalPts).toLocaleString('es'), accent: true },
     { label:'Actividades',   val: acts.length },
-    { label:'Horas',         val: Math.round(totalMin / 60) + 'h' },
+    { label:'Horas',         val: fmtNum(totalMin / 60) + 'h' },
   ];
   return (
     <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', borderBottom:'1px solid var(--t-surface2)', padding:'8px 0' }}>
@@ -143,7 +144,7 @@ function Podio({ acts, nombres }) {
           const color  = colors[origIdx];
           const height = heights[origIdx];
           const size   = sizes[origIdx];
-          const gap    = origIdx === 0 ? 'Líder' : `-${Math.round(leader - p.pts)} pts`;
+          const gap    = origIdx === 0 ? 'Líder' : `-${fmtNum(leader - p.pts)} pts`;
           return (
             <div key={p.nombre} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, flex:1, maxWidth:120 }}>
               <div style={{ width:size, height:size, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:size===58?24:18, color:'var(--t-ground)', overflow:'hidden', border:'2px solid rgba(255,255,255,0.15)' }}>
@@ -277,9 +278,9 @@ function PlayerDrawer({ person, acts, onClose }) {
           {/* Stats en fila */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:0, marginTop:14, border:'1px solid var(--t-dim)', borderRadius:10, overflow:'hidden' }}>
             {[
-              { label:'Puntos', val: Math.round(person.pts).toLocaleString('es') },
+              { label:'Puntos', val: fmtNum(person.pts) },
               { label:'Sesiones', val: person.actividades },
-              { label:'Horas', val: Math.round(person.minutos / 60) + 'h' },
+              { label:'Horas', val: fmtNum(person.minutos / 60) + 'h' },
             ].map(({ label, val }, i) => (
               <div key={label} style={{ padding:'10px 8px', textAlign:'center', borderRight: i < 2 ? '1px solid var(--t-dim)' : 'none', background:'var(--t-surface)' }}>
                 <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, color:'var(--t-text)', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>{val}</div>
@@ -311,7 +312,7 @@ function PlayerDrawer({ person, acts, onClose }) {
                       </div>
                     </div>
                     <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:12, fontWeight:700, color:'var(--t-accent)', flexShrink:0, minWidth:52, textAlign:'right' }}>
-                      {Math.round(v.pts)} pts
+                      {fmtNum(v.pts)} pts
                     </div>
                   </div>
                 );
@@ -343,7 +344,7 @@ function PlayerDrawer({ person, acts, onClose }) {
             <div style={{ display:'flex', gap:4, marginTop:2 }}>
               {weekPts.map((pts, i) => (
                 <div key={i} style={{ flex:1, textAlign:'center' }}>
-                  {pts > 0 && <span style={{ fontSize:8, fontWeight:700, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{Math.round(pts)}</span>}
+                  {pts > 0 && <span style={{ fontSize:8, fontWeight:700, color:'var(--t-accent)', fontVariantNumeric:'tabular-nums' }}>{fmtNum(pts)}</span>}
                 </div>
               ))}
             </div>
@@ -366,8 +367,8 @@ function PlayerDrawer({ person, acts, onClose }) {
                   </div>
                 </div>
                 <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace" }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)' }}>{Math.round(a.puntos)} pts</div>
-                  <div style={{ fontSize:10, color:'var(--t-muted)' }}>{Math.round(parseFloat(a.minutos))} min</div>
+                  <div style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)' }}>{fmtNum(a.puntos)} pts</div>
+                  <div style={{ fontSize:10, color:'var(--t-muted)' }}>{fmtNum(parseFloat(a.minutos))} min</div>
                 </div>
               </div>
             ))}
@@ -855,7 +856,7 @@ function RankingEquipos({ data, rankingData }) {
                 <div style={{ fontSize:10, fontWeight:600, color:'var(--t-muted)', marginTop:2 }}>{eq.integrantes} integrante{eq.integrantes !== 1 ? 's' : ''}</div>
               </div>
               <div style={{ textAlign:'right', flexShrink:0 }}>
-                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:16, color:'var(--t-accent)' }}>{Math.round(eq.puntos)}</div>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:16, color:'var(--t-accent)' }}>{fmtNum(eq.puntos)}</div>
                 <div style={{ fontSize:9, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>pts</div>
               </div>
             </div>
@@ -864,7 +865,7 @@ function RankingEquipos({ data, rankingData }) {
                 {miembros.map(m => (
                   <div key={m.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:12, color:'var(--t-muted)' }}>
                     <span>{m.nombre_display || m.nombre}</span>
-                    <span style={{ fontFamily:"'JetBrains Mono', monospace", color:'var(--t-text)' }}>{Math.round(m.puntos)} pts</span>
+                    <span style={{ fontFamily:"'JetBrains Mono', monospace", color:'var(--t-text)' }}>{fmtNum(m.puntos)} pts</span>
                   </div>
                 ))}
               </div>
@@ -977,7 +978,7 @@ function Ranking({ acts, rankingData, nombres, myId, onOpenProfile, mesSelector,
           {people.map((p, i) => {
             const isMe    = p.nombre === myId;
             const color   = AVATAR_COLORS[i % AVATAR_COLORS.length];
-            const horas   = Math.round(p.minutos / 60);
+            const horas   = fmtNum(p.minutos / 60);
             const racha   = computeRacha(acts.filter(a => (a.nombre_display || a.nombre) === p.nombre || String(a.user_id) === String(p.id)));
 
             return (
@@ -1177,7 +1178,7 @@ function Calendario({ acts, mes }) {
               {new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' }).replace(/^\w/, c => c.toUpperCase())}
             </div>
             <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, color:'var(--t-muted)' }}>
-              {Math.round(selectedActs.reduce((s,a) => s + (parseFloat(a.puntos)||0), 0))} pts
+              {fmtNum(selectedActs.reduce((s,a) => s + (parseFloat(a.puntos)||0), 0))} pts
             </div>
           </div>
           {/* Lista de actividades */}
@@ -1205,8 +1206,8 @@ function Calendario({ acts, mes }) {
               )}
               {/* Puntos + minutos */}
               <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace" }}>
-                <div style={{ fontSize:13, fontWeight:700, color:'var(--t-accent)' }}>{Math.round(parseFloat(a.puntos)||0)} pts</div>
-                <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:1 }}>{Math.round(parseFloat(a.minutos))} min</div>
+                <div style={{ fontSize:13, fontWeight:700, color:'var(--t-accent)' }}>{fmtNum(parseFloat(a.puntos)||0)} pts</div>
+                <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:1 }}>{fmtNum(parseFloat(a.minutos))} min</div>
               </div>
             </div>
           ))}
@@ -1242,8 +1243,8 @@ function Calendario({ acts, mes }) {
                       </div>
                     )}
                     <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:11 }}>
-                      <div style={{ color:'var(--t-accent)', fontWeight:600 }}>{Math.round(parseFloat(a.puntos)||0)} pts</div>
-                      <div style={{ color:'var(--t-muted)' }}>{Math.round(parseFloat(a.minutos))} min</div>
+                      <div style={{ color:'var(--t-accent)', fontWeight:600 }}>{fmtNum(parseFloat(a.puntos)||0)} pts</div>
+                      <div style={{ color:'var(--t-muted)' }}>{fmtNum(parseFloat(a.minutos))} min</div>
                     </div>
                   </div>
                 ))}
@@ -1462,7 +1463,7 @@ function Carrera({ acts, nombres }) {
               </div>
               <div style={{ flex:1, height:30, background:'var(--t-dim)', borderRadius:3, overflow:'hidden' }}>
                 <div style={{ height:'100%', borderRadius:3, background:color, width:pct+'%', transition:'width 0.4s cubic-bezier(0.22,1,0.36,1)', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:7, minWidth:4 }}>
-                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'var(--t-ground)' }}>{Math.round(p.pts)}</span>
+                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, fontWeight:600, color:'var(--t-ground)' }}>{fmtNum(p.pts)}</span>
                 </div>
               </div>
             </div>
@@ -1585,19 +1586,19 @@ function Records({ acts }) {
   const topWknd = Object.entries(wkPts).sort((a,b) => b[1] - a[1])[0];
 
   const recs = [
-    { label: 'Mejor día',          value: bestDay  ? Math.round(bestDay.pts) + ' pts'  : '—', sub: bestDay?.nombre  || '' },
-    { label: 'Mejor semana',       value: bestWeek ? Math.round(bestWeek.min) + ' min' : '—', sub: bestWeek?.nombre || '' },
+    { label: 'Mejor día',          value: bestDay  ? fmtNum(bestDay.pts) + ' pts'  : '—', sub: bestDay?.nombre  || '' },
+    { label: 'Mejor semana',       value: bestWeek ? fmtNum(bestWeek.min) + ' min' : '—', sub: bestWeek?.nombre || '' },
     { label: 'Más actividades',    value: mostAct  ? mostAct[1] + ' ses.'               : '—', sub: mostAct?.[0]    || '' },
     { label: 'Racha más larga',    value: maxStreak.streak ? maxStreak.streak + ' días' : '—', sub: maxStreak.nombre       },
   ];
 
   const awards = [
-    { title: 'Máquina',      winner: topMin?.nombre,        detail: topMin     ? Math.round(topMin.minutos) + ' min'                          : '' },
+    { title: 'Máquina',      winner: topMin?.nombre,        detail: topMin     ? fmtNum(topMin.minutos) + ' min'                          : '' },
     { title: 'Especialista', winner: topSpec.nombre || '—', detail: topSpec.sport ? topSpec.sport + ' · ' + Math.round(topSpec.pct * 100) + '%' : '' },
     { title: 'Versátil',     winner: topMultiData?.nombre,  detail: topMultiData ? topMultiData.nd + ' deportes'                               : '' },
     { title: 'Eficiente',    winner: topAvg?.nombre,        detail: topAvg     ? Math.round(topAvg.pts / (topAvg.actividades || 1)) + ' pts/ses.' : '' },
-    { title: 'Fin de semana',winner: topWknd?.[0] || '—',  detail: topWknd    ? Math.round(topWknd[1]) + ' pts'                               : '' },
-    { title: 'Líder',        winner: people[0]?.nombre,     detail: people[0]  ? Math.round(people[0].pts) + ' pts'                           : '' },
+    { title: 'Fin de semana',winner: topWknd?.[0] || '—',  detail: topWknd    ? fmtNum(topWknd[1]) + ' pts'                               : '' },
+    { title: 'Líder',        winner: people[0]?.nombre,     detail: people[0]  ? fmtNum(people[0].pts) + ' pts'                           : '' },
   ];
 
   return (
@@ -1764,16 +1765,16 @@ function Insights({ acts }) {
   const ins    = [];
 
   if (people.length>=2) {
-    const gap=Math.round(people[0].pts-people[1].pts);
-    ins.push(<>🥇 <strong style={{color:'var(--t-accent)'}}>{people[0].nombre.split(' ')[0]}</strong> lidera con {Math.round(people[0].pts).toLocaleString('es')} puntos — {gap} por encima del segundo.</>);
+    const gap=people[0].pts-people[1].pts;
+    ins.push(<>🥇 <strong style={{color:'var(--t-accent)'}}>{people[0].nombre.split(' ')[0]}</strong> lidera con {fmtNum(people[0].pts)} puntos — {fmtNum(gap)} por encima del segundo.</>);
   }
   if (sports.length) {
     const total=acts.reduce((s,a)=>s+a.puntos,0);
     const pct=Math.round((sports[0].pts/total)*100);
     ins.push(<>🏅 El <strong style={{color:'var(--t-accent)'}}>{sports[0].deporte}</strong> aporta el {pct}% de los puntos del período.</>);
   }
-  const totalH=Math.round(acts.reduce((s,a)=>s+parseFloat(a.minutos),0)/60);
-  ins.push(<>⏱ El grupo registró <strong style={{color:'var(--t-accent)'}}>{totalH} horas</strong> de entrenamiento en el período.</>);
+  const totalH=acts.reduce((s,a)=>s+parseFloat(a.minutos),0)/60;
+  ins.push(<>⏱ El grupo registró <strong style={{color:'var(--t-accent)'}}>{fmtNum(totalH)} horas</strong> de entrenamiento en el período.</>);
 
   const topAct=[...people].sort((a,b)=>b.actividades-a.actividades)[0];
   if (topAct) ins.push(<>📌 <strong style={{color:'var(--t-accent)'}}>{topAct.nombre.split(' ')[0]}</strong> es el más constante con {topAct.actividades} actividades registradas.</>);
@@ -2105,10 +2106,10 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
               {[
                 { label:'Posts', value: data.length, color:'var(--t-text)' },
                 ...(isOwnProfile
-                  ? [{ label:'Puntos', value: Math.round(pts), color:'var(--t-accent)' }]
+                  ? [{ label:'Puntos', value: fmtNum(pts), color:'var(--t-accent)' }]
                   : [
-                      { label:'Competencia', value: Math.round(ptsCompetencia), color:'var(--t-accent)' },
-                      { label:'Histórico',   value: Math.round(pts),            color:'var(--t-text)' },
+                      { label:'Competencia', value: fmtNum(ptsCompetencia), color:'var(--t-accent)' },
+                      { label:'Histórico',   value: fmtNum(pts),            color:'var(--t-text)' },
                     ]),
                 { label:'Racha', value: rachaActual, color:'var(--t-text)' },
               ].map(s => (
@@ -2213,7 +2214,7 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
                               </div>
                             </div>
                             <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:11, lineHeight:1.5 }}>
-                              <div style={{ color:r.color, fontWeight:700 }}>{Math.round(r.val)} pts</div>
+                              <div style={{ color:r.color, fontWeight:700 }}>{fmtNum(r.val)} pts</div>
                               <div style={{ color:'var(--t-muted)' }}>{pct}%</div>
                             </div>
                           </div>
@@ -2290,7 +2291,7 @@ export function ProfilePanel({ nombre, userId, competenciaId, acts = [], ranking
                             </div>
                           </div>
                           <div style={{ textAlign:'right', flexShrink:0, fontFamily:"'JetBrains Mono', monospace", fontSize:11, lineHeight:1.5 }}>
-                            <div style={{ color:'var(--t-accent)', fontWeight:700 }}>{Math.round(v.pts)} pts</div>
+                            <div style={{ color:'var(--t-accent)', fontWeight:700 }}>{fmtNum(v.pts)} pts</div>
                             <div style={{ color:'var(--t-muted)' }}>{v.sesiones} ses</div>
                           </div>
                         </div>

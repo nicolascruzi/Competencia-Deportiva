@@ -281,7 +281,7 @@ function FilaRankingSemanal({ p, i, vista }) {
         </div>
       </div>
       <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:14, color:'var(--t-accent)', flexShrink:0 }}>
-        {Math.round(p.minutos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>min</span>
+        {fmt(Math.round(p.minutos))} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>min</span>
       </span>
     </div>
   );
@@ -449,7 +449,7 @@ function CompRow({ c, onDelete }) {
                   {j.nombre_display}
                 </div>
                 <div style={{ fontSize:10, color:'var(--t-muted)', marginTop:1 }}>
-                  {j.actividades} acts · {Math.round(j.minutos)} min
+                  {j.actividades} acts · {fmt(Math.round(j.minutos))} min
                 </div>
               </div>
             </div>
@@ -548,7 +548,7 @@ function TabActividades() {
                   <span style={{ fontSize:12, color:'var(--t-muted)' }}>{a.deporte_nombre}</span>
                 </div>
                 <div style={{ fontSize:10, color:'var(--t-dim2)', marginTop:2, display:'flex', gap:8 }}>
-                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, color:'var(--t-accent)' }}>{Math.round(a.minutos)} min</span>
+                  <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:600, color:'var(--t-accent)' }}>{fmt(Math.round(a.minutos))} min</span>
                   <span>·</span>
                   <span>{fmtDate(a.fecha)}</span>
                 </div>

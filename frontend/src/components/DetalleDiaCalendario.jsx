@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { uploadFoto, deleteFoto } from '../api/fotos';
 import { useLoading } from '../context/LoadingContext';
+import { fmtNum } from '../lib/formato';
 
 const DAYS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -151,13 +152,13 @@ export function DetallePanel({ actividad, onClose, onDelete, onFotoUploaded, onF
               <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'11px 13px', position:'relative', overflow:'hidden' }}>
                 <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'var(--t-accent)', opacity:0.7 }} />
                 <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, color:'var(--t-accent)', lineHeight:1 }}>
-                  {Math.round(parseFloat(actividad.puntos))}
+                  {fmtNum(parseFloat(actividad.puntos))}
                 </div>
                 <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Puntos</div>
               </div>
               <div style={{ background:'var(--t-surface)', border:'1px solid var(--t-dim)', borderRadius:12, padding:'11px 13px' }}>
                 <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:24, color:'var(--t-text)', lineHeight:1 }}>
-                  {Math.round(parseFloat(actividad.minutos))}
+                  {fmtNum(parseFloat(actividad.minutos))}
                 </div>
                 <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginTop:5 }}>Minutos</div>
               </div>
@@ -237,7 +238,7 @@ export function DaySheet({ fecha, acts, onClose, onSelectAct, readOnly = false, 
                     <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:1 }}>Challenge completado</div>
                   </div>
                   <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)', lineHeight:1, flexShrink:0 }}>
-                    +{Math.round(parseFloat(c.puntos))}
+                    +{fmtNum(parseFloat(c.puntos))}
                   </div>
                 </div>
               ))}
@@ -257,7 +258,7 @@ export function DaySheet({ fecha, acts, onClose, onSelectAct, readOnly = false, 
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:3 }}>
                   <div style={{ fontSize:12, color:'var(--t-muted)', fontFamily:"'JetBrains Mono', monospace" }}>
-                    {Math.round(parseFloat(a.minutos))} min
+                    {fmtNum(parseFloat(a.minutos))} min
                   </div>
                   {a.cantidad_companeros > 0 && (
                     <div style={{ display:'flex', alignItems:'center', gap:3, fontSize:11, color:'var(--t-muted)' }}>
@@ -269,7 +270,7 @@ export function DaySheet({ fecha, acts, onClose, onSelectAct, readOnly = false, 
               </div>
               <div style={{ textAlign:'right', flexShrink:0 }}>
                 <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:18, color:'var(--t-accent)', lineHeight:1 }}>
-                  {Math.round(parseFloat(a.puntos))}
+                  {fmtNum(parseFloat(a.puntos))}
                 </div>
                 <div style={{ fontSize:10, color:'var(--t-muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>pts</div>
               </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { fmtNum } from '../lib/formato';
 import {
   getGrupo,
   getParticipantesGrupo, sacarParticipante, renombrarGrupo,
@@ -503,7 +504,7 @@ function CompetenciaAdminDetalle({ grupo, competenciaResumen, isAdmin, onBack, o
                 <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:14, color:'var(--t-muted)', width:18, textAlign:'center', flexShrink:0 }}>{i + 1}</span>
                 <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.nombre_display}</span>
                 <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)', flexShrink:0 }}>
-                  {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
+                  {fmtNum(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
                 </span>
               </div>
             ))

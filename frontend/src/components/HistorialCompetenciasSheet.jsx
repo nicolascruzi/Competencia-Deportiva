@@ -3,6 +3,7 @@ import { getCompetenciasGrupo, cerrarCompetenciaGrupo, borrarCompetenciaGrupo, g
 import { getRankingComp, getChallengesCompletadosComp } from '../api/competencias';
 import NuevaCompetenciaSheet from './NuevaCompetenciaSheet';
 import SubTabs from './SubTabs';
+import { fmtNum } from '../lib/formato';
 
 function fmtFecha(iso) {
   if (!iso) return '';
@@ -48,7 +49,7 @@ function ChallengesCompletadosLista({ competenciaId }) {
         <div key={c.id} style={{ border:'1px solid var(--t-dim)', borderRadius:12, padding:'10px 12px', background:'var(--t-surface2)' }}>
           <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:8 }}>
             <span style={{ fontSize:14, fontWeight:600, color:'var(--t-text)' }}>{c.texto}</span>
-            <span style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)', flexShrink:0 }}>+{Math.round(c.puntos)}</span>
+            <span style={{ fontSize:12, fontWeight:700, color:'var(--t-accent)', flexShrink:0 }}>+{fmtNum(c.puntos)}</span>
           </div>
           {c.completados.length > 0 ? (
             <div style={{ fontSize:12, color:'var(--t-muted)', marginTop:6, display:'flex', flexDirection:'column', gap:3 }}>
@@ -129,7 +130,7 @@ function RankingCongelado({ competencia, onBack }) {
                 )}
               </div>
               <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)', flexShrink:0 }}>
-                {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
+                {fmtNum(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
               </span>
             </div>
           ))}
@@ -197,7 +198,7 @@ function RankingTotalGrupo({ grupoId, onBack }) {
                 </div>
               </div>
               <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color:'var(--t-accent)', flexShrink:0 }}>
-                {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
+                {fmtNum(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
               </span>
             </div>
           ))}

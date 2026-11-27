@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { fmtNum } from '../lib/formato';
 
 // Props:
 //   actividad   — la actividad recién creada
@@ -84,12 +85,12 @@ export default function ActivityToast({ actividad, ptsAntes, ptsDespues, onClose
               {actividad?.deporte_nombre}
             </div>
             <div style={{ fontSize: 12, color: 'var(--t-muted)', marginTop: 4 }}>
-              {actividad?.minutos} min · ×{parseFloat(actividad?.ponderador).toFixed(1)}
+              {fmtNum(actividad?.minutos)} min · ×{parseFloat(actividad?.ponderador).toFixed(1)}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 42, color: 'var(--t-accent)', lineHeight: 1, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
-              +{Math.round(pts_actividad)}
+              +{fmtNum(pts_actividad)}
             </div>
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--t-muted)' }}>pts</div>
           </div>
@@ -103,7 +104,7 @@ export default function ActivityToast({ actividad, ptsAntes, ptsDespues, onClose
             </span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
               <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 20, color: 'var(--t-accent)', fontVariantNumeric: 'tabular-nums' }}>
-                {Math.round(numPts).toLocaleString('es')}
+                {fmtNum(numPts)}
               </span>
               <span style={{ fontSize: 10, color: 'var(--t-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>pts</span>
             </div>

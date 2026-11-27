@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { completarChallenge, descompletarChallenge, getVotacionSemana, votarDeporteSemana } from '../api/competencias';
 import { sportIcon } from '../lib/sportIcons';
 import { hoyLocal } from '../lib/fecha';
+import { fmtNum } from '../lib/formato';
 import SinCompetencia from '../components/SinCompetencia';
 import PageHeader from '../components/PageHeader';
 import VotacionReminderBanner from '../components/VotacionReminderBanner';
@@ -71,7 +72,7 @@ function ChallengeRow({ competenciaId, challenge, onCompletado, readOnly }) {
           {completando ? 'Guardando…' : challenge.texto}
         </span>
         <span style={{ fontSize:11.5, fontWeight:700, color: challenge.completado ? 'var(--t-accent)' : 'var(--t-muted)', flexShrink:0, fontVariantNumeric:'tabular-nums' }}>
-          +{Math.round(challenge.puntos ?? 0)}
+          +{fmtNum(challenge.puntos ?? 0)}
         </span>
       </button>
       {error && <div style={{ fontSize:11, color:'#F87171', paddingLeft:12 }}>{error}</div>}
