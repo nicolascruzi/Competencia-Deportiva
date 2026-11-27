@@ -2445,7 +2445,6 @@ function CompetenciaFinalizadaPanel({ competencia, isAdmin, otrasCompetenciasEnC
 
   const tieneEquipos = (rankingEquipos?.length ?? 0) > 0;
   const cargando = ranking === null || rankingEquipos === null;
-  const ganador = ranking?.[0] ?? null;
 
   return (
     <div style={{ padding:'20px 16px 32px', maxWidth:480, margin:'0 auto' }}>
@@ -2459,11 +2458,6 @@ function CompetenciaFinalizadaPanel({ competencia, isAdmin, otrasCompetenciasEnC
         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:25, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.1 }}>
           {competencia.nombre}
         </div>
-        {!cargando && ganador && (
-          <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:8 }}>
-            🥇 <strong style={{ color:'var(--t-text)' }}>{ganador.nombre_display}</strong> se quedó con el primer lugar
-          </div>
-        )}
       </div>
 
       {tieneEquipos && (
