@@ -2362,7 +2362,7 @@ function ColumnaPodio({ p, pos, tipo }) {
         {nombre}
       </div>
       <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:800, fontSize:15, color:'var(--t-accent)', marginBottom:8 }}>
-        {Math.round(p.puntos)}<span style={{ fontSize:9, color:'var(--t-muted)', fontWeight:600 }}> pts</span>
+        {Math.round(p.puntos).toLocaleString('es')}<span style={{ fontSize:9, color:'var(--t-muted)', fontWeight:600 }}> pts</span>
       </div>
       <div style={{ width:'100%', height:alturaPlataforma, borderRadius:'10px 10px 0 0', background:haloColor, border:`1.5px solid ${borderColor}`, borderBottom:'none', display:'flex', alignItems:'flex-start', justifyContent:'center', paddingTop:8 }}>
         <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, color:'var(--t-muted)' }}>{pos + 1}</span>
@@ -2394,7 +2394,7 @@ function FilaRestoFinal({ p, pos }) {
         {nombre}
       </span>
       <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:14, color:'var(--t-text)' }}>
-        {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
+        {Math.round(p.puntos).toLocaleString('es')} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
       </span>
     </div>
   );
