@@ -373,6 +373,18 @@ router.get('/:id', authMiddleware, async (req, res) => {
       };
     });
 
+    // Finalizadas recientes (mismo criterio que GET /grupos): necesarias en el frontend para poder
+    // caer a la más reciente como competencia activa por defecto cuando no hay ninguna en_curso.
+    const { rows: finalizadasRecientes } = await pool.query(
+      `SELECT c.*, TO_CHAR(c.fecha_inicio,'YYYY-MM-DD') AS fecha_inicio, TO_CHAR(c.fecha_fin,'YYYY-MM-DD') AS fecha_fin
+       FROM competencias c WHERE c.grupo_id=$1 AND c.estado='finalizada' ORDER BY c.created_at DESC LIMIT 5`,
+      [id]
+    );
+    const { rows: [{ total: totalFinalizadas }] } = await pool.query(
+      `SELECT COUNT(*)::int AS total FROM competencias WHERE grupo_id=$1 AND estado='finalizada'`,
+      [id]
+    );
+
     res.json({
       ...grupo,
       participantes: participantesRaw,
@@ -380,6 +392,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
       mi_equipo_id: part.equipo_id,
       soy_admin: await esAdminDeGrupo(id, req.user.id),
       competencias_en_curso: competenciasEnCursoConExtra,
+      competencias_finalizadas_recientes: finalizadasRecientes,
+      total_competencias_finalizadas: totalFinalizadas,
     });
   } catch (err) {
     console.error(err);
