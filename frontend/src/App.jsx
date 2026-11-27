@@ -121,7 +121,15 @@ function AppShell() {
     return saved ? parseInt(saved) : null;
   });
   const competenciasEnCurso = grupoActivo?.competencias_en_curso ?? [];
-  const competenciaActiva = competenciasEnCurso.find(c => c.id === competenciaSeleccionadaId) ?? competenciasEnCurso[0] ?? null;
+  // Si no hay ninguna competencia en curso (todas finalizaron), caer a la finalizada más reciente del
+  // grupo en vez de dejar todo en "sin competencia" — CompetenciaDetalle detecta fecha_fin < hoy y
+  // muestra el panel de resultados finales automáticamente, así el usuario igual ve algo útil.
+  const competenciasFinalizadas = grupoActivo?.competencias_finalizadas_recientes ?? [];
+  const competenciaActiva = competenciasEnCurso.find(c => c.id === competenciaSeleccionadaId)
+    ?? competenciasEnCurso[0]
+    ?? competenciasFinalizadas.find(c => c.id === competenciaSeleccionadaId)
+    ?? competenciasFinalizadas[0]
+    ?? null;
 
   function selectCompetencia(id) {
     setCompetenciaSeleccionadaId(id);

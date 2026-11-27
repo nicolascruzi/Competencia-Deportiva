@@ -2335,61 +2335,139 @@ function EmptyState({ icon, title, text }) {
     </div>
   );
 }
+// Fila del top-3, con medalla, foto y un halo dorado/plata/bronce — reservada para el podio.
+function FilaPodioFinal({ p, pos, tipo }) {
+  const medal = ['🥇', '🥈', '🥉'][pos];
+  const haloColor = ['rgba(250,204,21,0.14)', 'rgba(203,213,225,0.12)', 'rgba(217,119,6,0.12)'][pos];
+  const borderColor = ['rgba(250,204,21,0.45)', 'rgba(203,213,225,0.35)', 'rgba(217,119,6,0.35)'][pos];
+  const nombre = tipo === 'equipo' ? p.nombre : p.nombre_display;
+  const sub = tipo === 'equipo' ? `${p.integrantes} integrante${p.integrantes !== 1 ? 's' : ''}` : null;
+
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderRadius:16, background:haloColor, border:`1.5px solid ${borderColor}` }}>
+      <span style={{ fontSize:26, flexShrink:0, lineHeight:1 }}>{medal}</span>
+      {tipo === 'persona' && (
+        <div style={{ width:38, height:38, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+          {p.foto_perfil_url
+            ? <img src={p.foto_perfil_url} alt={nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+            : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-accent)' }}>{nombre?.charAt(0).toUpperCase()}</span>
+          }
+        </div>
+      )}
+      {tipo === 'equipo' && (
+        <div style={{ width:38, height:38, borderRadius:12, background: p.color || 'var(--t-accent)', flexShrink:0, opacity:0.85 }} />
+      )}
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.1 }}>
+          {nombre}
+        </div>
+        {sub && <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>{sub}</div>}
+      </div>
+      <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:800, fontSize:20, color:'var(--t-accent)', flexShrink:0 }}>
+        {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
+      </span>
+    </div>
+  );
+}
+
+// Fila del resto del ranking (4° en adelante) — más compacta que el podio.
+function FilaRestoFinal({ p, pos, tipo }) {
+  const nombre = tipo === 'equipo' ? p.nombre : p.nombre_display;
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background:'var(--t-surface2)', border:'1px solid var(--t-dim)' }}>
+      <span style={{ width:20, textAlign:'center', fontSize:13, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, color:'var(--t-muted)', flexShrink:0 }}>
+        {pos + 1}
+      </span>
+      {tipo === 'equipo' && (
+        <div style={{ width:16, height:16, borderRadius:5, background: p.color || 'var(--t-accent)', flexShrink:0, opacity:0.85 }} />
+      )}
+      <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+        {nombre}
+      </span>
+      <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:14, color:'var(--t-text)' }}>
+        {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
+      </span>
+    </div>
+  );
+}
+
+function RankingFinalLista({ datos, tipo }) {
+  if (!datos.length) {
+    return <EmptyState icon="🏁" title="Sin registros" text={tipo === 'equipo' ? 'No hay equipos configurados.' : 'Nadie cargó actividades en esta competencia.'} />;
+  }
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+      {datos.slice(0, 3).map((p, i) => <FilaPodioFinal key={p.id} p={p} pos={i} tipo={tipo} />)}
+      {datos.slice(3).map((p, i) => <FilaRestoFinal key={p.id} p={p} pos={i + 3} tipo={tipo} />)}
+    </div>
+  );
+}
+
+const TABS_RESULTADO_FINAL = [
+  { id: 'general', label: 'Individual' },
+  { id: 'equipos', label: 'Equipos' },
+];
+
 // Pantalla que reemplaza el Ranking normal cuando la competencia ya pasó su fecha_fin (haya o no
 // sido cerrada manualmente por el admin) — avisa que terminó, muestra el resumen final de
-// posiciones, e invita a pasarse a otra competencia en curso del mismo grupo (o a crear una, si
-// no hay ninguna y el usuario es admin).
+// posiciones (individual y por equipos), e invita a pasarse a otra competencia en curso del mismo
+// grupo (o a crear una, si no hay ninguna y el usuario es admin).
 function CompetenciaFinalizadaPanel({ competencia, isAdmin, otrasCompetenciasEnCurso, onSelectOtraCompetencia, onCrearCompetencia }) {
   const [ranking, setRanking] = useState(null);
+  const [rankingEquipos, setRankingEquipos] = useState(null);
+  const [sub, setSub] = useState('general');
 
   useEffect(() => {
     let cancelado = false;
-    getRankingComp(competencia.id)
-      .then(rows => { if (!cancelado) setRanking(Array.isArray(rows) ? rows : []); })
-      .catch(() => { if (!cancelado) setRanking([]); });
+    Promise.all([
+      getRankingComp(competencia.id).catch(() => []),
+      getRankingEquiposComp(competencia.id).catch(() => []),
+    ]).then(([rows, equiposRows]) => {
+      if (cancelado) return;
+      setRanking(Array.isArray(rows) ? rows : []);
+      setRankingEquipos(Array.isArray(equiposRows) ? equiposRows : []);
+    });
     return () => { cancelado = true; };
   }, [competencia.id]);
 
-  const podio = ['🥇', '🥈', '🥉'];
+  const tieneEquipos = (rankingEquipos?.length ?? 0) > 0;
+  const cargando = ranking === null || rankingEquipos === null;
+  const ganador = ranking?.[0] ?? null;
 
   return (
     <div style={{ padding:'20px 16px 32px', maxWidth:480, margin:'0 auto' }}>
-      <div style={{ textAlign:'center', marginBottom:24 }}>
-        <div style={{ fontSize:40, marginBottom:8 }}>🏁</div>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:24, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.1 }}>
-          {competencia.nombre} terminó
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes floatTrophy{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}`}</style>
+
+      <div style={{ textAlign:'center', marginBottom:22, padding:'22px 16px', borderRadius:20, background:'linear-gradient(180deg, rgba(var(--t-accent-r),0.12), rgba(var(--t-accent-r),0.02))', border:'1px solid rgba(var(--t-accent-r),0.2)' }}>
+        <div style={{ fontSize:42, marginBottom:6, animation:'floatTrophy 2.4s ease-in-out infinite' }}>🏆</div>
+        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', marginBottom:4 }}>
+          Competencia finalizada
         </div>
-        <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:6 }}>
-          El plazo de esta competencia ya pasó. Acá quedan los resultados finales.
+        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:25, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.1 }}>
+          {competencia.nombre}
         </div>
+        {!cargando && ganador && (
+          <div style={{ fontSize:13, color:'var(--t-muted)', marginTop:8 }}>
+            🥇 <strong style={{ color:'var(--t-text)' }}>{ganador.nombre_display}</strong> se quedó con el primer lugar
+          </div>
+        )}
       </div>
 
-      <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--t-muted)', marginBottom:8 }}>
-        Resultados finales
-      </div>
-      {ranking === null ? (
+      {tieneEquipos && (
+        <div style={{ margin:'0 -16px 14px' }}>
+          <SubTabs tabs={TABS_RESULTADO_FINAL} active={sub} onChange={setSub} />
+        </div>
+      )}
+
+      {cargando ? (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'30px 0', color:'var(--t-muted)', fontSize:13, gap:8 }}>
           <div style={{ width:14, height:14, border:'2px solid var(--t-dim)', borderTopColor:'var(--t-accent)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
           Cargando resultados…
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
-      ) : ranking.length === 0 ? (
-        <EmptyState icon="🏁" title="Sin registros" text="Nadie cargó actividades en esta competencia." />
       ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:28 }}>
-          {ranking.map((p, i) => (
-            <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background: i === 0 ? 'rgba(var(--t-accent-r),0.1)' : 'var(--t-surface2)', border: i === 0 ? '1px solid rgba(var(--t-accent-r),0.3)' : '1px solid var(--t-dim)' }}>
-              <span style={{ width:22, textAlign:'center', fontSize: i < 3 ? 16 : 13, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, color:'var(--t-muted)', flexShrink:0 }}>
-                {podio[i] ?? i + 1}
-              </span>
-              <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                {p.nombre_display}
-              </span>
-              <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:700, fontSize:15, color: i === 0 ? 'var(--t-accent)' : 'var(--t-text)' }}>
-                {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
-              </span>
-            </div>
-          ))}
+        <div style={{ marginBottom:28 }}>
+          {(!tieneEquipos || sub === 'general') && <RankingFinalLista datos={ranking} tipo="persona" />}
+          {tieneEquipos && sub === 'equipos' && <RankingFinalLista datos={rankingEquipos} tipo="equipo" />}
         </div>
       )}
 
