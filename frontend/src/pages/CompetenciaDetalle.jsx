@@ -2341,20 +2341,20 @@ function EmptyState({ icon, title, text }) {
 // que para `tipo==='equipo'` no se muestra ningún avatar/ícono, solo la medalla y el nombre.
 function ColumnaPodio({ p, pos, tipo }) {
   const medal = ['🥇', '🥈', '🥉'][pos];
-  const alturaPlataforma = [86, 110, 68][pos];
-  const haloColor = ['rgba(203,213,225,0.12)', 'rgba(250,204,21,0.14)', 'rgba(217,119,6,0.12)'][pos];
-  const borderColor = ['rgba(203,213,225,0.35)', 'rgba(250,204,21,0.45)', 'rgba(217,119,6,0.35)'][pos];
-  const avatarSize = pos === 1 ? 52 : 42;
+  const alturaPlataforma = [110, 86, 68][pos];
+  const haloColor = ['rgba(250,204,21,0.14)', 'rgba(203,213,225,0.12)', 'rgba(217,119,6,0.12)'][pos];
+  const borderColor = ['rgba(250,204,21,0.45)', 'rgba(203,213,225,0.35)', 'rgba(217,119,6,0.35)'][pos];
+  const avatarSize = pos === 0 ? 52 : 42;
   const nombre = tipo === 'equipo' ? p.nombre : p.nombre_display;
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', flex:1, minWidth:0 }}>
-      <span style={{ fontSize: pos === 1 ? 28 : 22, lineHeight:1, marginBottom:6 }}>{medal}</span>
+      <span style={{ fontSize: pos === 0 ? 28 : 22, lineHeight:1, marginBottom:6 }}>{medal}</span>
       {tipo === 'persona' && (
         <div style={{ width:avatarSize, height:avatarSize, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0, marginBottom:8 }}>
           {p.foto_perfil_url
             ? <img src={p.foto_perfil_url} alt={nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-            : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize: pos === 1 ? 20 : 16, color:'var(--t-accent)' }}>{nombre?.charAt(0).toUpperCase()}</span>
+            : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize: pos === 0 ? 20 : 16, color:'var(--t-accent)' }}>{nombre?.charAt(0).toUpperCase()}</span>
           }
         </div>
       )}
