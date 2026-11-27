@@ -2336,51 +2336,60 @@ function EmptyState({ icon, title, text }) {
   );
 }
 // Fila del top-3, con medalla, foto y un halo dorado/plata/bronce — reservada para el podio.
-function FilaPodioFinal({ p, pos, tipo }) {
+// Una columna del podio (2º-1º-3º) — altura y tamaños decrecen según el lugar, con el 1er lugar
+// siempre al centro y más alto, como un pódium olímpico. Los equipos no tienen foto de perfil, así
+// que para `tipo==='equipo'` no se muestra ningún avatar/ícono, solo la medalla y el nombre.
+function ColumnaPodio({ p, pos, tipo }) {
   const medal = ['🥇', '🥈', '🥉'][pos];
-  const haloColor = ['rgba(250,204,21,0.14)', 'rgba(203,213,225,0.12)', 'rgba(217,119,6,0.12)'][pos];
-  const borderColor = ['rgba(250,204,21,0.45)', 'rgba(203,213,225,0.35)', 'rgba(217,119,6,0.35)'][pos];
+  const alturaPlataforma = [86, 110, 68][pos];
+  const haloColor = ['rgba(203,213,225,0.12)', 'rgba(250,204,21,0.14)', 'rgba(217,119,6,0.12)'][pos];
+  const borderColor = ['rgba(203,213,225,0.35)', 'rgba(250,204,21,0.45)', 'rgba(217,119,6,0.35)'][pos];
+  const avatarSize = pos === 1 ? 52 : 42;
   const nombre = tipo === 'equipo' ? p.nombre : p.nombre_display;
-  const sub = tipo === 'equipo' ? `${p.integrantes} integrante${p.integrantes !== 1 ? 's' : ''}` : null;
 
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderRadius:16, background:haloColor, border:`1.5px solid ${borderColor}` }}>
-      <span style={{ fontSize:26, flexShrink:0, lineHeight:1 }}>{medal}</span>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flex:1, minWidth:0 }}>
+      <span style={{ fontSize: pos === 1 ? 28 : 22, lineHeight:1, marginBottom:6 }}>{medal}</span>
       {tipo === 'persona' && (
-        <div style={{ width:38, height:38, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+        <div style={{ width:avatarSize, height:avatarSize, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0, marginBottom:8 }}>
           {p.foto_perfil_url
             ? <img src={p.foto_perfil_url} alt={nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-            : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:16, color:'var(--t-accent)' }}>{nombre?.charAt(0).toUpperCase()}</span>
+            : <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize: pos === 1 ? 20 : 16, color:'var(--t-accent)' }}>{nombre?.charAt(0).toUpperCase()}</span>
           }
         </div>
       )}
-      {tipo === 'equipo' && (
-        <div style={{ width:38, height:38, borderRadius:12, background: p.color || 'var(--t-accent)', flexShrink:0, opacity:0.85 }} />
-      )}
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:17, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.1 }}>
-          {nombre}
-        </div>
-        {sub && <div style={{ fontSize:11, color:'var(--t-muted)', marginTop:2 }}>{sub}</div>}
+      <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:13, textTransform:'uppercase', letterSpacing:'0.02em', color:'var(--t-text)', textAlign:'center', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', width:'100%', marginBottom:4 }}>
+        {nombre}
       </div>
-      <span style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:800, fontSize:20, color:'var(--t-accent)', flexShrink:0 }}>
-        {Math.round(p.puntos)} <span style={{ fontSize:10, color:'var(--t-muted)', fontWeight:600 }}>pts</span>
-      </span>
+      <div style={{ fontFamily:"'JetBrains Mono', monospace", fontWeight:800, fontSize:15, color:'var(--t-accent)', marginBottom:8 }}>
+        {Math.round(p.puntos)}<span style={{ fontSize:9, color:'var(--t-muted)', fontWeight:600 }}> pts</span>
+      </div>
+      <div style={{ width:'100%', height:alturaPlataforma, borderRadius:'10px 10px 0 0', background:haloColor, border:`1.5px solid ${borderColor}`, borderBottom:'none', display:'flex', alignItems:'flex-start', justifyContent:'center', paddingTop:8 }}>
+        <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:20, color:'var(--t-muted)' }}>{pos + 1}</span>
+      </div>
     </div>
   );
 }
 
-// Fila del resto del ranking (4° en adelante) — más compacta que el podio.
-function FilaRestoFinal({ p, pos, tipo }) {
-  const nombre = tipo === 'equipo' ? p.nombre : p.nombre_display;
+function PodioFinal({ top3, tipo }) {
+  // Orden visual 2º-1º-3º, aunque top3 llega ordenado 1º-2º-3º
+  const orden = [top3[1], top3[0], top3[2]].filter(Boolean);
+  const posOriginal = orden.map(p => top3.indexOf(p));
+  return (
+    <div style={{ display:'flex', alignItems:'flex-end', gap:8, marginBottom:7 }}>
+      {orden.map((p, i) => <ColumnaPodio key={p.id} p={p} pos={posOriginal[i]} tipo={tipo} />)}
+    </div>
+  );
+}
+
+// Fila del resto del ranking (4° en adelante) — lista compacta debajo del podio.
+function FilaRestoFinal({ p, pos }) {
+  const nombre = p.nombre_display ?? p.nombre;
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background:'var(--t-surface2)', border:'1px solid var(--t-dim)' }}>
       <span style={{ width:20, textAlign:'center', fontSize:13, fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, color:'var(--t-muted)', flexShrink:0 }}>
         {pos + 1}
       </span>
-      {tipo === 'equipo' && (
-        <div style={{ width:16, height:16, borderRadius:5, background: p.color || 'var(--t-accent)', flexShrink:0, opacity:0.85 }} />
-      )}
       <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:600, color:'var(--t-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
         {nombre}
       </span>
@@ -2396,9 +2405,13 @@ function RankingFinalLista({ datos, tipo }) {
     return <EmptyState icon="🏁" title="Sin registros" text={tipo === 'equipo' ? 'No hay equipos configurados.' : 'Nadie cargó actividades en esta competencia.'} />;
   }
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
-      {datos.slice(0, 3).map((p, i) => <FilaPodioFinal key={p.id} p={p} pos={i} tipo={tipo} />)}
-      {datos.slice(3).map((p, i) => <FilaRestoFinal key={p.id} p={p} pos={i + 3} tipo={tipo} />)}
+    <div>
+      <PodioFinal top3={datos.slice(0, 3)} tipo={tipo} />
+      {datos.length > 3 && (
+        <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+          {datos.slice(3).map((p, i) => <FilaRestoFinal key={p.id} p={p} pos={i + 3} />)}
+        </div>
+      )}
     </div>
   );
 }
@@ -2440,7 +2453,7 @@ function CompetenciaFinalizadaPanel({ competencia, isAdmin, otrasCompetenciasEnC
 
       <div style={{ textAlign:'center', marginBottom:22, padding:'22px 16px', borderRadius:20, background:'linear-gradient(180deg, rgba(var(--t-accent-r),0.12), rgba(var(--t-accent-r),0.02))', border:'1px solid rgba(var(--t-accent-r),0.2)' }}>
         <div style={{ fontSize:42, marginBottom:6, animation:'floatTrophy 2.4s ease-in-out infinite' }}>🏆</div>
-        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.14em', color:'var(--t-accent)', marginBottom:4 }}>
+        <div style={{ fontSize:9, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--t-muted)', marginBottom:4, opacity:0.8 }}>
           Competencia finalizada
         </div>
         <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:25, textTransform:'uppercase', color:'var(--t-text)', lineHeight:1.1 }}>
