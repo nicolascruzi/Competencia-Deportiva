@@ -314,17 +314,25 @@ export default function Nav({ onNewActivity, competenciaActiva, competenciasEnCu
                         </button>
                       );
                     })}
-                    {finalizadas.map(c => (
-                      <button key={c.id}
-                        onClick={() => { onSelectGrupo({ ...g, competencias_en_curso: enCurso }); setSelectorOpen(false); onHistorial?.(g); }}
-                        style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'7px 14px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
-                        <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--t-dim2)', flexShrink:0 }} />
-                        <span style={{ flex:1, fontSize:13.5, fontWeight:500, color:'var(--t-muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                          {c.nombre}
-                        </span>
-                        <span style={{ fontSize:9.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-muted)', flexShrink:0 }}>Finalizada</span>
-                      </button>
-                    ))}
+                    {finalizadas.map(c => {
+                      const isSel = isGrupoActivo && competenciaActiva?.id === c.id;
+                      return (
+                        <button key={c.id}
+                          onClick={() => {
+                            if (!isGrupoActivo) onSelectGrupo({ ...g, competencias_en_curso: enCurso }, c.id);
+                            else onSelectCompetenciaActiva(c.id);
+                            setSelectorOpen(false);
+                          }}
+                          style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'7px 14px', background: isSel ? 'rgba(var(--t-accent-r),0.07)' : 'transparent', border:'none', cursor:'pointer', textAlign:'left', WebkitTapHighlightColor:'transparent' }}>
+                          <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--t-dim2)', flexShrink:0 }} />
+                          <span style={{ flex:1, fontSize:13.5, fontWeight:500, color: isSel ? 'var(--t-accent)' : 'var(--t-muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                            {c.nombre}
+                          </span>
+                          <span style={{ fontSize:9.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', color:'var(--t-muted)', flexShrink:0 }}>Finalizada</span>
+                          {isSel && <span style={{ color:'var(--t-accent)', flexShrink:0 }}><IconCheck /></span>}
+                        </button>
+                      );
+                    })}
                     {(hayMasFinalizadas || finalizadas.length > 0) && (
                       <button
                         onClick={() => {
