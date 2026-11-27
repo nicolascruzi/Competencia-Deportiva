@@ -2348,7 +2348,7 @@ function ColumnaPodio({ p, pos, tipo }) {
   const nombre = tipo === 'equipo' ? p.nombre : p.nombre_display;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flex:1, minWidth:0 }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', flex:1, minWidth:0 }}>
       <span style={{ fontSize: pos === 1 ? 28 : 22, lineHeight:1, marginBottom:6 }}>{medal}</span>
       {tipo === 'persona' && (
         <div style={{ width:avatarSize, height:avatarSize, borderRadius:'50%', background:'rgba(var(--t-accent-r),0.12)', border:'1.5px solid rgba(var(--t-accent-r),0.2)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0, marginBottom:8 }}>
